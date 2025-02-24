@@ -1,0 +1,23 @@
+<!-- Navbar e Sidebar, visíveis apenas quando autenticado -->
+<div *ngIf="isAuthenticated(); else loginPage">
+  <!-- Navbar -->
+  <app-navbar (sidebarToggle)="toggleSidebar()"></app-navbar>
+
+  <!-- Conteúdo Principal -->
+  <div class="main-container" [class.sidebar-closed]="isSidebarClosed">
+    <router-outlet></router-outlet>
+  </div>
+</div>
+
+<!-- Página de Login ou conteúdo não autenticado -->
+<ng-template #loginPage>
+  <router-outlet></router-outlet>
+</ng-template>
+<ngx-spinner
+bdColor = "rgba(0, 0, 0, 0.8)"
+size = "medium"
+color = "#fff"
+type = "timer"
+[fullScreen] = "true">
+<p style="color: white" > Processando, por favor aguarde... </p>
+</ngx-spinner>

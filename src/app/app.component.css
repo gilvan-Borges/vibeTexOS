@@ -1,0 +1,23 @@
+.main-container {
+    margin-left: 250px; /* Espaço para o sidebar */
+    margin-top: 56px; /* Espaço para a navbar */
+    padding: 20px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Quando o sidebar estiver fechado */
+.main-container.sidebar-closed {
+    margin-left: 0 !important; /* Somente quando o sidebar estiver fechado */
+}
+
+/* Garantir que em telas pequenas o sidebar não cause problema */
+@media (max-width: 768px) {
+    .main-container {
+        margin-left: 0; /* Em telas pequenas, o sidebar não empurra o conteúdo */
+    }
+}
+@media (max-width: 600px) {
+    .main-container {
+        margin-top: 80px; /* Em telas pequenas, o sidebar não empurra o conteúdo */
+    }
+}

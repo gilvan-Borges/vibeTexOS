@@ -1,0 +1,77 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2>Horas Trabalhadas</h2>
+    </div>
+
+    <div class="filters">
+      <!-- Escolher Data Inicial e Data Final -->
+      <label for="dataInicial">Data Inicial:</label>
+      <input id="dataInicial" type="date" [(ngModel)]="dataInicial">
+
+      <label for="dataFinal">Data Final:</label>
+      <input id="dataFinal" type="date" [(ngModel)]="dataFinal">
+
+      <!-- Botão para filtrar pelo intervalo selecionado -->
+      <button (click)="filtrarPorPeriodo()">Filtrar</button>
+
+      <!-- Botão para filtrar pelo mês atual -->
+      <button (click)="filtrarMesAtual()">Mês Atual</button><br>
+    </div>
+
+    <!-- Mensagem de alerta -->
+    <div *ngIf="mensagemSemRegistros" class="alert alert-warning">
+      {{ mensagemSemRegistros }}
+    </div>
+
+    <!-- Tabela de Horas Trabalhadas com rolagem horizontal -->
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Data</th>
+              <th>Início</th>
+              <th>Início da Pausa</th>
+              <th>Fim da Pausa</th>
+              <th>Fim</th>
+              <th>Total</th>
+              <th>Hora Devida</th>
+              <th>Hora Extra</th>
+              <th>Foto Início</th>
+              <th>Foto Fim</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let hora of horasFiltradas">
+              <td>
+                <img [src]="hora.fotoPerfil" alt="Foto do Técnico" class="foto-perfil" style="width: 40px; height: 40px; border-radius: 50%;">
+              </td>
+              <td>{{ hora.data }}</td>
+              <td>{{ hora.inicio }}</td>
+              <td>{{ hora.inicioPausa }}</td>
+              <td>{{ hora.fimPausa }}</td>
+              <td>{{ hora.fim }}</td>
+              <td>{{ hora.total }}h</td>
+              <td [ngClass]="{ 'bg-red': hora.horaDevida > 0 }">{{ hora.horaDevida }}h</td>
+              <td [ngClass]="{ 'bg-yellow': hora.horaExtra > 0 }">{{ hora.horaExtra }}h</td>
+              <td>
+                <img *ngIf="hora.fotoInicio" [src]="hora.fotoInicio" alt="Foto Início" style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;" (click)="abrirImagem(hora.fotoInicio)">
+                <span *ngIf="!hora.fotoInicio">-</span>
+              </td>
+              <td>
+                <img *ngIf="hora.fotoFim" [src]="hora.fotoFim" alt="Foto Fim" style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;" (click)="abrirImagem(hora.fotoFim)">
+                <span *ngIf="!hora.fotoFim">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <strong>Banco de Horas (Período Selecionado):</strong> {{ bancoDeHoras.toFixed(2) }}h
+    </div>
+  </div>
+</div>

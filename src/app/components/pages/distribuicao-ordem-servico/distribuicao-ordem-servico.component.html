@@ -1,0 +1,125 @@
+<!-- src/app/components/pages/distribuicao-ordem-servico/distribuicao-ordem-servico.component.html -->
+<div class="container py-5">
+  <!-- Formulário Nova Ordem de Serviço -->
+  <div class="card mb-5 shadow-lg border-0 rounded-3">
+    <div class="card-header bg-primary text-white py-3">
+      <h4 class="card-title mb-0">Nova Ordem de Serviço</h4>
+    </div>
+    <div class="card-body p-4">
+      <form [formGroup]="serviceForm" (ngSubmit)="onSubmit()">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="codigoOS" class="form-label fw-bold">Código O.S</label>
+            <input type="text" class="form-control" id="codigoOS" formControlName="codigoOS" 
+                   [class.is-invalid]="serviceForm.get('codigoOS')?.touched && serviceForm.get('codigoOS')?.invalid">
+            <div class="invalid-feedback">{{getErrorMessage('codigoOS')}}</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="cliente" class="form-label fw-bold">Cliente</label>
+            <select class="form-select" id="cliente" formControlName="cliente"
+                    [class.is-invalid]="serviceForm.get('cliente')?.touched && serviceForm.get('cliente')?.invalid">
+              <option value="">Selecione um cliente</option>
+              <option *ngFor="let cliente of clientes" [value]="cliente.id">{{cliente.nome}}</option>
+            </select>
+            <div class="invalid-feedback">{{getErrorMessage('cliente')}}</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="tipoServico" class="form-label fw-bold">Tipo de Serviço</label>
+            <input type="text" class="form-control" id="tipoServico" formControlName="tipoServico"
+                   [class.is-invalid]="serviceForm.get('tipoServico')?.touched && serviceForm.get('tipoServico')?.invalid">
+            <div class="invalid-feedback">{{getErrorMessage('tipoServico')}}</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="colaborador" class="form-label fw-bold">Colaborador (Opcional)</label>
+            <select class="form-select" id="colaborador" formControlName="colaborador">
+              <option value="">Não atribuído</option>
+              <option *ngFor="let colab of colaboradores" [value]="colab.id">{{colab.nome}}</option>
+            </select>
+            <div class="invalid-feedback">{{getErrorMessage('colaborador')}}</div>
+          </div>
+
+          <div class="col-12">
+            <label for="endereco" class="form-label fw-bold">Endereço</label>
+            <input type="text" class="form-control" id="endereco" formControlName="endereco" readonly>
+            <div class="invalid-feedback">{{getErrorMessage('endereco')}}</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="data" class="form-label fw-bold">Data</label>
+            <input type="date" class="form-control" id="data" formControlName="data"
+                   [class.is-invalid]="serviceForm.get('data')?.touched && serviceForm.get('data')?.invalid"
+                   [min]="minDate">
+            <div class="invalid-feedback">{{getErrorMessage('data')}}</div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mt-4">
+          <button type="button" class="btn btn-outline-secondary px-4" (click)="onCancel()" [disabled]="isLoading">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary px-4" [disabled]="isLoading">
+            Atribuir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Listagem de Ordens de Serviço em Tabela -->
+  <div class="orders-section">
+    <h3 class="mb-4 fw-bold text-dark" style="border-bottom: 2px solid #007bff;">Ordens de Serviço Atribuídas</h3>
+    <div class="table-responsive">
+      <table class="table modern-table shadow-lg rounded-3">
+        <thead class="bg-gradient-blue text-white">
+          <tr>
+            <th scope="col" class="py-3">Código O.S.</th>
+            <th scope="col" class="py-3">Cliente</th>
+            <th scope="col" class="py-3">Endereço</th>
+            <th scope="col" class="py-3">Colaborador</th>
+            <th scope="col" class="py-3">Tipo de Serviço</th>
+            <th scope="col" class="py-3">Data</th>
+            <th scope="col" class="py-3">Status</th>
+            <th scope="col" class="py-3 text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ordem of ordensServico" class="align-middle" [ngClass]="{
+            'bg-yellow-soft': ordem.status === 'pendente',
+            'bg-red-soft': ordem.status === 'cancelado'
+          }">
+            <td class="py-3">{{ ordem.codigoOS }}</td>
+            <td class="py-3">{{ ordem.cliente }}</td>
+            <td class="py-3">{{ ordem.endereco }}</td>
+            <td class="py-3" [ngClass]="{'blink-yellow': !ordem.colaborador}">{{ ordem.colaborador || 'Não atribuído' }}</td>
+            <td class="py-3">{{ ordem.tipoServico }}</td> <!-- Corrigido para ordem.tipoServico -->
+            <td class="py-3">{{ ordem.data | date:'dd/MM/yyyy' }}</td>
+            <td class="py-3">
+              <span class="badge bg-light text-dark rounded-pill">{{ ordem.status }}</span>
+            </td>
+            <td class="py-3 text-center">
+              <div class="d-flex justify-content-center gap-2">
+                <button class="btn btn-sm btn-primary rounded-pill" (click)="atualizarOrdem(ordem)" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-warning rounded-pill" (click)="cancelarOrdem(ordem)" title="Cancelar">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-danger rounded-pill" (click)="excluirOrdem(ordem)" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noOrders>
+      <div class="alert alert-info text-center py-4">
+        <i class="bi bi-info-circle me-2"></i> Nenhuma ordem de serviço atribuída
+      </div>
+    </ng-template>
+  </div>
+</div>

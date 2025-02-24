@@ -1,0 +1,118 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="conteudo">
+      <div class="titulo"></div>
+      <h4>Editar Colaborador</h4>
+      <p>Altere os dados do colaborador.</p>
+      <div class="linha"></div>
+    </div>
+
+    <div class="card-body">
+      <div *ngIf="mensagem" class="alert-container">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          <strong>{{ mensagem }}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      </div>
+
+      <form [formGroup]="formulario" enctype="multipart/form-data" (ngSubmit)="onSubmit()">
+        <div class="row">
+          <div class="col-md-6">
+            <label for="nome" class="form-label">Nome completo:</label>
+            <input id="nome" type="text" class="form-control" formControlName="nome" />
+            <div class="text-danger" *ngIf="f['nome'].touched && f['nome'].invalid">
+              Por favor, informe o nome completo com pelo menos 8 caracteres.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="nomeusuario" class="form-label">Nome do usuario:</label>
+            <input id="nomeusuario" type="text" class="form-control" formControlName="userName" />
+            <div class="text-danger" *ngIf="f['userName'].touched && f['userName'].invalid">
+              Por favor, informe o nome do usuario com pelo menos 4 caracteres.
+            </div>
+          </div>
+
+          <div class="col-md-5">
+            <label for="cpf" class="form-label">CPF:</label>
+            <input id="cpf" type="text" class="form-control" formControlName="cpf" mask="000.000.000-00" />
+            <div class="text-danger" *ngIf="f['cpf'].touched && f['cpf'].invalid">
+              Por favor, informe o CPF com exatamente 11 dígitos.
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <label for="matricula" class="form-label">Matrícula:</label>
+            <input id="matricula" type="text" class="form-control" formControlName="matricula" />
+            <div class="text-danger" *ngIf="f['matricula'].touched && f['matricula'].invalid">
+              Por favor, informe a matrícula do usuário.
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label for="empresa" class="form-label">Empresa:</label>
+            <select id="empresa" class="form-select" formControlName="empresa">
+              <option value="">Selecione uma empresa</option>
+              <option *ngFor="let empresa of empresas" [value]="empresa.id">{{empresa.nome}}</option>
+            </select>
+            <div class="text-danger" *ngIf="f['empresa'].touched && f['empresa'].invalid">
+              Por favor, selecione uma empresa.
+            </div>
+          </div>
+
+          <div class="col-md-7">
+            <label for="email" class="form-label">Email do usuário:</label>
+            <input id="email" type="email" class="form-control" formControlName="email" />
+          </div>
+  
+          <div class="col-md-4">
+            <label class="form-label">Perfil do usuário:</label>
+            <select class="form-select" formControlName="role">
+              <option value="Colaborador">Colaborador</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="password" class="form-label">Senha de acesso:</label>
+            <input type="password" class="form-control" id="password" placeholder="Digite sua senha" formControlName="senha" />
+          </div>
+  
+          <div class="col-md-4">
+            <label for="password" class="form-label">Confirme a senha:</label>
+            <input type="password" class="form-control" id="password-confirm" placeholder="Confirme sua senha" formControlName="senhaConfirmacao" />
+          </div>
+  
+          <div class="col-md-12">
+            <label for="fotoPerfil" class="form-label">Foto de Perfil:</label>
+            <input id="fotoPerfil" type="file" class="form-control" (change)="onFileChange($event)" accept="image/*" />
+            <div class="text-muted">Escolha uma foto ou tire uma nova.</div>
+            <div *ngIf="fotoPreview" class="mt-3">
+              <img [src]="fotoPreview" alt="Preview da Foto" class="img-thumbnail" style="max-width: 150px; max-height: 150px;" />
+            </div>
+          </div>
+  
+          <div class="col-md-6 mt-1">
+            <label for="horaInicio" class="form-label">Hora Início de Serviço:</label>
+            <input id="horaInicio" type="time" class="form-control" formControlName="horaInicio" />
+          </div>
+          <div class="col-md-6 mt-1">
+            <label for="horaAlmocoInicio" class="form-label">Hora Início do Almoço:</label>
+            <input id="horaAlmocoInicio" type="time" class="form-control" formControlName="horaAlmocoInicio" />
+          </div>
+          <div class="col-md-6 mt-1">
+            <label for="horaAlmocoFim" class="form-label">Hora Fim do Almoço:</label>
+            <input id="horaAlmocoFim" type="time" class="form-control" formControlName="horaAlmocoFim" />
+          </div>
+          <div class="col-md-6">
+            <label for="horaFim" class="form-label">Hora Fim de Serviço:</label>
+            <input id="horaFim" type="time" class="form-control" formControlName="horaFim" />
+          </div>
+        </div>
+  
+        <div class="mt-3">
+          <input type="submit" class="btn btn-primary" value="Salvar Alterações" [disabled]="formulario.invalid" />
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

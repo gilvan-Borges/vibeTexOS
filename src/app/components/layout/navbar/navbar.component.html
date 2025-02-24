@@ -1,0 +1,145 @@
+<!-- Exemplo de componente de layout único (layout.component.html), 
+     assumindo que você tenha as variáveis e métodos no seu .ts correspondente. -->
+
+<body *ngIf="autenticado">
+  <!-- NAVBAR -->
+  <nav class="navbar fixed-top">
+    <div class="container-fluid">
+      <!-- Botão que abre/fecha o Sidebar -->
+      <button class="btn btn-x btn-outline-light sidebar-toggle" (click)="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Nome da empresa -->
+      <a class="navbar-brand ms-2">VibeTex</a>
+
+      <!-- Área do usuário na navbar -->
+      <div class="navbar-nav ms-auto d-flex align-items-center">
+        <span class="nav-link nav-link-navbar text-white">
+          <strong>{{ nomeUsuario }}</strong> ({{ role }})
+        </span>
+        <!-- Botão de Logout -->
+        <button (click)="logout()" class="btn-sair-navbar btn btn-outline-danger btn-sm ms-2">
+          Sair
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" [class.closed]="isSidebarClosed">
+    <div class="sidebar-content">
+      <!-- Informações do usuário (visíveis no desktop) -->
+      <div class="usuario">
+        <strong>{{ nomeUsuario }}</strong> ({{ role }})
+      </div>
+
+      <!-- Menu para Administrador -->
+      <a *ngIf="role === 'Administrador'" routerLink="pages/dashboard" class="nav-link">
+        <i class="fas fa-chart-line"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Dropdown de Gerenciamento de Usuários -->
+      <div *ngIf="role === 'Administrador'" class="nav-item custom-dropdown">
+        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdown1()">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <i class="fas fa-users-cog me-2"></i>
+              <span>Gerenciar Usuários</span>
+            </div>
+            <i class="fas fa-chevron-down transition-icon" [class.rotate]="isDropdownOpen"></i>
+          </div>
+        </button>
+        <div class="dropdown-content" [class.show]="isDropdownOpen">
+          <a class="dropdown-item" routerLink="/pages/usuarios">
+            <i class="fas fa-users me-2"></i>
+            <span>Lista de Usuários</span>
+          </a>
+          <a class="dropdown-item" routerLink="/pages/cadastrar-usuario">
+            <i class="fas fa-user-plus me-2"></i>
+            <span>Cadastrar Usuário</span>
+          </a>
+        </div>
+      </div>
+
+      <a *ngIf="role === 'Administrador'"  routerLink="/pages/cadastrar-cliente" class="nav-link">
+        <i class="fas fa-building me-2"></i>
+        <span>Clientes</span>
+      </a>
+
+      <a *ngIf="role === 'Administrador'"  routerLink="/pages/empresas" class="nav-link">
+        <i class="bi bi-building"></i>
+        <span>Empresas</span>
+      </a>
+
+      <a *ngIf="role === 'Administrador'" routerLink="/pages/horas-trabalhadas" class="nav-link">
+        <i class="fa-regular fa-clock"></i>
+        <span>Horas Trabalhadas</span>
+      </a>
+
+      <!-- Nova opção para Gerenciar Ordem de Serviço -->
+      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/gerenciar-ordem-servico" class="nav-link">
+        <i class="fas fa-tasks"></i>
+        <span>Gerenciar O.S.</span>
+      </a>
+
+      <!-- Menu para Colaborador -->
+      <a *ngIf="role === 'Colaborador'" [routerLink]="['/pages/horas-colaborador', usuarioId]" class="nav-link"
+        (click)="fecharSidebarSeMobile()">
+        <i class="fa-regular fa-clock"></i>
+        <span>Horas Trabalhadas</span>
+      </a>
+
+      <!-- Se expediente ativo ou pausa ativa -->
+      <ng-container *ngIf="role === 'Colaborador' && (expedienteAtivo || pausaAtiva)">
+        <!-- Registrar Pausa (se não iniciou pausa ainda) -->
+        <a *ngIf="expedienteAtivo && !timestamps['almoco-inicio']" [routerLink]="['/pages/expediente', usuarioId]"
+          class="nav-link" (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-paste"></i>
+          <span>Registrar Pausa</span>
+        </a>
+
+        <!-- O.S. em Andamento (se houver O.S. iniciada) -->
+        <a *ngIf="osEmAndamento" [routerLink]="['/pages/ordem-servico-exec', usuarioId]" class="nav-link"
+          (click)="fecharSidebarSeMobile()">
+          <i class="fa-solid fa-tools"></i>
+          <span>O.S. em Andamento</span>
+        </a>
+
+        <!-- O.S. Pendentes -->
+        <a [routerLink]="['/pages/ordem-servico/pendentes', usuarioId]" class="nav-link"
+          (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-clipboard"></i>
+          <span>O.S. Pendentes</span>
+        </a>
+
+        <!-- O.S. Realizadas -->
+        <a [routerLink]="['/pages/ordem-servico/realizadas', usuarioId]" class="nav-link"
+          (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-check-square"></i>
+          <span>O.S. Realizadas</span>
+        </a>
+
+        <!-- Finalizar Pausa (se iniciou pausa mas não finalizou) -->
+        <a *ngIf="timestamps['almoco-inicio'] && !timestamps['almoco-fim']"
+          [routerLink]="['/pages/expediente', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-pause-circle"></i>
+          <span>Finalizar Pausa</span>
+        </a>
+
+        <!-- Finalizar Expediente (se já finalizou a pausa) -->
+        <a *ngIf="timestamps['almoco-fim']" [routerLink]="['/pages/expediente', usuarioId]" class="nav-link"
+          (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-clock"></i>
+          <span>Finalizar Expediente</span>
+        </a>
+      </ng-container>
+
+      <!-- Botão de Logout dentro do sidebar (visível no mobile) -->
+      <button (click)="onLogout()" class="btn-sair-sidebar btn btn-outline-danger btn-sm ms-2">
+        Sair
+      </button>
+    </div>
+  </div>
+</body>

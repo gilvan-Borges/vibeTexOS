@@ -1,0 +1,155 @@
+<!-- Informações do Usuário -->
+<div class="user-info-container">
+  <div class="user-info-card">
+    <div class="info-section">
+      <div class="info-item">
+        <span class="info-label">👤 Colaborador:</span>
+        <div class="user-status-container">
+          <span class="info-value">{{ nomeUsuario }}</span>
+          <span
+            class="status-indicator"
+            [ngClass]="{'online': isOnline, 'offline': !isOnline}"
+          ></span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-label">🕒 Início do Expediente:</span>
+        <span class="info-value">
+          {{ horaInicioExpediente || 'Não iniciado' }}
+        </span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">🏁 Fim do Expediente:</span>
+        <span
+          class="info-value"
+          [ngClass]="{'status-em-andamento': !horaFimExpediente}"
+        >
+          {{ horaFimExpediente || 'Em andamento' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="date-filter-section">
+      <div class="date-filter">
+        <span class="info-label">📅 Selecione uma Data:</span>
+        <input
+          type="date"
+          [(ngModel)]="dataSelecionada"
+          (change)="filtrarPorData()"
+          class="date-input"
+          [max]="hoje"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mapas -->
+<div class="maps-container">
+  <div class="map-box">
+    <h3>Localização Atual</h3>
+    <div id="mapUserLocation" class="map"></div>
+    <div class="map-actions">
+      <button
+        class="btn-location"
+        (click)="verMinhaLocalizacao()"
+        title="Ver minha localização atual"
+      >
+        📍 Ver Minha Localização
+      </button>
+    </div>
+  </div>
+
+  <div class="map-box">
+    <h3>Local de Início do Expediente</h3>
+    <div id="mapShiftLocation" class="map"></div>
+  </div>
+</div>
+
+<!-- Contêiner para os trajetos -->
+<div class="routes-container">
+  <h3>🚗 Trajetos</h3>
+
+  <div class="table-responsive">
+    <!-- Mensagem quando não há dados -->
+    <div *ngIf="mensagemSemDados" class="alert alert-info text-center">
+      {{ mensagemSemDados }}
+    </div>
+
+    <!-- Tabela só é mostrada quando há dados -->
+    <table class="styled-table" *ngIf="!mensagemSemDados">
+      <!-- Legenda para acessibilidade -->
+      <caption>Lista de trajetos registrados</caption>
+      <thead>
+        <tr>
+          <th (click)="ordenarPor('enderecoInicio')">
+            Local de Início ⬍
+          </th>
+          <th (click)="ordenarPor('horaInicio')">
+            Hora Início ⬍
+          </th>
+          <th (click)="ordenarPor('enderecoFim')">
+            Local de Fim ⬍
+          </th>
+          <th (click)="ordenarPor('horaFim')">
+            Hora Fim ⬍
+          </th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let trajeto of trajetosFiltrados">
+          <td class="endereco-cell">
+            {{ trajeto.enderecoInicio }}
+            <button
+              *ngIf="trajeto.latitudeInicio"
+              class="btn-maps"
+              (click)="abrirGoogleMapsComCoordenadas(trajeto.latitudeInicio, trajeto.longitudeInicio)"
+              title="Ver no Google Maps"
+            >
+              🗺️
+            </button>
+            <span
+              *ngIf="trajeto.enderecoInicio === 'Carregando...'"
+              class="loading-indicator"
+            >
+              ⌛
+            </span>
+          </td>
+          <td class="hora-cell">
+            {{ trajeto.horaInicio || 'N/A' }}
+          </td>
+          <td class="endereco-cell">
+            {{ trajeto.enderecoFim }}
+            <button
+              *ngIf="trajeto.latitudeFim"
+              class="btn-maps"
+              (click)="abrirGoogleMapsComCoordenadas(trajeto.latitudeFim, trajeto.longitudeFim)"
+              title="Ver no Google Maps"
+            >
+              🗺️
+            </button>
+            <span
+              *ngIf="trajeto.enderecoFim === 'Carregando...'"
+              class="loading-indicator"
+            >
+              ⌛
+            </span>
+          </td>
+          <td class="hora-cell">
+            {{ trajeto.horaFim || 'N/A' }}
+          </td>
+          <td class="action-cell">
+            <button
+              class="btn-map"
+              (click)="verNoMapa(trajeto)"
+              title="Ver a rota no mapa"
+            >
+              ↝
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

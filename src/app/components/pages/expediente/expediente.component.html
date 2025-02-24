@@ -1,0 +1,95 @@
+<div *ngIf="registroExistente" class="alert alert-warning alert-dismissible fade show" role="alert">
+  <strong>Atenção!</strong> {{ mensagemRegistroExistente }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<div class="container-fluid">
+  <div class="servico text-center mt-3">
+    <h1 class="titulo mb-4">Registro do Colaborador</h1>
+
+    <div *ngIf="registroExistente" class="alert alert-info text-center mb-4" role="alert">
+      <strong>{{ mensagemRegistroExistente }}</strong>
+    </div>
+
+    <!-- Botão de Início de Expediente -->
+    <div class="row mb-4" *ngIf="!expedienteAtivo && !registroExistente">
+      <div class="col">
+        <button class="btn btn-primary btn-lg btn-block w-100" [disabled]="disabled[0]" (click)="abrirModal('inicio')">
+          Iniciar Expediente
+        </button>
+      </div>
+    </div>
+
+    <!-- Botões de Pausa e Fim (só aparecem se tiver expediente ativo) -->
+    <div class="row mb-4" *ngIf="expedienteAtivo && !registroExistente">
+      <div class="col">
+        <!-- Botão de Início de Pausa -->
+        <button class="btn btn-warning btn-lg btn-block w-100 mb-3" [disabled]="disabled[1]"
+          (click)="abrirModal('almoco-inicio')" *ngIf="!timestamps['almoco-inicio']">
+          Iniciar Pausa
+        </button>
+
+        <!-- Mensagem de tempo restante da pausa -->
+        <div *ngIf="timestamps['almoco-inicio'] && !timestamps['almoco-fim']" class="alert alert-info mt-3">
+          <span class="mensagem-pausa">{{ mensagemPausa$ | async }}</span>
+        </div>
+
+        <!-- Botão de Fim de Pausa -->
+        <button class="btn btn-warning btn-lg btn-block w-100 mb-3"
+          [disabled]="!registroExpediente.verificarPodeFinalizarPausa()" (click)="abrirModal('almoco-fim')"
+          *ngIf="timestamps['almoco-inicio'] && !timestamps['almoco-fim']">
+          Finalizar Pausa
+          <span *ngIf="!registroExpediente.verificarPodeFinalizarPausa()" class="text-muted d-block small">
+            (Aguarde 1 hora para finalizar a pausa)
+          </span>
+        </button>
+
+        <!-- Botão de Fim de Expediente -->
+        <button class="btn btn-danger btn-lg btn-block w-100" [disabled]="disabled[3]" (click)="abrirModal('fim')"
+          *ngIf="timestamps['almoco-fim'] && !timestamps['fim']">
+          Finalizar Expediente
+          <span *ngIf="timestamps['fim']" class="text-muted d-block small">
+            Volte amanhã para iniciar outro expediente
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal da Câmera -->
+  <div class="modal fade" tabindex="-1" [ngClass]="{'show d-block': modalVisible}" *ngIf="modalVisible">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar {{ tipoRegistro | titlecase }}</h5>
+          <button type="button" class="btn-close" (click)="fecharModal()"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="form-group mb-3">
+            <label for="observacao">Observação:</label>
+            <textarea id="observacao" class="form-control" placeholder="Adicione observações relevantes..."></textarea>
+          </div>
+
+          <div class="webcam-container border rounded">
+            <webcam [trigger]="triggerObservable" (imageCapture)="handleImage($event)" [allowCameraSwitch]="true"
+              [videoOptions]="{ facingMode: 'environment' }" (initError)="handleInitError($event)">
+            </webcam>
+          </div>
+
+          <div *ngIf="errors.length > 0" class="alert alert-danger mt-3">
+            <h6>Erros de inicialização:</h6>
+            <ul class="mb-0">
+              <li *ngFor="let error of errors">{{ error }}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="fecharModal()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="triggerCapture()">
+            Capturar Imagem
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

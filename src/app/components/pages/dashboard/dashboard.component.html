@@ -1,0 +1,115 @@
+<div class="container-fluid dashboard-container">
+  <!-- Filtro de Período (versão compacta) -->
+  <div class="period-filter mb-4">
+    <div class="filter-content">
+      <select class="form-select form-select-sm" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
+        <option value="hoje">Hoje</option>
+        <option value="semana">Última Semana</option>
+        <option value="mes">Último Mês</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      
+      <div class="custom-period" *ngIf="periodoSelecionado === 'custom'">
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="dataInicial">
+        <span class="separator">até</span>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="dataFinal" (ngModelChange)="atualizarDados()">
+      </div>
+      
+      <button class="btn btn-sm btn-outline-primary" (click)="atualizarDados()">
+        <i class="fas fa-sync-alt"></i> Atualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Cards de Métricas (Usando valores dinâmicos do TypeScript) -->
+  <div class="metrics-container">
+    <div class="metric-card gradient-bg-primary">
+      <h6>Total de O.S.</h6>
+      <h3>{{ totalOS }}</h3>
+      <i class="fas fa-clipboard-list icon"></i>
+    </div>
+    <div class="metric-card gradient-bg-success">
+      <h6>O.S. Realizadas</h6>
+      <h3>{{ osRealizadas }}</h3>
+      <i class="fas fa-check-circle icon"></i>
+    </div>
+    <div class="metric-card gradient-bg-warning">
+      <h6>O.S. Não Atribuídas</h6>
+      <h3>{{ osNaoAtribuidas }}</h3>
+      <i class="fas fa-clock icon"></i>
+    </div>
+    <div class="metric-card gradient-bg-danger">
+      <h6>O.S. Não Realizadas</h6>
+      <h3>{{ osNaoRealizadas }}</h3>
+      <i class="fas fa-times-circle icon"></i>
+    </div>
+  </div>
+
+<!-- Eficiência Geral (Card único e moderno, foco na eficiência em %) -->
+<!-- Eficiência Geral (Card único e moderno, tamanho igual aos outros cards, apenas porcentagem) -->
+<div class="card efficiency-metric-card mb-4">
+  <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center">
+    <div class="efficiency-circle" [style]="'--progress: ' + efficiencyGeneral + '%'">
+      <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
+    </div>
+    <h6 class="card-title mt-2">Eficiência</h6>
+  </div>
+</div>
+
+  <!-- Mapa de Colaboradores (Largura total) -->
+  <div class="card shadow-lg mb-4">
+    <div class="card-header">
+      <h5>Localização dos Colaboradores</h5>
+    </div>
+    <div class="card-body p-0">
+      <div id="map" style="height: 600px; width: 100%"></div>
+    </div>
+  </div>
+
+  <!-- Tabela de Desempenho Detalhado -->
+  <div class="table-container">
+    <h5>Desempenho Detalhado</h5>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Foto</th>
+          <th>Colaborador</th>
+          <th>O.S. Atribuídas</th>
+          <th>O.S. Realizadas</th>
+          <th>O.S. Pendentes</th>
+          <th>Tempo Médio</th>
+          <th>Empresa</th>
+          <th>Eficiência</th>
+          <th>Jornada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let colaborador of colaboradoresDesempenho">
+          <td>
+            <img [src]="colaborador.fotoUrl" alt="{{ colaborador.nome }}" class="profile-photo" />
+          </td>
+          <td>{{ colaborador.nome }}</td>
+          <td>{{ colaborador.osAtribuidas }}</td>
+          <td>{{ colaborador.osRealizadas }}</td>
+          <td>{{ colaborador.osPendentes }}</td>
+          <td>{{ colaborador.tempoMedio }}</td>
+          <td>{{ colaborador.empresa }}</td>
+          <td>
+            <div class="progress">
+              <div 
+                class="progress-bar" 
+                [ngClass]="{
+                  'bg-success': colaborador.eficiencia >= 70,
+                  'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
+                  'bg-danger': colaborador.eficiencia < 50
+                }" 
+                [style.width.%]="colaborador.eficiencia"
+              >{{ colaborador.eficiencia }}%</div>
+            </div>
+          </td>
+          <td>{{ colaborador.jornada }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

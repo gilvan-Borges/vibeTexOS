@@ -1,0 +1,89 @@
+<div class="container py-5">
+  <!-- Cabeçalho e Botões -->
+  <div class="servico text-center mt-3">
+    <h1 class="titulo mb-4">Execução da Ordem de Serviço</h1>
+    <h2 class="subtitulo mb-4">{{ codigoOS }}</h2>
+
+    <!-- Botão de Início -->
+    <div class="row mb-4">
+      <div class="col">
+        <button class="btn btn-primary btn-lg w-100" 
+                [disabled]="disabled[0]"
+                (click)="iniciarOS()">
+          Iniciar O.S.
+        </button>
+      </div>
+    </div>
+
+    <!-- Botões de Cancelar e Finalizar -->
+    <div class="row mb-4">
+      <div class="col">
+        <!-- Botão de Cancelar -->
+        <button class="btn btn-danger btn-lg w-100 mb-3" 
+                [disabled]="disabled[1]"
+                (click)="cancelarOS()">
+          Cancelar O.S.
+        </button>
+
+        <!-- Botão de Finalizar -->
+        <button class="btn btn-success btn-lg w-100" 
+                [disabled]="disabled[2]"
+                (click)="finalizarOS()">
+          Finalizar O.S.
+        </button>
+      </div>
+    </div>
+  </div> 
+</div>
+
+<div class="row mt-4" *ngIf="mostrarFormulario">
+  <div class="col-12">
+    <!-- Se for um componente standalone -->
+    <app-formulario-servico></app-formulario-servico>
+
+    <!-- OU, se preferir colar o HTML do formulário diretamente:
+    <div class="form-container">
+      ... HTML do formulário ...
+    </div>
+    -->
+  </div>
+</div>
+
+<!-- Modal da Câmera -->
+<div class="modal fade" tabindex="-1" [ngClass]="{'show d-block': modalVisible}" *ngIf="modalVisible">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Registrar {{ tipoRegistro === 'inicio' ? 'Início' : 'Fim' }} da O.S.
+        </h5>
+        <button type="button" class="btn-close" (click)="fecharModal()"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="webcam-container border rounded">
+          <webcam [trigger]="triggerObservable" 
+                  (imageCapture)="handleImage($event)" 
+                  [allowCameraSwitch]="true"
+                  [videoOptions]="{ facingMode: 'environment' }" 
+                  (initError)="errors = [$event]">
+          </webcam>
+        </div>
+        <div *ngIf="errors.length > 0" class="alert alert-danger mt-3">
+          <h6>Erros de inicialização:</h6>
+          <ul class="mb-0">
+            <li *ngFor="let error of errors">{{ error }}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="triggerCapture()">
+          Capturar Imagem
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="fecharModal()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="modalVisible"></div>

@@ -1,0 +1,60 @@
+<div class="container-fluid">
+  <div class="contador-os text-center mb-3">
+    <span class="badge" [ngClass]="{'bg-primary': status === 'Pendente', 'bg-success': status === 'Concluída'}">
+      {{ ordensFiltradas.length }} {{ status === 'Pendente' ? 'Ordem(ns) Pendente(s)' : 'Ordem(ns) Realizada(s)' }}
+    </span>
+  </div>
+
+  <h1 class="text-center mb-4">
+    {{ status === 'Pendente' ? 'Ordens de Serviço Pendentes' : 'Ordens de Serviço Realizadas' }}
+  </h1>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <div class="col" *ngFor="let os of ordensFiltradas">
+      <div class="card h-100">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong class="codigo">{{ os.codigo }}</strong>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="card-text cliente mb-2">
+            <i class="fas fa-user me-2"></i>
+            {{ os.cliente }}
+          </p>
+          <p class="card-text endereco mb-2">
+            <i class="fas fa-map-marker-alt me-2"></i>
+            {{ os.endereco }}
+          </p>
+          <button class="btn btn-outline-secondary btn-sm mb-2 w-100" (click)="abrirRota(os.endereco)">
+            <i class="fas fa-route me-2"></i>
+            Abrir Rota no Maps
+          </button>
+          <p class="card-text tipo">
+            <i class="fas fa-tools me-2"></i>
+            {{ os.tipo }}
+          </p>
+        </div>
+        <div class="card-footer text-center">
+          <button *ngIf="status === 'Pendente'"
+                  class="btn btn-primary w-100"
+                  [disabled]="pausaAtiva"
+                  (click)="iniciarOrdemServico(os.codigo)">
+            Iniciar
+            <small *ngIf="pausaAtiva" class="d-block pausa-msg">
+              (Finalize a pausa primeiro)
+            </small>
+          </button>
+          <span *ngIf="status === 'Concluída'" class="badge bg-success">
+            Concluída
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensagem quando não há ordens -->
+  <div *ngIf="ordensFiltradas.length === 0" class="alert alert-info text-center mt-4">
+    Nenhuma ordem de serviço {{ status === 'Pendente' ? 'pendente' : 'realizada' }} encontrada.
+  </div>
+</div>

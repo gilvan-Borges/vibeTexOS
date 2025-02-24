@@ -1,0 +1,78 @@
+<!-- Tabela de Colaboradores em Serviço -->
+<div class="tabela card shadow-lg mt-4">
+  <div class="card-header bg-gradient-info text-white">
+    <h5 class="card-title mb-0">Colaboradores Online em Serviço</h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="bg-light">
+          <tr>
+            <th>Foto</th>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>CPF</th>
+            <th>Jornada</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let colaborador of colaboradores" [class]="colaborador.status === 'Online' ? 'online-row' : 'offline-row'">
+            <td>
+              <a [routerLink]="['/pages/historico-tecnico', colaborador.id]">
+                <img [src]="colaborador.fotoUrl" [alt]="colaborador.nome" 
+                     class="tecnico-foto rounded-circle"
+                     style="width: 40px; height: 40px;">
+              </a>
+            </td>
+            <td class="nome">{{ colaborador.nome }}</td>
+            <td>{{ colaborador.email }}</td>
+            <td>{{ colaborador.cpf }}</td>
+            <td>{{ colaborador.jornada }}</td>
+            <td>
+              <span class="badge" [ngClass]="{
+                  'bg-success': colaborador.status === 'Online',
+                  'bg-secondary': colaborador.status === 'Offline'
+                }">
+                {{ colaborador.status }}
+              </span>
+            </td>
+            <td>
+              <div class="d-flex gap-2">
+                <a [routerLink]="['/pages/editar-colaborador', colaborador.id || colaborador.usuarioId]" 
+                   class="btn btn-warning me-2">
+                  Editar
+                </a>
+                <button class="btn btn-danger" (click)="abrirModalExclusao(colaborador)">
+                  Excluir
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div *ngIf="colaboradorSelecionado" class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Confirmação de Exclusão</h5>
+        <button type="button" class="close btn-close" (click)="fecharModalExclusao()"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Tem certeza que deseja excluir este colaborador?</p>
+        <strong>{{ colaboradorSelecionado.nome }}</strong>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-secondary w-45" (click)="fecharModalExclusao()">Não</button>
+        <button type="button" class="btn btn-danger w-45" (click)="excluirColaborador()">Sim</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="colaboradorSelecionado" class="modal-backdrop fade show"></div>

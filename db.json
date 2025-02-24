@@ -1,0 +1,80 @@
+{
+  "usuarios": [
+    {
+      "id": "2290",
+      "nome": "gilvan borges",
+      "nomeusuario": "gilvan",
+      "fotoPerfil": "https://uplogos.com.br/wp-content/uploads/2018/08/slide2.png",
+      "cpf": "12136454652",
+      "email": "gilvan1.borges@gmail.com",
+      "senha": "@Admin123",
+      "senhaConfirmacao": "@Admin123",
+      "userRole": "ADMINISTRADOR",
+      "IOnline": "OFFLINE",
+      "coordenadaAtual": "-23.0064128, -43.4274304",
+      "horaInicio": "08:00",
+      "horaFim": "17:00"
+    }
+   
+  ],
+  "trajetos": [
+    {
+      "id": "90aimakcv",
+      "idUsuarioTecnico": "e8bt",
+      "data": "04/02/2025",
+      "trajetoInicio": "-23.0064128, -43.4274304",
+      "horainicio": "16:27",
+      "status": "CONCLUÍDO",
+      "trajetoFim": "-23.0064128, -43.4274304",
+      "horaFim": "17:13",
+      "duracaoTotal": "46 min"
+    },
+    {
+      "id": "73u1sm5rs",
+      "idUsuarioTecnico": "e8bt",
+      "data": "04/02/2025",
+      "trajetoInicio": "-23.0064128, -43.4274304",
+      "horainicio": "16:39",
+      "status": "EM ANDAMENTO",
+      "trajetoFim": "",
+      "horaFim": "",
+      "duracaoTotal": ""
+    },
+    {
+      "id": "vys156dng",
+      "idUsuarioTecnico": "e8bt",
+      "data": "04/02/2025",
+      "trajetoInicio": "-23.0064128, -43.4274304",
+      "horainicio": "17:11",
+      "status": "EM ANDAMENTO",
+      "trajetoFim": "",
+      "horaFim": "",
+      "duracaoTotal": ""
+    },
+    {
+      "id": "39gzd6egu",
+      "idUsuarioTecnico": "e8bt",
+      "data": "05/02/2025",
+      "trajetoInicio": "-23.0012508, -43.3958533",
+      "horainicio": "07:23",
+      "status": "CONCLUÍDO",
+      "trajetoFim": "-23.0012947, -43.3959019",
+      "horaFim": "07:26",
+      "duracaoTotal": "3 min"
+    },
+    {
+      "id": "yxgoc3cie",
+      "idUsuarioTecnico": "bd4a",
+      "data": "05/02/2025",
+      "trajetoInicio": "-23.003136, -43.319296",
+      "horainicio": "07:35",
+      "status": "EM ANDAMENTO",
+      "trajetoFim": "",
+      "horaFim": "",
+      "duracaoTotal": ""
+    }
+  ],
+  "horasTrabalhadas": [
+   
+  ]
+}

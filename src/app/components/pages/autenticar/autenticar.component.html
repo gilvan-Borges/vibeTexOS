@@ -1,0 +1,67 @@
+<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
+  <div class="conteudo d-flex shadow">
+    <!-- Lado esquerdo: Formulário de Login -->
+    <div class="card p-4">
+      <div class="card-body">
+        <h3 class="card-title text-center mb-4">Entrar</h3>
+        <form [formGroup]="formulario" (ngSubmit)="autenticarUsuario()">
+          <!-- Nome de usuário -->
+          <div class="mb-3">
+            <label for="userName" class="form-label">Nome de usuário</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="userName" 
+              formControlName="userName" 
+              placeholder="Digite seu nome de usuário" />
+          </div>
+
+          <!-- CPF -->
+          <div class="mb-3">
+            <label for="cpf" class="form-label">CPF</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="cpf" 
+              formControlName="cpf" 
+              placeholder="Digite seu CPF (somente números)" />
+          </div>
+
+          <!-- Campo de Senha -->
+          <div class="mb-3">
+            <label for="senha" class="form-label">Senha</label>
+            <input 
+              type="password" 
+              class="form-control" 
+              id="senha" 
+              formControlName="senha" 
+              placeholder="Digite sua senha" />
+            <small class="text-danger" *ngIf="formulario.get('senha')?.invalid && formulario.get('senha')?.touched">
+              A senha deve ter pelo menos 8 caracteres.
+            </small>
+          </div>
+
+          <!-- Checkbox para Lembrar-me -->
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="lembrar">
+            <label class="form-check-label" for="lembrar">Lembrar-me</label>
+          </div>
+
+          <!-- Botão de Login -->
+          <button type="submit" class="btn btn-primary w-100" >Entrar</button>
+        </form>
+
+        <!-- Link para recuperação de senha -->
+        <div class="text-center mt-3">
+          <a href="#">Esqueceu a senha?</a>
+        </div>
+
+        <!-- Mensagem de erro -->
+        <div *ngIf="mensagem" class="alert alert-danger mt-3">{{ mensagem }}</div>
+      </div>
+    </div>
+
+    <!-- Lado direito: Imagem -->
+    <div class="foto"></div>
+  </div>
+</div>

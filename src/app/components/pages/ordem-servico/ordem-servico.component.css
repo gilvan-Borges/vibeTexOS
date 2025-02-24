@@ -1,0 +1,212 @@
+/* Estilos personalizados para o layout */
+.container-fluid {
+  max-width: 1200px;
+}
+
+/* Ajustes no card para corresponder à imagem */
+.card {
+  border-radius: 8px;
+  border: none;
+  transition: transform 0.2s;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: none;
+  padding: 15px;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.codigo {
+  font-size: 1.1rem;
+  color: #007bff;
+}
+
+.info-row i {
+  width: 20px;
+  text-align: center;
+  margin-right: 10px;
+}
+
+.info-row {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.endereco {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.tipo {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.btn-primary {
+  transition: background-color 0.2s;
+  font-size: 18px;
+  font-weight: 500;
+  height: 50px; /* Mantém a altura do botão da imagem */
+  line-height: 1; /* Remove espaçamento extra entre linhas */
+  background-color: #007bff;
+  border: none;
+  padding: 10px 20px;
+}
+
+.btn-primary:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.65; /* Ajusta opacidade para parecer desabilitado */
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.card-footer {
+  background-color: transparent;
+  border-top: none;
+  padding: 15px;
+}
+
+.card-footer span{
+  width: 274px;
+  height: 50px;
+  font-size: 20px;
+  padding-top: 13px;
+}
+
+/* Ajustes no título */
+h1 {
+  color: #343a40;
+}
+
+/* Ajustes na mensagem de pausa */
+.pausa-msg {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Ajustes responsivos personalizados */
+@media (max-width: 768px) {
+  .btn-primary {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
+
+  .card-header {
+    padding: 12px;
+  }
+
+  .card-body {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  .btn-primary {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+
+  .card-header {
+    padding: 10px;
+  }
+
+  .card-body {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+}
+
+.cliente {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.btn-outline-secondary {
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: white;
+}
+
+.contador-os {
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+.contador-os .badge {
+  font-size: 1rem;
+  padding: 10px 20px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.contador-os .bg-primary {
+  background-color: #dc3545 !important; /* Vermelho */
+  animation: pulse 2s infinite;
+}
+
+.contador-os .bg-success {
+  background-color: #28a745 !important;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Ajustes responsivos para o contador */
+@media (max-width: 768px) {
+  .contador-os .badge {
+    font-size: 1rem;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .contador-os .badge {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+}
+
+.no-data {
+  padding: 30px;
+  font-size: 1.1rem;
+  color: #6c757d;
+}
