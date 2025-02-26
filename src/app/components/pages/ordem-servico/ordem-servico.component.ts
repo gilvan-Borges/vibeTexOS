@@ -75,6 +75,7 @@ export class OrdemServicoComponent implements OnInit {
       this.carregarOrdens();
     }, 30000);
   }
+
   carregarOrdens() {
     if (!this.usuarioId) {
       console.error('ID do usuário não encontrado');
@@ -104,13 +105,27 @@ export class OrdemServicoComponent implements OnInit {
             dataEHoraInicioServico: ordem.dataEHoraInicioServico || null
           }))
           .filter(ordem => {
-            // Converter dataEHoraInicioServico para Date, tratando strings ou null
+            // Converter dataEHoraInicioServico para Date, tratando diferentes formatos e null
             let dataOrdem: Date | null = null;
             if (ordem.dataEHoraInicioServico) {
               if (typeof ordem.dataEHoraInicioServico === 'string') {
+                // Tenta parsear no formato ISO (YYYY-MM-DDTHH:mm:ssZ) ou simplesmente YYYY-MM-DD
                 dataOrdem = new Date(ordem.dataEHoraInicioServico);
                 if (isNaN(dataOrdem.getTime())) {
-                  console.error('Formato de data inválido:', ordem.dataEHoraInicioServico);
+                  // Tenta parsear no formato DD/MM/YYYY
+                  const partes = ordem.dataEHoraInicioServico.split('/');
+                  if (partes.length === 3) {
+                    dataOrdem = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+                  } else {
+                    // Tenta parsear no formato MM/DD/YYYY (caso o backend use este formato)
+                    const partes2 = ordem.dataEHoraInicioServico.split('-');
+                    if (partes2.length === 3) {
+                      dataOrdem = new Date(ordem.dataEHoraInicioServico);
+                    }
+                  }
+                }
+                if (isNaN(dataOrdem.getTime())) {
+                  console.error('Formato de data inválido, ignorando ordem:', ordem.dataEHoraInicioServico, 'Ordem:', ordem);
                   return false; // Pula ordens com data inválida
                 }
               }
@@ -121,7 +136,7 @@ export class OrdemServicoComponent implements OnInit {
             }
   
             // Filtrar por status, data atual e se está atribuída
-            const dataCorrespondente = dataOrdem?.getTime() === hoje.getTime();
+            const dataCorrespondente = dataOrdem ? dataOrdem.getTime() === hoje.getTime() : true; // Considera null como válido para o dia atual
             const ordemAtribuida = ordem.atribuida === true;
             const statusCorreto = ordem.statusOrdem === this.statusOrdem;
   
@@ -173,24 +188,59 @@ export class OrdemServicoComponent implements OnInit {
   }
 
   iniciarOrdemServico(ordemId: string) {
-    if (this.pausaAtiva || !this.usuarioId) {
+    if (this.pausaAtiva) {
+      console.warn('Não é possível iniciar ordem durante uma pausa ativa');
+      return;
+    }
+
+    if (!this.usuarioId) {
+      console.error('ID do usuário não encontrado');
+      return;
+    }
+
+    if (!ordemId) {
+      console.error('ID da ordem não fornecido');
       return;
     }
 
     // Primeiro obtém a localização atual
     this.obterLocalizacaoAtual()
       .then((position: GeolocationPosition) => {
+        // Validar coordenadas
+        if (!position?.coords?.latitude || !position?.coords?.longitude) {
+          throw new Error('Coordenadas inválidas');
+        }
+
         const request: IniciarTrajetoRequestDto = {
           latitudeInicioTrajeto: position.coords.latitude.toString(),
           longitudeInicioTrajeto: position.coords.longitude.toString()
         };
 
+        console.log('Iniciando trajeto com dados:', {
+          ordemId,
+          usuarioId: this.usuarioId,
+          request
+        });
+
         // Inicia o trajeto com as coordenadas
-        this.vibeService.iniciarTrajeto(ordemId, this.usuarioId!, request).subscribe({
-          next: (response: IniciarTrajetoResponseDto) => {
-            console.log('Trajeto iniciado com sucesso:', response);
-            
-            if (response.trajetoId) {
+        this.vibeService.iniciarTrajeto(ordemId, this.usuarioId!, request)
+          .pipe(
+            tap(response => console.log('Resposta do serviço:', response)),
+            catchError(error => {
+              console.error('Detalhes do erro:', {
+                status: error.status,
+                message: error.message,
+                error: error.error
+              });
+              throw error;
+            })
+          )
+          .subscribe({
+            next: (response: IniciarTrajetoResponseDto) => {
+              if (!response?.trajetoId) {
+                throw new Error('TrajetoId não recebido na resposta');
+              }
+
               // Salva todos os dados importantes no localStorage
               localStorage.setItem('trajetoId', response.trajetoId);
               localStorage.setItem('latitudeInicioTrajeto', request.latitudeInicioTrajeto!);
@@ -201,19 +251,24 @@ export class OrdemServicoComponent implements OnInit {
               this.router.navigate(['/pages/ordem-servico-exec', this.usuarioId], {
                 queryParams: { codigo: ordemId }
               });
-            } else {
-              console.error('TrajetoId não recebido na resposta');
+            },
+            error: (error) => {
+              let errorMessage = 'Erro ao iniciar trajeto: ';
+              if (error.status === 400) {
+                errorMessage += 'Dados inválidos fornecidos';
+              } else if (error.status === 404) {
+                errorMessage += 'Ordem de serviço ou usuário não encontrado';
+              } else {
+                errorMessage += error.message || 'Erro desconhecido';
+              }
+              console.error(errorMessage, error);
+              // Aqui você pode adicionar uma notificação visual para o usuário
             }
-          },
-          error: (error) => {
-            console.error('Erro ao iniciar trajeto:', error);
-            // Adicione um tratamento de erro apropriado aqui
-          }
-        });
+          });
       })
       .catch(error => {
         console.error('Erro ao obter localização:', error);
-        // Adicione um tratamento de erro apropriado aqui
+        // Adicione uma notificação visual para o usuário
       });
   }
 

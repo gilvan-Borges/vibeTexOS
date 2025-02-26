@@ -99,10 +99,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let ordem of ordensDoDia" class="align-middle" [ngClass]="{
-            'bg-yellow-soft': ordem.status === 'pendente',
-            'bg-red-soft': ordem.status === 'cancelado'
-          }">
+          <tr *ngFor="let ordem of ordensDoDia" class="align-middle">
+            
             <td class="py-3">{{ ordem.codigoOS }}</td>
             <td class="py-3">{{ ordem.cliente }}</td>
             <td class="py-3">{{ ordem.endereco }}</td>
@@ -153,6 +151,7 @@
             <th scope="col" class="py-3 text-center">Ações</th>
           </tr>
         </thead>
+        
         <tbody>
           <tr *ngFor="let ordem of ordensAgendadas" class="align-middle" [ngClass]="{
             'bg-green-soft': ordem.status === 'Pendente',

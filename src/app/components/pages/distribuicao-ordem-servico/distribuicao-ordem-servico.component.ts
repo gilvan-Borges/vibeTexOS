@@ -149,10 +149,10 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
       this.isLoading = true;
       this.vibeService.buscarOrdemServico().subscribe({
         next: (response: any[]) => {
-          // Filtra somente ordens com ativo = true
-          const ordensAtivas = response.filter(ordem => ordem.ativo === true);
-
-          // Mapeia para o formato utilizado no front
+          // Filtra somente as ordens ativas
+          const ordensAtivas = response;
+  
+          // Mapeia para o seu formato interno
           this.ordensServico = ordensAtivas.map(ordem => {
             let colaboradorNome = 'Não atribuído';
             if (ordem.usuarioId && this.colaboradores.length > 0) {
@@ -168,33 +168,37 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
               clienteId: ordem.clienteId,
               tipoServico: ordem.tipoServico,
               dataHoraCadastro: ordem.dataHoraCadastro,
-              status: ordem.statusOrdem, // "Pendente", "Cancelado" etc.
+              status: ordem.statusOrdem,
               endereco: ordem.cliente?.endereco 
                 ? `${ordem.cliente.endereco.logradouro}, ${ordem.cliente.endereco.bairro}`
                 : 'Endereço não disponível',
               usuarioId: ordem.usuarioId,
-              colaborador: colaboradorNome
+              colaborador: colaboradorNome,
+              // Se quiser marcar atribuída como true quando tem colaborador:
+              atribuida: ordem.atribuida === true || !!ordem.usuarioId
             };
           });
-
-          // Separa ordens de hoje e ordens agendadas (futuras)
-          const hoje = new Date();
-          const hojeStr = hoje.toISOString().split('T')[0];
-
+  
+          // Aqui entra a nova forma de filtrar pela data
+          const hojeStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  
+          // Ordens de hoje
           this.ordensDoDia = this.ordensServico.filter(ordem => {
             if (!ordem.dataHoraCadastro) return false;
-            const dataOrdem = new Date(ordem.dataHoraCadastro);
-            if (isNaN(dataOrdem.getTime())) return false;
-            return dataOrdem.toISOString().split('T')[0] === hojeStr;
+            const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
+            return dataOrdemStr === hojeStr; // igual ao dia de hoje
           });
-
+  
+          // Ordens agendadas (futuras)
           this.ordensAgendadas = this.ordensServico.filter(ordem => {
             if (!ordem.dataHoraCadastro) return false;
-            const dataOrdem = new Date(ordem.dataHoraCadastro);
-            if (isNaN(dataOrdem.getTime())) return false;
-            return dataOrdem.toISOString().split('T')[0] > hojeStr;
+            const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
+            return dataOrdemStr > hojeStr; // depois de hoje
           });
-
+  
+          console.log('Ordens do dia:', this.ordensDoDia);
+          console.log('Ordens agendadas:', this.ordensAgendadas);
+  
           this.isLoading = false;
         },
         error: (error) => {
@@ -211,6 +215,7 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
       this.isLoading = false;
     }
   }
+  
 
   // Criação de nova ordem
   onSubmit() {

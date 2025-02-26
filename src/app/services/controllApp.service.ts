@@ -250,7 +250,7 @@ export class ControllAppService {
   }
 
   usuarioGetById(id: string): Observable<UsuarioResponseDto> {
-    return this.httpClient.get<UsuarioResponseDto>(`${this.apiUrl}/usuario/get/${id}`);
+    return this.httpClient.get<UsuarioResponseDto>(`${this.apiUrl}/usuario/${id}`);
   }
 
 
