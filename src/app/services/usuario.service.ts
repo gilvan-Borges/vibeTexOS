@@ -110,7 +110,7 @@ export class UsuarioService {
     }
 
     carregarTodosColaboradores(): Observable<any[]> {
-        return this.httpClient.get<any[]>(`${environment.controllApp}/usuario/getall`)
+        return this.httpClient.get<any[]>(`${environment.controllApp}/usuario/tecnicos`)
             .pipe(
                 map(response => {
                     if (!Array.isArray(response)) {
@@ -158,7 +158,7 @@ export class UsuarioService {
       
     usuarioGetAll(request: any): Observable<Usuario[]> {
         return this.httpClient.get<Usuario[]>(
-            `${environment.controllApp}/usuario/getall`,
+            `${environment.controllApp}/usuario/tecnicos`,
             { params: request }
         );
     }

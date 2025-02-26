@@ -57,8 +57,10 @@
             <label for="empresa" class="form-label">Empresa:</label>
             <select id="empresa" class="form-select" formControlName="empresa">
               <option value="">Selecione uma empresa</option>
-              <option *ngFor="let empresa of empresas" [value]="empresa.id">{{empresa.nome}}</option>
-            </select>
+              <option *ngFor="let empresa of empresas" [value]="empresa.empresaId">
+                {{ empresa.nomeDaEmpresa }}
+              </option>
+            </select>            
             <div class="text-danger" *ngIf="f['empresa'].touched && f['empresa'].invalid">
               Por favor, selecione uma empresa.
             </div>
@@ -76,6 +78,7 @@
             <label class="form-label">Perfil do usuario:</label>
             <select class="form-select" formControlName="role">
               <option value="Colaborador">Colaborador</option>
+              <option value="Roteirizador">Roteirizador</option>
             </select>
 
             <div class="text-danger" *ngIf="f['role'].touched && f['role'].invalid">

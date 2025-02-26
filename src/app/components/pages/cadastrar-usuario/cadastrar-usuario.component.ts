@@ -2,7 +2,6 @@ import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { NgxMaskDirective, provideNgxMask } from "ngx-mask";
-import { RegisterRequestDto } from "../../../models/control-app/register.request,dto";
 import { ControllAppService } from "../../../services/controllApp.service";
 import { environment } from "../../../../environments/environment.development";
 import { Observable } from "rxjs";
@@ -17,7 +16,7 @@ import { VibeService } from "../../../services/vibe.service";
   ],
   providers: [provideNgxMask()],
   templateUrl: './cadastrar-usuario.component.html',
-  styleUrl: './cadastrar-usuario.component.css'
+  styleUrls: ['./cadastrar-usuario.component.css']
 })
 export class CadastrarUsuarioComponent implements OnInit {
   mensagem = '';
@@ -153,48 +152,86 @@ export class CadastrarUsuarioComponent implements OnInit {
     console.log("📌 Tentando cadastrar usuário...");
 
     const formData = new FormData();
-    Object.keys(this.formulario.controls).forEach(key => {
-      const value = this.formulario.get(key)?.value;
-      if (value) formData.append(key, value);
-    });
+    // Excluindo empresa e matricula do formData inicial
+    Object.keys(this.formulario.controls)
+      .filter(key => key !== 'empresa' && key !== 'matricula')
+      .forEach(key => {
+        const value = this.formulario.get(key)?.value;
+        if (value) formData.append(key, value);
+      });
 
     formData.append('IsOnline', 'false');
 
-    // Obtém a extensão do arquivo original
-    const extensao = this.fotoUrl.name.split('.').pop()?.toLowerCase();
-    if (!extensao) {
-      this.mensagem = 'Erro: Arquivo sem extensão.';
+    // Fix the extension check
+    const extensao = this.fotoUrl?.name.split('.').pop();
+    if (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao.toLowerCase())) {
+      this.mensagem = 'Erro: Arquivo inválido ou sem extensão.';
       return;
     }
 
     this.processarImagem(this.fotoUrl).then(({ blob, base64 }) => {
-      // Gerando um nome único para o arquivo com extensão
-      const nomeArquivo = `foto.${extensao}`;
+      const nomeArquivo = `foto.${extensao.toLowerCase()}`;
       
-      // Adicionando o arquivo com o nome correto
       formData.append('FotoFile', blob, nomeArquivo);
-      formData.append('FotoUrl', `/images/${nomeArquivo}`); // Enviando o caminho com extensão
+      formData.append('FotoUrl', `/images/${nomeArquivo}`);
 
-      console.log("📤 Enviando FormData para API...");
-      console.log("📸 Nome do arquivo:", nomeArquivo);
-
+      // Primeiro: Cadastrar na ControllApp
       this.controllAppService.register(formData).subscribe({
         next: (response) => {
-          console.log('✅ Usuário cadastrado com sucesso:', response);
-          this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
-          this.formulario.reset();
-          this.fotoPreview = null;
-          this.fotoUrl = null;
-          setTimeout(() => this.mensagem = '', 5000);
+          console.log('✅ Usuário cadastrado com sucesso na ControllApp:', response);
+          
+          const empresaId = this.formulario.get('empresa')?.value;
+          const matricula = this.formulario.get('matricula')?.value;
+          const usuarioId = response.usuarioId;
+
+          if (!empresaId || !matricula || !usuarioId) {
+            console.error('❌ Dados inválidos:', { empresaId, matricula, usuarioId });
+            this.mensagem = 'Erro: Dados técnicos inválidos.';
+            return;
+          }
+
+          // Encontrar o nome da empresa selecionada
+          const empresaSelecionada = this.empresas.find(emp => emp.empresaId === empresaId);
+          if (!empresaSelecionada) {
+            console.error('❌ Empresa não encontrada');
+            this.mensagem = 'Erro: Empresa selecionada não encontrada';
+            return;
+          }
+
+          // Atualizar direto com os dados técnicos
+          const dadosTecnicos = {
+            NumeroMatricula: matricula,
+            Empresa: empresaSelecionada.nomeDaEmpresa, // Enviando o nome da empresa ao invés do ID
+            
+          };
+
+          console.log('📤 Atualizando dados técnicos:', dadosTecnicos);
+
+          // O empresaId vai apenas na URL
+          this.vibeService.atualizarUsuarioTecnico(
+            empresaId, // ID da empresa usado apenas na URL
+            usuarioId,
+            dadosTecnicos // Objeto com nome da empresa ao invés do ID
+          ).subscribe({
+            next: (tecResponse) => {
+              console.log('✅ Informações técnicas atualizadas:', tecResponse);
+              this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
+              this.formulario.reset();
+              this.fotoPreview = null;
+              this.fotoUrl = null;
+              setTimeout(() => this.mensagem = '', 5000);
+            },
+            error: (err) => {
+              console.error('❌ Erro ao atualizar informações técnicas:', err);
+              this.mensagem = `Erro ao vincular empresa/matrícula: ${err.error || err.message || 'Erro desconhecido'}`;
+            }
+          });
         },
         error: (err) => {
           console.error('❌ Erro ao cadastrar usuário:', err);
-          this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado. Por favor, tente novamente.'}`;
+          this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
         }
       });
-    }).catch((error) => {
-      console.error('❌ Erro ao processar imagem:', error);
-      this.mensagem = 'Erro ao processar a imagem. Tente novamente.';
     });
   }
 

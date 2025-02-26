@@ -21,12 +21,10 @@ export class ServicoLocalizacao {
     private http: HttpClient
   ) { }
 
-
   capturarCoordenadas(): Promise<Coordenadas> {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // Log das coordenadas brutas antes de qualquer formatação
           console.log('Coordenadas brutas do GPS:', {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -34,10 +32,10 @@ export class ServicoLocalizacao {
           });
 
           const coordenadas = {
-            latitude: position.coords.latitude.toFixed(7), // Mantém 7 casas decimais para precisão
-            longitude: position.coords.longitude.toFixed(7) // Mantém 7 casas decimais para precisão
+            latitude: position.coords.latitude.toFixed(7),
+            longitude: position.coords.longitude.toFixed(7)
           };
-          console.log('Coordenadas formatadas:', coordenadas);
+          console.log('Coordenadas formatadas antes de enviar:', coordenadas);
           this.coordenadasSubject.next(coordenadas);
           resolve(coordenadas);
         },
@@ -46,24 +44,62 @@ export class ServicoLocalizacao {
           reject('Erro ao capturar localização. Verifique as permissões de localização.');
         },
         {
-          enableHighAccuracy: true, // Força alta precisão (GPS, se disponível)
-          timeout: 10000, // Aumenta o tempo limite para 10 segundos
-          maximumAge: 0 // Não usa posições armazenadas
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     });
   }
 
+  // Função para calcular a distância entre duas coordenadas (em metros)
+  private calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Raio da Terra em metros
+    const φ1 = lat1 * Math.PI / 180; // Converte latitude para radianos
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distância em metros
+  }
+
   iniciarAtualizacaoAutomatica(idUsuario: string): Subscription {
-    // Cancela qualquer atualização anterior
     this.pararAtualizacaoAutomatica();
 
-    // Inicia nova atualização
     this.atualizacaoSubscription = interval(30000).subscribe(() => {
       this.capturarCoordenadas()
         .then(coordenadas => {
-          console.log('📍 Coordenadas capturadas:', coordenadas);
-          this.atualizarCoordenadas(idUsuario, coordenadas.latitude, coordenadas.longitude);
+          console.log('📍 Coordenadas capturadas e prontas para enviar à API:', coordenadas);
+
+          // Obtém as coordenadas atuais do localStorage para comparar
+          const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
+          let coordenadasAntigas: Coordenadas = {
+            latitude: usuarioData.latitudeAtual || '-23.0013040', // Valor padrão
+            longitude: usuarioData.longitudeAtual || '-43.3958987' // Valor padrão
+          };
+
+          // Converte strings para números para calcular a distância
+          const latAtual = parseFloat(coordenadas.latitude);
+          const lonAtual = parseFloat(coordenadas.longitude);
+          const latAntiga = parseFloat(coordenadasAntigas.latitude);
+          const lonAntiga = parseFloat(coordenadasAntigas.longitude);
+
+          // Calcula a distância entre as coordenadas novas e antigas (em metros)
+          const distancia = this.calcularDistancia(latAtual, lonAtual, latAntiga, lonAntiga);
+          console.log('Distância entre as coordenadas novas e antigas:', distancia, 'metros');
+
+          // Atualiza apenas se a distância for significativa (por exemplo, maior que 10 metros)
+          const LIMITE_DISTANCIA = 10; // 10 metros como limite
+          if (distancia > LIMITE_DISTANCIA || !usuarioData.latitudeAtual || !usuarioData.longitudeAtual) {
+            this.atualizarCoordenadas(idUsuario, coordenadas.latitude, coordenadas.longitude);
+          } else {
+            console.log('Mudança de coordenadas insignificante (menos de 10 metros), ignorando atualização.');
+          }
         })
         .catch(error => console.error('❌ Erro na atualização automática:', error));
     });
@@ -89,7 +125,6 @@ export class ServicoLocalizacao {
             const bairro = address.suburb || address.neighbourhood || '';
             const cidade = address.city || address.town || '';
 
-            // Monta o endereço formatado
             let enderecoFormatado = '';
             if (rua) enderecoFormatado += `${rua}${numero}`;
             if (bairro) enderecoFormatado += enderecoFormatado ? ` - ${bairro}` : bairro;
@@ -103,16 +138,24 @@ export class ServicoLocalizacao {
   }
 
   atualizarCoordenadas(idUsuario: string, latitude: string, longitude: string): void {
-    console.log('📤 Enviando coordenadas para a API:', { idUsuario, latitude, longitude });
+    console.log('📤 Coordenadas enviadas para a API:', { idUsuario, latitude, longitude });
+
+    // Atualiza as coordenadas no localStorage antes de enviá-las para a API
+    const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
+    if (usuarioData && usuarioData.usuarioId === idUsuario) {
+      usuarioData.latitudeAtual = latitude;
+      usuarioData.longitudeAtual = longitude;
+      console.log('Coordenadas atualizadas no localStorage:', { latitude, longitude });
+      localStorage.setItem('usuario', JSON.stringify(usuarioData));
+    }
 
     this.controllAppService.atualizarCoordenadasUsuario(idUsuario, latitude, longitude)
       .subscribe({
-        next: () => console.log('✅ Coordenadas atualizadas com sucesso.'),
-        error: (err) => console.error('❌ Erro ao atualizar coordenadas:', err)
+        next: () => console.log('✅ Coordenadas atualizadas com sucesso na API.'),
+        error: (err) => console.error('❌ Erro ao atualizar coordenadas na API:', err)
       });
   }
 
-  // Método para obter a última localização conhecida
   obterUltimaLocalizacao(): Promise<Coordenadas> {
     return new Promise((resolve, reject) => {
       if ('geolocation' in navigator) {
@@ -130,7 +173,7 @@ export class ServicoLocalizacao {
           {
             enableHighAccuracy: false,
             timeout: 5000,
-            maximumAge: 60000 // Aceita uma posição de até 1 minuto atrás
+            maximumAge: 60000
           }
         );
       } else {
@@ -139,7 +182,6 @@ export class ServicoLocalizacao {
     });
   }
 
-  // Método para verificar se o serviço de localização está disponível
   verificarDisponibilidadeLocalizacao(): Promise<boolean> {
     return new Promise((resolve) => {
       if ('geolocation' in navigator) {

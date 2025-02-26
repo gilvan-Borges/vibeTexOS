@@ -40,12 +40,6 @@
   <div class="col-12">
     <!-- Se for um componente standalone -->
     <app-formulario-servico></app-formulario-servico>
-
-    <!-- OU, se preferir colar o HTML do formulário diretamente:
-    <div class="form-container">
-      ... HTML do formulário ...
-    </div>
-    -->
   </div>
 </div>
 
@@ -55,7 +49,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          Registrar {{ tipoRegistro === 'inicio' ? 'Início' : 'Fim' }} da O.S.
+          Registrar {{ tipoRegistro === 'inicio' ? 'Início' : tipoRegistro === 'fim' ? 'Fim' : 'Cancelamento' }} da O.S.
         </h5>
         <button type="button" class="btn-close" (click)="fecharModal()"></button>
       </div>
@@ -73,6 +67,21 @@
           <ul class="mb-0">
             <li *ngFor="let error of errors">{{ error }}</li>
           </ul>
+        </div>
+
+        <!-- Seleção de motivo apenas para cancelamento -->
+        <div *ngIf="tipoRegistro === 'cancelamento'" class="mt-3">
+          <label for="motivoCancelamento" class="form-label fw-bold">Motivo do Cancelamento</label>
+          <select class="form-select" id="motivoCancelamento" [(ngModel)]="motivoCancelamento" (change)="onMotivoChange($event)">
+            <option value="">Selecione um motivo</option>
+            <option *ngFor="let motivo of motivosCancelamento" [value]="motivo">{{ motivo }}</option>
+          </select>
+
+          <!-- Campo para "Outros" -->
+          <div *ngIf="mostrarCampoOutros" class="mt-3">
+            <label for="outrosMotivo" class="form-label fw-bold">Especifique o motivo</label>
+            <textarea class="form-control" id="outrosMotivo" [(ngModel)]="outrosMotivo" rows="3" placeholder="Digite o motivo"></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

@@ -3,12 +3,13 @@ import { AfterViewInit, Component, NgZone, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
-import { forkJoin, interval, Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { UsuarioService } from '../../../services/usuario.service';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { environment } from '../../../../environments/environment.development';
-import { OrdemServicoService } from '../../../services/ordem.servico.service';
+import { ServicoLocalizacao } from '../../../services/localizacao.service';
+
 
 export interface Usuario {
   usuarioId: string;
@@ -90,8 +91,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   constructor(
     private controllAppService: ControllAppService,
     private usuarioService: UsuarioService,
-    private ordemServicoService: OrdemServicoService,
-    private ngZone: NgZone 
+    private ngZone: NgZone,
+    private servicoLocalizacao: ServicoLocalizacao
   ) {
     this.formulario = new FormGroup({
       nome: new FormControl('', [Validators.required, Validators.minLength(8)]),
@@ -129,7 +130,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.obterColaboradoresEmServico();
     this.carregarTodosColaboradores();
     this.carregarServicosGerais();
-    this.iniciarAtualizacaoAutomatica();
 
     // Mock de dados para o desempenho detalhado (mantendo o fornecido)
     this.colaboradoresDesempenho = [
@@ -216,21 +216,22 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 longitude: usuario?.longitudeAtual
               };
 
-              // Buscar endereço se tiver coordenadas
+              // Buscar endereço se tiver coordenadas usando ServicoLocalizacao
               if (usuario?.latitudeAtual && usuario?.longitudeAtual) {
-                this.buscarEndereco(`${usuario.latitudeAtual},${usuario.longitudeAtual}`)
-                  .then(endereco => {
+                this.servicoLocalizacao.getEndereco(usuario.latitudeAtual, usuario.longitudeAtual).subscribe({
+                  next: (endereco) => {
                     this.ngZone.run(() => {
                       const index = this.colaboradoresEmServico.findIndex(c => c.usuarioId === colaborador.usuarioId);
                       if (index !== -1) {
                         this.colaboradoresEmServico[index].endereco = endereco;
                       }
                     });
-                  })
-                  .catch(error => {
-                    console.error('Erro ao buscar endereço:', error);
+                  },
+                  error: (err) => {
+                    console.error('Erro ao buscar endereço:', err);
                     colaborador.endereco = 'Erro ao buscar endereço';
-                  });
+                  }
+                });
               } else {
                 colaborador.endereco = 'Coordenadas não disponíveis';
               }
@@ -251,40 +252,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private buscarEndereco(coordenada: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      if (!coordenada || !coordenada.includes(',')) {
-        return resolve("Coordenadas inválidas");
-      }
-  
-      const [latitude, longitude] = coordenada.split(',').map(coord => coord.trim());
-  
-      if (!latitude || !longitude || isNaN(Number(latitude))) {
-        return resolve("Coordenadas inválidas");
-      }
-  
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
-  
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error('Erro na resposta do servidor');
-          return response.json();
-        })
-        .then(data => {
-          if (data && data.address) {
-            // Pegando apenas a rua e o bairro
-            const rua = data.address.road || "Rua não encontrada";
-            const bairro = data.address.suburb || data.address.neighbourhood || "Bairro não encontrado";
-  
-            return resolve(`${rua}, ${bairro}`);
-          }
-          return resolve("Endereço não encontrado");
-        })
-        .catch(() => resolve("Erro ao buscar endereço"));
-    });
-  }
-  
-
   formatarHora(data: string | null, isFim: boolean = false): string {
     if (!data) {
       return isFim ? 'Em andamento' : 'Não disponível';
@@ -301,53 +268,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   // Atualiza o gráfico ao mudar o ano no dropdown
   onYearChange(event: any) {
     this.selectedYear = parseInt(event.target.value, 10);
-  }
-
-  private coordenadasSubscription!: Subscription;
-
-  private enviarCoordenadasParaApi() {
-    const usuarioLogado = JSON.parse(localStorage.getItem('usuario') || '{}');
-
-    // Verifica se o usuário tem o role correto e as coordenadas definidas
-    if (
-      usuarioLogado.usuarioId &&
-      usuarioLogado.role === 'Colaborador' &&
-      usuarioLogado.latitudeAtual &&
-      usuarioLogado.longitudeAtual
-    ) {
-      this.controllAppService.atualizarCoordenadasUsuario(
-        usuarioLogado.usuarioId,
-        usuarioLogado.latitudeAtual,
-        usuarioLogado.longitudeAtual
-      ).subscribe({
-        next: () => console.log('Coordenadas atualizadas com sucesso.'),
-        error: (err) => console.error('Erro ao atualizar coordenadas:', err)
-      });
-    }
-  }
-
-  private iniciarAtualizacaoAutomatica() {
-    this.coordenadasSubscription = interval(10000).subscribe(() => {
-      this.enviarCoordenadasParaApi();
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.initMap();
-  
-    // Aguarda o mapa estar inicializado e carrega os colaboradores online
-    setTimeout(() => {
-      if (this.map) {
-        this.carregarColaboradoresOnlineNoMapa();
-        
-        // Inicia atualização periódica (a cada 30 segundos, como já está)
-        setInterval(() => {
-          if (this.map) {
-            this.carregarColaboradoresOnlineNoMapa();
-          }
-        }, 30000);
-      }
-    }, 1000);
   }
 
   private carregarColaboradoresOnlineNoMapa(): void {
@@ -441,7 +361,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     this.map.whenReady(() => {
       console.log('Mapa inicializado com sucesso.');
-      this.atualizarMapa();  // Adiciona os primeiros marcadores
+      this.carregarColaboradoresOnlineNoMapa();  // Adiciona os primeiros marcadores
     });
   }
 
@@ -847,7 +767,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   // Desabilitar temporariamente para evitar resetar os mocks
   atualizarDados() {
     // Manter os valores mockados, ignorando chamadas à API por enquanto
-    // Se quiser integrar com a API, descomente e ajuste abaixo:
     /*
     const dataInicial = this.periodoSelecionado === 'custom' ? new Date(this.dataInicial) : 
                        this.calcularDataInicial(this.periodoSelecionado);
@@ -900,5 +819,27 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       if (diferencaMinutos < 60) return 'Busy';
     }
     return 'Offline';
+  }
+
+  ngAfterViewInit(): void {
+    this.initMap();
+  
+    // Aguarda o mapa estar inicializado e carrega os colaboradores online
+    setTimeout(() => {
+      if (this.map) {
+        this.carregarColaboradoresOnlineNoMapa();
+        
+        // Inicia atualização periódica (a cada 30 segundos, como já está)
+        setInterval(() => {
+          if (this.map) {
+            this.carregarColaboradoresOnlineNoMapa();
+          }
+        }, 30000);
+      }
+    }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    // Não há necessidade de parar atualizações automáticas aqui, pois não enviamos para a API
   }
 }

@@ -162,10 +162,11 @@
 
 .webcam-container {
   width: 100%;
-  max-width: 640px;
-  height: 300px; /* Altura reduzida */
+  max-width: 400px; /* Reduzido de 640px para 400px */
+  height: 250px; /* Reduzido de 300px para 250px */
   margin: 0 auto;
   overflow: hidden;
+  position: relative;
 }
 
 .webcam-container webcam {
@@ -187,16 +188,31 @@
 
 .modal {
   z-index: 1050;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-dialog {
-  max-width: 90%;
-  margin: 1.75rem auto;
-  max-height: 80vh; /* Limita a altura máxima do modal */
+  position: relative; /* Mudado de absolute para relative */
+  max-width: 450px;
+  width: 90%;
+  margin: 0 auto;
+  transform: none; /* Removido o transform */
+}
+
+.modal-content {
+  margin: auto;
+  width: 100%;
 }
 
 @media (min-width: 576px) {
   .modal-dialog {
-    max-width: 500px;
+    max-width: 450px; /* Mantém consistente com o valor acima */
   }
 }

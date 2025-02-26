@@ -11,22 +11,26 @@ export class LoginGuard implements CanActivate {
   canActivate(): Observable<boolean> {
     const data = localStorage.getItem('usuario');
     if (!data) {
-      return of(true);  // Permite acesso à tela de login se não houver um usuário logado
+      return of(true); // Permite acesso à tela de login se não houver usuário logado
     }
-  
+
     const usuario = JSON.parse(data);
     const role = usuario?.usuario?.role?.trim().toLowerCase() || '';
-  
-    if (role === 'administrador') {
+
+    // Se for administrador ou roteirizador, redireciona para dashboard
+    if (role === 'administrador' || role === 'roteirizador') {
       this.router.navigate(['/pages/dashboard']);
       return of(false);
-    } else if (role === 'colaborador') {
+    } 
+    // Se for colaborador, redireciona para expediente
+    else if (role === 'colaborador') {
       this.router.navigate(['/pages/expediente']);
       return of(false);
-    } else {
+    } 
+    // Caso contrário, deixa passar (ou trate como preferir)
+    else {
       console.error('Role inválido ou não reconhecido:', role);
-      return of(true);  // Se o role for inválido, permite acesso à tela de login
+      return of(true); // Se o role for inválido, permite acesso à tela de login
     }
   }
-  
 }

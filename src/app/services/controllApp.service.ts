@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { RegisterRequestDto } from "../models/control-app/register.request,dto";
 import { RegisterResponseDto } from "../models/control-app/register.response.dto";
@@ -15,7 +15,6 @@ import { RegistrarPausaInicioRequestDto } from "../models/control-app/registrar.
 import { RegistrarInicioPausaResponseDto } from "../models/control-app/registrar.pausa.inicio.response";
 import { RegistrarFimPausaResponseDto } from "../models/control-app/registrar.fim.pausa.response";
 import { RegistrarFimPausaRequestDto } from "../models/control-app/registrar.fim.pausa.request";
-import { Usuario } from "../components/pages/dashboard/dashboard.component";
 
 @Injectable({
   providedIn: 'root'
@@ -24,29 +23,40 @@ import { Usuario } from "../components/pages/dashboard/dashboard.component";
 export class ControllAppService {
 
   constructor(private httpClient: HttpClient) { }
-  private apiUrl = 'http://localhost:5141/api';
+  private apiUrl = 'https://localhost:5141/api';
 
   // Fix the headers method return type
-  private getHeaders(): { [header: string]: string } {
+  private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
     if (!token) {
         console.error('Token não encontrado');
-        return {};
+        return new HttpHeaders();
     }
-    return {
+    return new HttpHeaders({
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-    };
+    });
   }
 
   register(formData: FormData): Observable<RegisterResponseDto> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+
     const url = `${environment.controllApp}/usuario/register`;
-    console.log('Calling API:', url);
+    console.log('🚀 Calling API:', url);
+    console.log('📤 FormData contents:');
+    formData.forEach((value, key) => {
+      console.log(`${key}:`, value);
+    });
+
     return this.httpClient.post<RegisterResponseDto>(url, formData, {
+      headers,
       reportProgress: true
     }).pipe(
       tap(response => {
-        console.log('Resposta da API:', response);
+        console.log('📨 API Response:', response);
       }),
       catchError(this.handleError)
     );
@@ -71,13 +81,17 @@ export class ControllAppService {
 
   usuarioGetAll(request: RegisterRequestDto): Observable<UsuarioResponseDto[]> {
     return this.httpClient.get<UsuarioResponseDto[]>(
-      `${environment.controllApp}/usuario/getall`,
-      { params: request as any }
+      `${environment.controllApp}/usuario/tecnicos`,
+      { 
+        headers: this.getHeaders(),
+        params: request as any 
+      }
     ).pipe(
       map(usuarios => usuarios.map(usuario => ({
         ...usuario,
         fotoUrl: usuario.fotoUrl ? `${environment.controllApp}${usuario.fotoUrl}` : ''
-      })))
+      }))),
+      catchError(this.handleError)
     );
   }
 
@@ -171,7 +185,7 @@ export class ControllAppService {
       }
     };
 
-    const url = `http://localhost:5141/api/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
+    const url = `https://localhost:5141/api/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
     console.log('URL correta:', url);
     console.log('Payload enviado:', request);
 
@@ -194,17 +208,21 @@ export class ControllAppService {
 
   private handleError(error: HttpErrorResponse) {
     console.error('An error occurred:', error);
-    if (error.status === 0) {
-      return throwError(() => new Error('Cannot connect to API. Please check if the server is running.'));
+    if (error.status === 401) {
+      return throwError(() => new Error('Não autorizado. Por favor, faça login novamente.'));
     }
-    return throwError(() => error);
+    if (error.status === 0) {
+      return throwError(() => new Error('Erro de conexão com o servidor. Verifique sua conexão.'));
+    }
+    const message = error.error?.message || error.message || 'Erro desconhecido';
+    return throwError(() => new Error(message));
   }
 
   uploadFile(file: File): Observable<{ url: string }> {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.httpClient.post<{ url: string }>('http://localhost:5141/api/image/upload', formData);
+    return this.httpClient.post<{ url: string }>('https://localhost:5141/api/image/upload', formData);
   }
 
 
@@ -268,4 +286,8 @@ export class ControllAppService {
     );
   }
 
+  getFormularioById(id: string): Observable<any> {
+    return this.httpClient.get(`${this.apiUrl}/formulario/${id}`);
+  }
+  
 }

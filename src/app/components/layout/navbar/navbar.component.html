@@ -1,6 +1,3 @@
-<!-- Exemplo de componente de layout único (layout.component.html), 
-     assumindo que você tenha as variáveis e métodos no seu .ts correspondente. -->
-
 <body *ngIf="autenticado">
   <!-- NAVBAR -->
   <nav class="navbar fixed-top">
@@ -34,14 +31,14 @@
         <strong>{{ nomeUsuario }}</strong> ({{ role }})
       </div>
 
-      <!-- Menu para Administrador -->
-      <a *ngIf="role === 'Administrador'" routerLink="pages/dashboard" class="nav-link">
+      <!-- Menu para Administrador e Roteirizador -->
+      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="pages/dashboard" class="nav-link">
         <i class="fas fa-chart-line"></i>
         <span>Dashboard</span>
       </a>
 
       <!-- Dropdown de Gerenciamento de Usuários -->
-      <div *ngIf="role === 'Administrador'" class="nav-item custom-dropdown">
+      <div *ngIf="role === 'Administrador' || role === 'Roteirizador'" class="nav-item custom-dropdown">
         <button class="nav-link w-100 text-start border-0" (click)="toggleDropdown1()">
           <div class="d-flex align-items-center justify-content-between">
             <div>
@@ -63,12 +60,12 @@
         </div>
       </div>
 
-      <a *ngIf="role === 'Administrador'"  routerLink="/pages/cadastrar-cliente" class="nav-link">
+      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/cadastrar-cliente" class="nav-link">
         <i class="fas fa-building me-2"></i>
         <span>Clientes</span>
       </a>
 
-      <a *ngIf="role === 'Administrador'"  routerLink="/pages/empresas" class="nav-link">
+      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/empresas" class="nav-link">
         <i class="bi bi-building"></i>
         <span>Empresas</span>
       </a>

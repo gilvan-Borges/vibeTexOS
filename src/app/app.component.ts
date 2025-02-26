@@ -22,11 +22,11 @@ export class AppComponent {
   ) {}
 
   ngOnInit(): void {
-    // Verifica o estado salvo do sidebar no localStorage
+   
     const savedState = localStorage.getItem('sidebarState');
     this.isSidebarClosed = savedState === 'closed';
 
-    // Verifica se o usuário está logado na inicialização
+    
     if (!localStorage.getItem('usuario')) {
       this.authService.logout();
     }
@@ -34,11 +34,11 @@ export class AppComponent {
   
   toggleSidebar(): void {
     this.isSidebarClosed = !this.isSidebarClosed;
-    // Salva o estado atual no localStorage
+    
     localStorage.setItem('sidebarState', this.isSidebarClosed ? 'closed' : 'open');
   }
 
-  // Método para verificar autenticação
+
   isAuthenticated(): boolean {
     return this.authService.isLoggedIn();
   }

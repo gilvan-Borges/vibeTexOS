@@ -1,38 +1,34 @@
-// src/app/components/pages/distribuicao-ordem-servico/distribuicao-ordem-servico.component.ts
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
-import { OrdemServico } from '../../../interfaces/ordem-servico.interface';
 import { UsuarioService } from '../../../services/usuario.service';
-
+import { VibeService } from '../../../services/vibe.service';
+import { OrdemServico } from '../../../interfaces/ordem-servico.interface';
+import { CriarOrdemDeServicoRequestDto } from '../../../models/vibe-service/criarOrdemDeServicoRequestDto';
+import { CriarOrdemDeServicoResponseDto } from '../../../models/vibe-service/criarOrdemDeServicoResponseDto';
 
 interface Cliente {
-  id: number;
+  id: string;  
   nome: string;
   endereco: string;
+  enderecoCompleto?: any;
 }
 
 interface Colaborador {
-  id: string; // Mantém como string para UUIDs
+  id: string; 
   nome: string;
 }
 
-// Validador personalizado para impedir datas anteriores ao dia atual (permite a data atual)
+// Validador para impedir datas anteriores ao dia atual
 function dataMinimaAtual(): ValidatorFn {
   return (control: AbstractControl): { [key: string]: boolean } | null => {
     if (!control.value) return null;
     
-    const dataSelecionada = new Date(control.value + 'T00:00:00'); // Adiciona horário zero
+    const dataSelecionada = new Date(control.value + 'T00:00:00');
     const hoje = new Date();
-    
-    // Normaliza as datas para comparação apenas da data (sem horário)
     const dataSelecionadaStr = dataSelecionada.toISOString().split('T')[0];
     const hojeStr = hoje.toISOString().split('T')[0];
     
-    console.log('Data selecionada normalizada:', dataSelecionadaStr);
-    console.log('Data atual normalizada:', hojeStr);
-    
-    // Compara as strings das datas
     return dataSelecionadaStr >= hojeStr ? null : { 'dataAnterior': true };
   };
 }
@@ -49,95 +45,166 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   clientes: Cliente[] = [];
   colaboradores: Colaborador[] = [];
   ordensServico: OrdemServico[] = [];
+  ordensDoDia: OrdemServico[] = [];
+  ordensAgendadas: OrdemServico[] = [];
   isLoading: boolean = false;
-  editandoOrdemId: number | null = null;
-  minDate: string = ''; // Declaração explícita da propriedade minDate
+  editandoOrdemId: string | null = null;
+  minDate: string = '';
+  tipoServico: string[] = [
+    'Manutenção Preventiva',
+    'Manutenção Corretiva',
+    'Instalação de Equipamentos'
+  ];
 
-  constructor(private fb: FormBuilder, private usuarioService: UsuarioService) {
+  constructor(
+    private fb: FormBuilder, 
+    private usuarioService: UsuarioService,
+    private vibeService: VibeService
+  ) {
+    // Inicializa formulário
     this.serviceForm = this.fb.group({
-      codigoOS: ['', [Validators.required, Validators.minLength(3)]],
+      codigoOS: [{value: '', disabled: true}, [Validators.required]],
       cliente: ['', Validators.required],
       tipoServico: ['', Validators.required],
       colaborador: [''],
-      data: ['', [Validators.required, dataMinimaAtual()]], // Adiciona o validador personalizado
-      endereco: [{ value: '', disabled: true }, Validators.required]
+      data: ['', [Validators.required, dataMinimaAtual()]],
+      endereco: [{ value: '', disabled: true }, Validators.required],
+      hora: ['', Validators.required]
     });
 
+    // Quando o cliente muda, atualiza o campo "endereco"
     this.serviceForm.get('cliente')?.valueChanges.subscribe(clienteId => {
-      const clienteIdNum = Number(clienteId); // Garante que clienteId é um número
-      const cliente = this.clientes.find(c => c.id === clienteIdNum);
-      this.serviceForm.patchValue({ endereco: cliente ? cliente.endereco : '' });
+      const cliente = this.clientes.find(c => c.id === clienteId);
+      if (cliente) {
+        const enderecoCompleto = cliente.enderecoCompleto;
+        const endereco = enderecoCompleto
+          ? `${enderecoCompleto.logradouro}, ${enderecoCompleto.bairro}, ${enderecoCompleto.localidade} - ${enderecoCompleto.uf}, CEP: ${enderecoCompleto.cep}`
+          : cliente.endereco;
+        this.serviceForm.patchValue({ endereco: endereco });
+      } else {
+        this.serviceForm.patchValue({ endereco: '' });
+      }
     });
   }
 
   ngOnInit() {
-    // Calcula a data mínima (hoje) no formato yyyy-MM-dd
+    // Data mínima (hoje) no formato yyyy-MM-dd
     const hoje = new Date();
-    this.minDate = hoje.toISOString().split('T')[0]; // Formato "yyyy-MM-dd" (ex.: "2025-02-21")
-    console.log('minDate calculada:', this.minDate); // Para depuração
+    this.minDate = hoje.toISOString().split('T')[0];
     this.loadClientes();
     this.loadColaboradores();
     this.carregarOrdensServico();
   }
 
+  // Carrega clientes
   async loadClientes() {
     try {
       this.isLoading = true;
-      this.clientes = [
-        { id: 1, nome: 'Empresa ABC', endereco: 'Rua A, 123' },
-        { id: 2, nome: 'Cliente XYZ', endereco: 'Av. B, 456' }
-      ];
+      this.vibeService.buscarClientes().subscribe({
+        next: (response) => {
+          this.clientes = response.map((cliente: any) => ({
+            id: cliente.clienteId,
+            nome: cliente.nomeCliente,
+            endereco: `${cliente.endereco.logradouro}, ${cliente.endereco.bairro}, ${cliente.endereco.localidade}`,
+            enderecoCompleto: cliente.endereco
+          }));
+        },
+        error: (error) => {
+          console.error('Erro ao carregar clientes:', error);
+          this.clientes = [];
+        },
+        complete: () => {
+          this.isLoading = false;
+        }
+      });
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
-    } finally {
+      this.clientes = [];
       this.isLoading = false;
     }
   }
 
+  // Carrega colaboradores
   loadColaboradores(): void {
     this.isLoading = true;
     this.usuarioService.carregarTodosColaboradores().subscribe({
       next: (colaboradores) => {
         this.colaboradores = colaboradores.map(colaborador => ({
-          id: colaborador.id, // Mantém como string (UUID)
+          id: colaborador.id,
           nome: colaborador.nome
         }));
-        console.log('Colaboradores carregados:', this.colaboradores); // Para depuração
         this.isLoading = false;
       },
       error: (error) => {
         console.error('Erro ao carregar colaboradores:', error);
-        this.colaboradores = []; // Define como array vazio em caso de erro
+        this.colaboradores = [];
         this.isLoading = false;
       }
     });
   }
 
+  // Carrega ordens de serviço e filtra apenas as que têm "ativo = true"
   async carregarOrdensServico() {
     try {
       this.isLoading = true;
-      this.ordensServico = [
-        {
-          id: 1,
-          codigoOS: '0002',
-          cliente: 'Empresa ABC',
-          tipoServico: 'Pintura',
-          colaborador: null,
-          endereco: 'Rua A, 123',
-          data: new Date('2025-02-21'),
-          status: 'pendente'
+      this.vibeService.buscarOrdemServico().subscribe({
+        next: (response: any[]) => {
+          // Filtra somente ordens com ativo = true
+          const ordensAtivas = response.filter(ordem => ordem.ativo === true);
+
+          // Mapeia para o formato utilizado no front
+          this.ordensServico = ordensAtivas.map(ordem => {
+            let colaboradorNome = 'Não atribuído';
+            if (ordem.usuarioId && this.colaboradores.length > 0) {
+              const colaborador = this.colaboradores.find(c => c.id === ordem.usuarioId);
+              colaboradorNome = colaborador ? colaborador.nome : 'Não atribuído';
+            }
+            return {
+              id: ordem.id || undefined,
+              ordemDeServicoId: ordem.ordemDeServicoId,
+              numeroOrdemDeServico: ordem.numeroOrdemDeServico,
+              codigoOS: ordem.numeroOrdemDeServico,
+              cliente: ordem.cliente?.nomeCliente || 'Cliente não identificado',
+              clienteId: ordem.clienteId,
+              tipoServico: ordem.tipoServico,
+              dataHoraCadastro: ordem.dataHoraCadastro,
+              status: ordem.statusOrdem, // "Pendente", "Cancelado" etc.
+              endereco: ordem.cliente?.endereco 
+                ? `${ordem.cliente.endereco.logradouro}, ${ordem.cliente.endereco.bairro}`
+                : 'Endereço não disponível',
+              usuarioId: ordem.usuarioId,
+              colaborador: colaboradorNome
+            };
+          });
+
+          // Separa ordens de hoje e ordens agendadas (futuras)
+          const hoje = new Date();
+          const hojeStr = hoje.toISOString().split('T')[0];
+
+          this.ordensDoDia = this.ordensServico.filter(ordem => {
+            if (!ordem.dataHoraCadastro) return false;
+            const dataOrdem = new Date(ordem.dataHoraCadastro);
+            if (isNaN(dataOrdem.getTime())) return false;
+            return dataOrdem.toISOString().split('T')[0] === hojeStr;
+          });
+
+          this.ordensAgendadas = this.ordensServico.filter(ordem => {
+            if (!ordem.dataHoraCadastro) return false;
+            const dataOrdem = new Date(ordem.dataHoraCadastro);
+            if (isNaN(dataOrdem.getTime())) return false;
+            return dataOrdem.toISOString().split('T')[0] > hojeStr;
+          });
+
+          this.isLoading = false;
         },
-        {
-          id: 2,
-          codigoOS: '25264-155',
-          cliente: 'Cliente XYZ',
-          tipoServico: 'Manutenção',
-          colaborador: 'ana maria',
-          endereco: 'Av. B, 456',
-          data: new Date('2025-02-28'),
-          status: 'pendente'
+        error: (error) => {
+          console.error('Erro ao carregar ordens:', error);
+          this.ordensServico = [];
+          this.ordensDoDia = [];
+          this.ordensAgendadas = [];
+          this.isLoading = false;
         }
-      ];
+      });
     } catch (error) {
       console.error('Erro ao carregar ordens:', error);
     } finally {
@@ -145,84 +212,185 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     }
   }
 
+  // Criação de nova ordem
   onSubmit() {
-    console.log('Data selecionada:', this.serviceForm.get('data')?.value); // Para depuração
     if (this.serviceForm.invalid) {
       this.serviceForm.markAllAsTouched();
       return;
     }
-
-    const clienteId = Number(this.serviceForm.get('cliente')?.value); // Garante que clienteId é um número
-    const cliente = this.clientes.find(c => c.id === clienteId);
-    const colaboradorId = this.serviceForm.get('colaborador')?.value as string; // Trata como string (UUID)
-    const colaboradorNome = colaboradorId ? this.colaboradores.find(c => c.id === colaboradorId)?.nome || null : null;
-
-    const novaOuAtualizadaOrdem: OrdemServico = {
-      id: this.editandoOrdemId || this.ordensServico.length + 1,
-      codigoOS: this.serviceForm.get('codigoOS')?.value,
-      cliente: cliente ? cliente.nome : '', // Garante que cliente é preenchido
-      tipoServico: this.serviceForm.get('tipoServico')?.value,
-      colaborador: colaboradorNome,
-      endereco: cliente ? cliente.endereco : '', // Garante que endereco é preenchido
-      data: this.serviceForm.get('data')?.value,
-      status: 'pendente'
+  
+    const clienteId = this.serviceForm.get('cliente')?.value;
+    const tipoServico = this.serviceForm.get('tipoServico')?.value;
+    const colaboradorId = this.serviceForm.get('colaborador')?.value;
+    const data = this.serviceForm.get('data')?.value;
+    const hora = this.serviceForm.get('hora')?.value;
+    const dataHora = `${data}T${hora}:00.000Z`;
+  
+    // Cria o objeto de requisição
+    const requestData: CriarOrdemDeServicoRequestDto = {
+      tipoServico: tipoServico,
+      dataHoraCadastro: dataHora
     };
-    console.log('Nova/Atualizada Ordem:', novaOuAtualizadaOrdem); // Para depuração
-
+  
     if (this.editandoOrdemId) {
-      const index = this.ordensServico.findIndex(o => o.id === this.editandoOrdemId);
-      if (index !== -1) {
-        this.ordensServico[index] = novaOuAtualizadaOrdem;
-        this.ordensServico = [...this.ordensServico]; // Força a atualização do binding
-      }
-      this.editandoOrdemId = null;
+      // Modo de edição: atualiza a ordem existente
+      this.vibeService.atualizarOrdemServico(this.editandoOrdemId, requestData).subscribe({
+        next: (response) => {
+          if (colaboradorId) {
+            this.vibeService.atualizarOrdemServicoDespacho(response.ordemDeServicoId, colaboradorId).subscribe({
+              next: () => this.resetFormAndRefresh(),
+              error: (err) => {
+                console.error('Erro ao despachar ordem:', err);
+                this.resetFormAndRefresh();
+              }
+            });
+          } else {
+            this.resetFormAndRefresh();
+          }
+        },
+        error: (error) => {
+          console.error('Erro ao atualizar ordem de serviço:', error);
+        }
+      });
     } else {
-      this.ordensServico.push(novaOuAtualizadaOrdem);
+      // Modo de criação: cria uma nova ordem de serviço
+      this.vibeService.cadastrarOrdemServico(clienteId, requestData).subscribe({
+        next: (response: CriarOrdemDeServicoResponseDto) => {
+          if (colaboradorId) {
+            this.vibeService.atualizarOrdemServicoDespacho(response.ordemDeServicoId, colaboradorId).subscribe({
+              next: () => this.resetFormAndRefresh(),
+              error: (err) => {
+                console.error('Erro ao despachar ordem:', err);
+                this.resetFormAndRefresh();
+              }
+            });
+          } else {
+            this.resetFormAndRefresh();
+          }
+        },
+        error: (error) => {
+          console.error('Erro ao criar ordem de serviço:', error);
+        }
+      });
     }
-
-    this.serviceForm.reset();
   }
+  
 
+  // Cancelar (resetar) o form
   onCancel() {
     this.serviceForm.reset();
     this.editandoOrdemId = null;
+    this.serviceForm.get('codigoOS')?.disable();
   }
 
   atualizarOrdem(ordem: OrdemServico) {
-    console.log('Atualizar:', ordem);
-    const clienteId = this.clientes.find(c => c.nome === ordem.cliente)?.id;
-    const colaboradorId = ordem.colaborador ? this.colaboradores.find(c => c.nome === ordem.colaborador)?.id : '';
+    // Obtenha o ID da ordem
+    const ordemDeServicoId = ordem.ordemDeServicoId;
+  
+    // Leia os novos valores do formulário
+    const novoTipoServico = this.serviceForm.get('tipoServico')?.value;
+    const novaData = this.serviceForm.get('data')?.value;
+    const novaHora = this.serviceForm.get('hora')?.value;
+    const novaDataHoraCadastro = `${novaData}T${novaHora}:00.000Z`;
+  
+    // Monte o objeto de requisição com os dados atualizados
+    const requestData: CriarOrdemDeServicoRequestDto = {
+      tipoServico: novoTipoServico,
+      dataHoraCadastro: novaDataHoraCadastro
+    };
+  
+    // Chama o endpoint de atualização (PUT)
+    this.vibeService.atualizarOrdemServico(ordemDeServicoId, requestData)
+      .subscribe({
+        next: (response: CriarOrdemDeServicoResponseDto) => {
+          console.log('Ordem atualizada com sucesso:', response);
+  
+          // Atualize os campos do formulário com os dados retornados
+          this.serviceForm.patchValue({
+            codigoOS: response.numeroOrdemDeServico,
+            cliente: response.clienteId,
+            tipoServico: response.tipoServico,
+            data: response.dataHoraCadastro.split('T')[0],
+            hora: response.dataHoraCadastro.split('T')[1].substring(0, 5),
+            // Se houver outros campos para atualizar, inclua-os aqui
+          });
+  
+          // Atualize o estado de edição, se necessário
+          this.editandoOrdemId = response.ordemDeServicoId;
+  
+          // Opcional: role para o topo ou recarregue a lista de ordens
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // this.carregarOrdensServico(); // se desejar atualizar a lista
+        },
+        error: (error) => {
+          console.error('Erro ao atualizar ordem:', error);
+        }
+      });
+  }
+  
+  editarOrdem(ordem: OrdemServico) {
+    // Habilita o campo 'codigoOS', se necessário
+    this.serviceForm.get('codigoOS')?.enable();
+  
+    // Preenche o formulário com os dados da ordem
     this.serviceForm.patchValue({
-      codigoOS: ordem.codigoOS,
-      cliente: clienteId,
+      codigoOS: ordem.numeroOrdemDeServico,
+      cliente: ordem.clienteId,
       tipoServico: ordem.tipoServico,
-      colaborador: colaboradorId,
-      data: ordem.data,
+      colaborador: ordem.usuarioId || '', // Se não houver colaborador, deixa em branco
+      // Verifica se dataHoraCadastro existe e está no formato ISO esperado
+      data: ordem.dataHoraCadastro ? ordem.dataHoraCadastro.split('T')[0] : '',
+      hora: ordem.dataHoraCadastro && ordem.dataHoraCadastro.split('T')[1] 
+              ? ordem.dataHoraCadastro.split('T')[1].substring(0, 5) 
+              : '',
       endereco: ordem.endereco
     });
-    this.editandoOrdemId = ordem.id;
-    
+  
+    // Define qual ordem está sendo editada
+    this.editandoOrdemId = ordem.ordemDeServicoId;
+  
+    // Role para o topo para que o usuário veja o formulário
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  
 
+  // Cancelar ordem localmente (mudar status para 'cancelado') -- apenas exemplo
   cancelarOrdem(ordem: OrdemServico) {
     if (confirm('Tem certeza que deseja cancelar esta ordem de serviço?')) {
-      console.log('Cancelar:', ordem);
       const index = this.ordensServico.findIndex(o => o.id === ordem.id);
       if (index !== -1) {
         this.ordensServico[index].status = 'cancelado';
-        this.ordensServico = [...this.ordensServico];
       }
+      // Recarrega para refletir no front (se a API não persistir esse status, ele voltará ao recarregar)
+      this.carregarOrdensServico();
     }
   }
 
+  // Excluir (inativar) chamando o endpoint
   excluirOrdem(ordem: OrdemServico) {
     if (confirm('Tem certeza que deseja excluir esta ordem de serviço?')) {
-      console.log('Excluir:', ordem);
-      this.ordensServico = this.ordensServico.filter(o => o.id !== ordem.id);
+      this.vibeService.deletarOrdemServico(ordem.ordemDeServicoId).subscribe({
+        next: (response) => {
+          console.log('Ordem inativada/excluída:', response);
+          // Após inativar, recarrega a listagem (somente "ativo = true" virá)
+          this.carregarOrdensServico();
+        },
+        error: (error) => {
+          console.error('Erro ao excluir ordem de serviço:', error);
+        }
+      });
     }
   }
 
+  // Reseta o form e recarrega
+  private resetFormAndRefresh() {
+    this.serviceForm.reset();
+    this.editandoOrdemId = null;
+    this.serviceForm.get('codigoOS')?.disable();
+    this.carregarOrdensServico();
+  }
+
+  // Mensagens de erro
   getErrorMessage(controlName: string): string {
     const control = this.serviceForm.get(controlName);
     if (control?.errors && control.touched) {

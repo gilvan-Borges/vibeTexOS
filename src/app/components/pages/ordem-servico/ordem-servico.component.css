@@ -3,13 +3,21 @@
   max-width: 1200px;
 }
 
-/* Ajustes no card para corresponder à imagem */
+.row {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Ajustes no card para corresponder à imagem com largura fixa e altura dinâmica */
 .card {
   border-radius: 8px;
   border: none;
   transition: transform 0.2s;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 300px; /* Largura fixa para cada card */
+  height: auto; /* Altura dinâmica, ajusta-se ao conteúdo */
 }
 
 .card:hover {
@@ -81,7 +89,7 @@
   padding: 15px;
 }
 
-.card-footer span{
+.card-footer span {
   width: 274px;
   height: 50px;
   font-size: 20px;
@@ -141,6 +149,11 @@ h1 {
 .cliente {
   font-weight: 500;
   color: #2c3e50;
+}
+
+.col {
+  display: flex;
+  justify-content: center;
 }
 
 .btn-outline-secondary {

@@ -1,60 +1,69 @@
 <div class="container-fluid dashboard-container">
-  <!-- Filtro de Período (versão compacta) -->
+  <!-- Filtro de Período (as per previous suggestions, unchanged) -->
   <div class="period-filter mb-4">
-    <div class="filter-content">
-      <select class="form-select form-select-sm" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
+    <div class="filter-content d-flex align-items-center justify-content-between p-3 rounded-lg shadow-sm" style="background: linear-gradient(135deg, #e0e7ff, #a5b4fc); border: 1px solid #bfdbfe;">
+      <select class="form-select form-select-sm text-dark fw-semibold border-0 bg-transparent" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
         <option value="hoje">Hoje</option>
         <option value="semana">Última Semana</option>
         <option value="mes">Último Mês</option>
         <option value="custom">Personalizado</option>
       </select>
       
-      <div class="custom-period" *ngIf="periodoSelecionado === 'custom'">
-        <input type="date" class="form-control form-control-sm" [(ngModel)]="dataInicial">
-        <span class="separator">até</span>
-        <input type="date" class="form-control form-control-sm" [(ngModel)]="dataFinal" (ngModelChange)="atualizarDados()">
+      <div class="custom-period d-flex align-items-center gap-2" *ngIf="periodoSelecionado === 'custom'">
+        <input type="date" class="form-control form-control-sm border-0 bg-white rounded-pill shadow-sm" [(ngModel)]="dataInicial" (ngModelChange)="atualizarDados()">
+        <span class="text-dark fw-medium">até</span>
+        <input type="date" class="form-control form-control-sm border-0 bg-white rounded-pill shadow-sm" [(ngModel)]="dataFinal" (ngModelChange)="atualizarDados()">
       </div>
       
-      <button class="btn btn-sm btn-outline-primary" (click)="atualizarDados()">
+      <button class="btn btn-sm btn-primary rounded-pill shadow-sm" (click)="atualizarDados()">
         <i class="fas fa-sync-alt"></i> Atualizar
       </button>
     </div>
   </div>
 
-  <!-- Cards de Métricas (Usando valores dinâmicos do TypeScript) -->
+  <!-- Cards de Métricas (Including Efficiency Cards Side by Side) -->
   <div class="metrics-container">
     <div class="metric-card gradient-bg-primary">
       <h6>Total de O.S.</h6>
-      <h3>{{ totalOS }}</h3>
+      <h3>35</h3>
       <i class="fas fa-clipboard-list icon"></i>
     </div>
     <div class="metric-card gradient-bg-success">
       <h6>O.S. Realizadas</h6>
-      <h3>{{ osRealizadas }}</h3>
+      <h3>28</h3>
       <i class="fas fa-check-circle icon"></i>
     </div>
     <div class="metric-card gradient-bg-warning">
       <h6>O.S. Não Atribuídas</h6>
-      <h3>{{ osNaoAtribuidas }}</h3>
+      <h3>0</h3>
       <i class="fas fa-clock icon"></i>
     </div>
     <div class="metric-card gradient-bg-danger">
       <h6>O.S. Não Realizadas</h6>
-      <h3>{{ osNaoRealizadas }}</h3>
+      <h3>7</h3>
       <i class="fas fa-times-circle icon"></i>
     </div>
-  </div>
-
-<!-- Eficiência Geral (Card único e moderno, foco na eficiência em %) -->
-<!-- Eficiência Geral (Card único e moderno, tamanho igual aos outros cards, apenas porcentagem) -->
-<div class="card efficiency-metric-card mb-4">
-  <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center">
-    <div class="efficiency-circle" [style]="'--progress: ' + efficiencyGeneral + '%'">
-      <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
+    <div class="metric-card gradient-bg-success">
+      <h6>Eficiência Hoje</h6>
+      <h3>80%</h3>
+      <i class="fas fa-chart-pie icon"></i>
     </div>
-    <h6 class="card-title mt-2">Eficiência</h6>
+
+    <div class="metric-card gradient-bg-info efficiency-general-wide">
+      <h6>Eficiência Geral</h6>
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="efficiency-circle" [ngClass]="{'low-efficiency': efficiencyGeneral < 50}">
+          <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
+        </div>
+        <div class="efficiency-stats">
+          <p class="mb-1"><i class="fas fa-check-circle text-success"></i> O.S. Realizadas: 28</p>
+          <p class="mb-1"><i class="fas fa-times-circle text-danger"></i> O.S. Não Realizadas: 7</p>
+          <p class="mb-0"><i class="fas fa-clock text-warning"></i> O.S. Não Atribuídas: 0</p>
+        </div>
+      </div>
+    </div>
+    
   </div>
-</div>
 
   <!-- Mapa de Colaboradores (Largura total) -->
   <div class="card shadow-lg mb-4">

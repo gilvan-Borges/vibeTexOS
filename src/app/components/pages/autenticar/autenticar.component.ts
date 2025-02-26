@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { AuthService } from '../../../services/auth.service';
 import { interval, Subscription } from 'rxjs';
+import { ServicoLocalizacao } from '../../../services/localizacao.service';
+
 
 @Component({
   selector: 'app-autenticar',
@@ -22,12 +24,13 @@ export class AutenticarComponent {
   constructor(
     private controllAppService: ControllAppService,
     private router: Router,
-    private authService: AuthService // ✅ Agora injetado corretamente
-  ) { }
+    private authService: AuthService,
+    private servicoLocalizacao: ServicoLocalizacao
+  ) {}
 
   formulario = new FormGroup({
     userName: new FormControl('', [Validators.required, Validators.minLength(3)]),
-    cpf: new FormControl('', [Validators.pattern(/^\d{11}$/)]),
+
     senha: new FormControl('', [Validators.required, Validators.minLength(5)]),
   });
 
@@ -43,11 +46,9 @@ export class AutenticarComponent {
     }
 
     const userName = this.formulario.get('userName')?.value ?? '';
-    const cpf = this.formulario.get('cpf')?.value ?? '';
     const senha = this.formulario.get('senha')?.value ?? '';
 
-    // Use AuthService login instead of direct authentication
-    this.authService.login(userName, cpf, senha);
+    this.authService.login(userName, senha);
   }
 
   logout() {
@@ -59,6 +60,7 @@ export class AutenticarComponent {
           console.log('Status atualizado para offline.');
           localStorage.clear();
           this.router.navigate(['/pages/usuarios/autenticar']);
+          this.pararAtualizacaoLocalizacao(); // Para a atualização automática ao deslogar
         },
         error: (err) => console.error('Erro ao atualizar status de logout:', err)
       });
@@ -68,7 +70,6 @@ export class AutenticarComponent {
     }
   }
 
-
   private handleAuthentication(response: any): void {
     const usuario = response.usuario;
     if (!usuario || !usuario.usuarioId) {
@@ -77,79 +78,46 @@ export class AutenticarComponent {
     }
     console.log('Redirecionando o usuário com ID:', usuario.usuarioId);
 
-    // Redireciona baseado no role do usuário
+    // Salva o usuário no localStorage
+    localStorage.setItem('usuario', JSON.stringify(response));
+
+    // Inicia a atualização de localização imediatamente
+    this.idUsuario = usuario.usuarioId;
+    this.iniciarAtualizacaoLocalizacao();
+
+    // Redireciona baseado no role do usuário (sem reload)
     if (usuario.role?.toLowerCase() === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`]).then(() => {
-        window.location.reload();
-      });
+      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`]);
     } else if (usuario.role?.toLowerCase() === 'administrador') {
-      this.router.navigate(['/pages/dashboard']).then(() => {
-        window.location.reload();
-      });
+       usuario.role?.toLowerCase() === 'administrador' ||
+        usuario.role?.toLowerCase() === 'roteirizador'
     }
 
-    // Atualiza o status do usuário em segundo plano
+    // Atualiza o status do usuário e verifica o expediente e O.S.
     this.controllAppService.atualizarStatusUsuario(usuario.usuarioId, true).subscribe({
       next: () => {
         console.log('Status atualizado com sucesso.');
+        this.authService.verificarEstadoExpedienteEOS(usuario.usuarioId).subscribe();
       },
       error: (err) => console.error('Erro ao atualizar status:', err)
     });
   }
 
-
-  iniciarAtualizacaoDeLocalizacao(): void {
-    this.locationUpdateSubscription = interval(30000).subscribe(() => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('Coordenadas brutas do GPS:', {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy // Precisão em metros
-          });
-
-          const latitudeStr = position.coords.latitude.toFixed(7); // Garante 7 casas decimais
-          const longitudeStr = position.coords.longitude.toFixed(7); // Garante 7 casas decimais
-          this.coordenadas = `${latitudeStr}, ${longitudeStr}`;
-          console.log('Coordenadas capturadas e enviadas:', this.coordenadas);
-          this.enviarCoordenadasParaApi(latitudeStr, longitudeStr);
-        },
-        (error) => {
-          console.error('Erro ao obter coordenadas:', error);
-          alert('Erro ao capturar coordenadas. Verifique as permissões de localização.');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    });
+  iniciarAtualizacaoLocalizacao(): void {
+    // Inicia a atualização automática usando o ServicoLocalizacao
+    this.locationUpdateSubscription = this.servicoLocalizacao.iniciarAtualizacaoAutomatica(this.idUsuario);
   }
 
-  private enviarCoordenadasParaApi(latitude: string, longitude: string): void {
-    const coordenadasAtualizadas = {
-      usuarioId: this.idUsuario,
-      latitudeAtual: latitude,
-      longitudeAtual: longitude
-    };
-
-    console.log('📡 Enviando coordenadas para a API:', coordenadasAtualizadas);
-
-    this.controllAppService.atualizarCoordenadasUsuario(
-      this.idUsuario,
-      latitude,
-      longitude
-    ).subscribe({
-      next: () => console.log('✅ Coordenadas atualizadas com sucesso.'),
-      error: (err) => console.error('❌ Erro ao atualizar coordenadas:', err)
-    });
-  }
-
-  ngOnDestroy(): void {
+  pararAtualizacaoLocalizacao(): void {
+    // Para a atualização automática usando o ServicoLocalizacao
     if (this.locationUpdateSubscription) {
+      this.servicoLocalizacao.pararAtualizacaoAutomatica();
       this.locationUpdateSubscription.unsubscribe();
+      this.locationUpdateSubscription = undefined;
     }
   }
 
+  ngOnDestroy(): void {
+    this.pararAtualizacaoLocalizacao(); // Garante que a atualização seja parada ao destruir o componente
+  }
 }

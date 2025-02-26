@@ -79,9 +79,12 @@
     <!-- Tabela só é mostrada quando há dados -->
     <table class="styled-table" *ngIf="!mensagemSemDados">
       <!-- Legenda para acessibilidade -->
-      <caption>Lista de trajetos registrados</caption>
+      <caption>Lista de ordens de serviço registradas</caption>
       <thead>
         <tr>
+          <th (click)="ordenarPor('ordemServico')">
+            Ordem de Serviço ⬍
+          </th>
           <th (click)="ordenarPor('enderecoInicio')">
             Local de Início ⬍
           </th>
@@ -99,6 +102,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let trajeto of trajetosFiltrados">
+          <td>{{ trajeto.ordemServico }}</td>
           <td class="endereco-cell">
             {{ trajeto.enderecoInicio }}
             <button
@@ -147,9 +151,128 @@
             >
               ↝
             </button>
+            <button
+              *ngIf="trajeto.formularioId"
+              class="btn-form"
+              (click)="verFormulario(trajeto)"
+              title="Ver formulário"
+            >
+              📋
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Seção de Formulários -->
+<div *ngFor="let trajeto of trajetosFiltrados">
+  <div
+    *ngIf="formulariosAbertos[trajeto.formularioId]"
+    class="formulario-container"
+    [id]="'formulario-' + trajeto.formularioId"
+  >
+    <div class="formulario-header">
+      <h4>📋 Formulário - O.S. {{ trajeto.ordemServico }}</h4>
+      <button
+        class="btn-close"
+        (click)="verFormulario(trajeto)"
+        title="Fechar formulário"
+      >
+        ✕
+      </button>
+    </div>
+    
+    <div class="formulario-content" *ngIf="formularioSelecionado">
+      <!-- Informações Gerais -->
+      <div class="form-section">
+        <h5>ℹ️ Informações Gerais</h5>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Data:</label>
+            <span>{{ formularioSelecionado.dataPreenchimento | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Técnico:</label>
+            <span>{{ formularioSelecionado.tecnicoNome }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checklist -->
+      <div class="form-section">
+        <h5>✔️ Checklist</h5>
+        <table class="checklist-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Status</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of formularioSelecionado.checklist">
+              <td>{{ item.item }}</td>
+              <td>
+                <span [class]="'status-' + item.status.toLowerCase()">
+                  {{ item.status }}
+                </span>
+              </td>
+              <td>{{ item.observacao || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Material Utilizado -->
+      <div class="form-section">
+        <h5>🛠️ Material Utilizado</h5>
+        <table class="material-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Quantidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let material of formularioSelecionado.materialUtilizado">
+              <td>{{ material.codigo }}</td>
+              <td>{{ material.descricao }}</td>
+              <td>{{ material.quantidade }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Fotos -->
+      <div class="form-section">
+        <h5>📸 Fotos do Serviço</h5>
+        <div class="fotos-grid">
+          <div class="foto-item" *ngFor="let foto of formularioSelecionado.fotos">
+            <img [src]="foto.url" [alt]="foto.descricao">
+            <div class="foto-info">
+              <p>{{ foto.descricao }}</p>
+              <small>{{ foto.dataHora | date:'dd/MM/yyyy HH:mm' }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="form-section">
+        <h5>📝 Observações Gerais</h5>
+        <p class="observacoes">{{ formularioSelecionado.observacoesGerais }}</p>
+      </div>
+
+      <!-- Assinatura -->
+      <div class="form-section">
+        <h5>✍️ Assinatura do Cliente</h5>
+        <div class="assinatura-container">
+          <img [src]="formularioSelecionado.assinaturaCliente" alt="Assinatura do cliente">
+        </div>
+      </div>
+    </div>
   </div>
 </div>

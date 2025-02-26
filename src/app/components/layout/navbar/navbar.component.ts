@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { RegistroExpedienteService } from '../../../services/registro-expediente.service';
 import { Subscription } from 'rxjs';
-import { OrdemServicoService } from '../../../services/ordem.servico.service';
+
 
 @Component({
   selector: 'app-navbar',
@@ -24,8 +24,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   dropdownOpen = false;
   pausaAtiva: boolean = false;
   osEmAndamento: boolean = false; 
-  private expedienteSubscription: Subscription;
-  private pausaSubscription: Subscription;
+  private expedienteSubscription: Subscription = new Subscription();
+  private pausaSubscription: Subscription = new Subscription();
+  private authSubscription: Subscription = new Subscription();
+  private osSubscription: Subscription = new Subscription(); // Nova subscrição para O.S.
   @Output() sidebarToggle = new EventEmitter<void>();
 
   isDropdownOpen = false;
@@ -35,26 +37,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private registroExpediente: RegistroExpedienteService,
-    private ordemServicoService: OrdemServicoService
+
   ) {
-    this.expedienteSubscription = this.registroExpediente.expedienteAtivo$.subscribe(
-      ativo => this.expedienteAtivo = ativo
-    );
-    
-    this.pausaSubscription = this.registroExpediente.tempoRestantePausa$.subscribe(
-      minutos => {
-        this.pausaAtiva = minutos > 0;
-        if (this.pausaAtiva) {
-          this.expedienteAtivo = true;
-        }
-      }
-    );
+    this.restaurarEstadoDoLocalStorage(); // Restaura o estado ao iniciar
   }
 
   timestamps: { [key: string]: string } = {};
   
   ngOnInit(): void {
-
     const usuario = this.authService.getUsuario();
     if (usuario) {
       this.autenticado = true;
@@ -62,10 +52,35 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.role = usuario.role;
       this.usuarioId = usuario.usuarioId || '';
 
+      this.expedienteSubscription = this.registroExpediente.expedienteAtivo$.subscribe(
+        ativo => this.expedienteAtivo = ativo
+      );
+      
+      this.pausaSubscription = this.registroExpediente.tempoRestantePausa$.subscribe(
+        minutos => {
+          this.pausaAtiva = minutos > 0;
+          if (this.pausaAtiva) {
+            this.expedienteAtivo = true;
+          }
+        }
+      );
+
+      this.authSubscription = this.authService.expedienteAtivo$.subscribe(expedienteAtivo => {
+        console.log('Estado do expediente atualizado no Navbar:', expedienteAtivo);
+        this.expedienteAtivo = expedienteAtivo;
+        this.verificarEstadoPausa();
+        this.verificarOsEmAndamento();
+      });
+
+      this.osSubscription = this.authService.osEmAndamento$.subscribe(osEmAndamento => {
+        console.log('Estado da O.S. atualizado no Navbar:', osEmAndamento);
+        this.osEmAndamento = osEmAndamento;
+      });
+
       const dadosExpediente = localStorage.getItem('dadosExpediente');
       if (dadosExpediente) {
         const dados = JSON.parse(dadosExpediente);
-        this.timestamps = dados.timestamps;
+        this.timestamps = dados.timestamps || {};
       }
 
       if (this.role === 'Colaborador') {
@@ -79,14 +94,46 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.verificarEstadoExpediente();
     }
   }
- 
-   
-  
+
+  restaurarEstadoDoLocalStorage(): void {
+    const usuario = this.authService.getUsuario();
+    if (usuario) {
+      this.autenticado = true;
+      this.nomeUsuario = usuario.nome;
+      this.role = usuario.role;
+      this.usuarioId = usuario.usuarioId || '';
+
+      // Restaurar expediente ativo usando o Observable
+      this.authService.expedienteAtivo$.subscribe({
+        next: (ativo) => this.expedienteAtivo = ativo !== null && ativo !== undefined ? ativo : false,
+        error: (err) => console.error('Erro ao restaurar estado do expediente:', err)
+      }).unsubscribe(); // Obtém apenas o valor atual
+
+      // Restaurar pausa ativa
+      const inicioPausaTime = localStorage.getItem('inicioPausaTime');
+      const fimPausaTime = localStorage.getItem('fimPausaTime');
+      this.pausaAtiva = !!inicioPausaTime && !fimPausaTime && 
+                        (new Date().getTime() - new Date(inicioPausaTime).getTime()) < 3600000;
+
+      // Restaurar O.S. em andamento usando o Observable
+      this.authService.osEmAndamento$.subscribe({
+        next: (ativo) => this.osEmAndamento = ativo !== null && ativo !== undefined ? ativo : false,
+        error: (err) => console.error('Erro ao restaurar estado da O.S.:', err)
+      }).unsubscribe(); // Obtém apenas o valor atual
+
+      const dadosExpediente = localStorage.getItem('dadosExpediente');
+      if (dadosExpediente) {
+        const dados = JSON.parse(dadosExpediente);
+        this.timestamps = dados.timestamps || {};
+      }
+    }
+  }
 
   verificarOsEmAndamento() {
     const osEmAndamento = localStorage.getItem('osEmAndamento');
     const osIniciada = localStorage.getItem('osIniciada');
     this.osEmAndamento = !!(osEmAndamento && osIniciada === 'true');
+    this.authService.setOsEmAndamento(this.osEmAndamento); // Sincroniza com o AuthService
     console.log('Status O.S. em andamento:', this.osEmAndamento);
   }
 
@@ -97,11 +144,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (this.pausaSubscription) {
       this.pausaSubscription.unsubscribe();
     }
-    // Remove o listener quando o componente for destruído
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
+    }
+    if (this.osSubscription) {
+      this.osSubscription.unsubscribe();
+    }
     window.removeEventListener('osStatusChanged', () => {
       this.verificarOsEmAndamento();
     });
   }
+
   onLogout(): void {
     this.authService.logout().then(() => {
       console.log('Usuário desconectado.');
@@ -114,29 +167,25 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   toggleDropdown1(): void {
     this.isDropdownOpen = !this.isDropdownOpen;
-    // Fecha o outro dropdown se estiver aberto
     if (this.isClientDropdownOpen) {
       this.isClientDropdownOpen = false;
     }
   }
 
-
   toggleSidebar(): void {
-    this.isSidebarClosed = !this.isSidebarClosed; // Alterna entre aberto e fechado
+    this.isSidebarClosed = !this.isSidebarClosed;
     this.sidebarToggle.emit();
   }
 
   fecharSidebarSeMobile(): void {
-    if (window.innerWidth <= 768) { // Só fecha se a tela for pequena
+    if (window.innerWidth <= 768) {
       this.isSidebarClosed = true;
     }
   }
-  
 
   async logout(): Promise<void> {
     if (confirm('Deseja realmente sair do sistema?')) {
       await this.authService.logout();
-      // Removido o router.navigate pois já está no AuthService
     }
   }
 
@@ -147,7 +196,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (inicioPausaTime && !fimPausaTime) {
       const now = new Date().getTime();
       const pauseStart = new Date(inicioPausaTime).getTime();
-      this.pausaAtiva = (now - pauseStart) < 3600000; // Menos de 1 hora
+      this.pausaAtiva = (now - pauseStart) < 3600000;
     } else {
       this.pausaAtiva = false;
     }

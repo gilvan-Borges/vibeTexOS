@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import SignaturePad from 'signature_pad';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Importe autoTable
+import autoTable from 'jspdf-autotable';
 import { WebcamModule, WebcamImage, WebcamInitError } from 'ngx-webcam';
 import { Subject } from 'rxjs';
 
@@ -36,6 +36,7 @@ export class FormularioServicoComponent implements OnInit {
     this.formularioServico = this.fb.group({
       codigoOS: ['', Validators.required],
       nomeColaborador: ['', Validators.required],
+      empresaColaborador: ['', Validators.required], // Novo campo
       nomeCliente: ['', Validators.required],
       cpf: ['', [Validators.required, Validators.minLength(11), Validators.maxLength(11)]],
       telefone: ['', Validators.required],
@@ -51,6 +52,7 @@ export class FormularioServicoComponent implements OnInit {
       fotoInicio: [''],
       fotoFim: ['']
     });
+    
   }
 
   ngOnInit() {
@@ -66,6 +68,7 @@ export class FormularioServicoComponent implements OnInit {
     if (fotoFim) {
       this.formularioServico.patchValue({ fotoFim });
     }
+    
   }
 
   get f() {
@@ -89,7 +92,6 @@ export class FormularioServicoComponent implements OnInit {
     }
   }
 
-  // Método para gerar e baixar o PDF
   gerarPDF() {
     if (this.formularioServico.valid && this.signaturePad && !this.signaturePad.isEmpty()) {
       const doc = new jsPDF();
@@ -231,7 +233,6 @@ export class FormularioServicoComponent implements OnInit {
     }
   }
 
-  // Restante do código (métodos como onSubmit, buscarCep, etc.) permanece igual
   get triggerObservable(): Subject<void> {
     return this.trigger;
   }
@@ -240,9 +241,16 @@ export class FormularioServicoComponent implements OnInit {
     this.trigger.next();
   }
 
-  fecharModal(): void {
+  fecharModal(event?: Event): void {
+    if (event) {
+      event.preventDefault(); // Previne o comportamento padrão do clique
+    }
     this.modalVisible = false;
     this.webcamImage = null;
+  }
+
+  stopPropagation(event: Event): void {
+    event.stopPropagation(); // Impede que o clique no modal-content feche o modal
   }
 
   onSubmit() {
@@ -286,5 +294,16 @@ export class FormularioServicoComponent implements OnInit {
       telefone = telefone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
     }
     event.target.value = telefone;
+  }
+
+  handleImage(webcamImage: WebcamImage): void {
+    this.webcamImage = webcamImage;
+    this.formularioServico.patchValue({ fotoInicio: webcamImage.imageAsDataUrl });
+    localStorage.setItem('osFotoInicio', webcamImage.imageAsDataUrl);
+  }
+
+  handleInitError(error: WebcamInitError): void {
+    this.errors.push(error);
+    console.error('Erro ao inicializar a câmera:', error);
   }
 }

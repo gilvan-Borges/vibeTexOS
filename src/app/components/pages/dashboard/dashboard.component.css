@@ -267,18 +267,58 @@ body {
 
 /* Novo estilo para filtro de período */
 .period-filter {
-  background: transparent;
+  margin-bottom: 1.5rem;
 }
 
 .filter-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.filter-content:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.form-select-sm {
+  min-width: 140px;
+  font-size: 0.875rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+}
+
+.custom-period input {
+  width: 130px;
+  padding: 0.375rem 0.75rem;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.custom-period input:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline-primary, .btn-primary {
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .form-select-sm {
@@ -322,10 +362,10 @@ body {
 
 /* Cards de Métricas */
 .metrics-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Reduzido de 200px para 180px */
-    gap: 0.8rem; /* Reduzido de 1rem para 0.8rem */
-    margin-bottom: 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
 }
 .metric-card {
     position: relative;
@@ -338,6 +378,7 @@ body {
     justify-content: space-between;
     transition: all 0.3s ease;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+    grid-column: span 1;
 }
 .metric-card h6 {
     font-size: 0.8rem; /* Reduzido de 0.85rem para 0.8rem */
@@ -770,3 +811,163 @@ th {
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
+
+/* Ensure metrics-container uses a grid layout for 6 cards */
+.metrics-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+
+/* Existing metric card styles (unchanged) */
+.metric-card {
+  position: relative;
+  padding: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+  grid-column: span 1;
+}
+
+.metric-card h6 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.metric-card h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.metric-card .icon {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  font-size: 2.2rem;
+  opacity: 0.15;
+  transform: rotate(-5deg);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card:hover .icon {
+  transform: rotate(0deg) scale(1.1);
+  opacity: 0.2;
+}
+
+/* Gradient backgrounds (unchanged) */
+.gradient-bg-primary {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  color: white;
+}
+
+.gradient-bg-success {
+  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  color: white;
+}
+
+.gradient-bg-warning {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  color: white;
+}
+
+.gradient-bg-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.gradient-bg-info {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: white;
+}
+
+/* Specific styles for Eficiência Geral card */
+.efficiency-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-right: 0.5rem;
+}
+
+.efficiency-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.efficiency-stats {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.efficiency-stats i {
+  margin-right: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.metric-card.efficiency-general {
+  grid-column: span 2; /* Makes this card take up 2 columns */
+}
+
+/* Adicione esta nova classe */
+.metric-card.efficiency-card {
+  grid-column: 1 / span 3; /* Faz o card ocupar todas as 3 colunas */
+  min-height: 150px; /* Altura um pouco maior para melhor visualização */
+}
+
+/* Estilo específico para o card de eficiência geral */
+.efficiency-general-wide {
+    grid-column: span 1; /* Faz este card específico ocupar 1 coluna */
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Substitua ou adicione estes estilos */
+.metrics-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Aumenta para 3 colunas */
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+
+/* Estilo padrão para cards menores */
+.metric-card {
+  min-height: 90px; /* Altura reduzida */
+  padding: 0.8rem; /* Padding reduzido */
+}
+
+/* Mantém o card de eficiência geral maior */
+.efficiency-general-wide {
+  grid-column: span 1;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Faz os outros cards ocuparem apenas 1 coluna */
+.metric-card:not(.efficiency-general-wide) {
+  grid-column: span 1;
+}
+

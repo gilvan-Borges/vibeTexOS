@@ -17,11 +17,27 @@
 
       <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
         <div class="row g-3">
-          <div class="col-md-6">
-            <label for="nome" class="form-label fw-bold">Nome completo:</label>
-            <input id="nome" type="text" class="form-control form-control-lg" formControlName="nome" />
-            <div class="text-danger small" *ngIf="f['nome'].touched && f['nome'].invalid">
+          <div class="col-md-4">
+            <label for="nomeCliente" class="form-label fw-bold">Nome completo:</label>
+            <input id="nomeCliente" type="text" class="form-control form-control-lg" formControlName="nomeCliente" />
+            <div class="text-danger small" *ngIf="f['nomeCliente'].touched && f['nomeCliente'].invalid">
               Por favor, informe o nome completo.
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label for="cpfCliente" class="form-label fw-bold">CPF:</label>
+            <input id="cpfCliente" type="text" class="form-control form-control-lg" formControlName="cpfCliente" mask="000.000.000-00" />
+            <div class="text-danger small" *ngIf="f['cpfCliente'].touched && f['cpfCliente'].invalid">
+              Por favor, informe um CPF válido.
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label for="telefoneCliente" class="form-label fw-bold">Telefone:</label>
+            <input id="telefoneCliente" type="text" class="form-control form-control-lg" formControlName="telefoneCliente" mask="(00) 00000-0000" />
+            <div class="text-danger small" *ngIf="f['telefoneCliente'].touched && f['telefoneCliente'].invalid">
+              Por favor, informe um telefone válido.
             </div>
           </div>
 
@@ -66,13 +82,7 @@
               Por favor, informe a UF.
             </div>
           </div>
-          <div class="col-md-3">
-            <label for="estado" class="form-label fw-bold">Estado:</label>
-            <input id="estado" type="text" class="form-control form-control-lg" formControlName="estado" />
-            <div class="text-danger small" *ngIf="f['estado'].touched && f['estado'].invalid">
-              Por favor, informe o estado.
-            </div>
-          </div>
+       
         </div>
 
         <div class="mt-4">
@@ -107,14 +117,14 @@
             </thead>
             <tbody>
               <tr *ngFor="let cliente of paginatedClientes">
-                <td class="text-center">{{ cliente.nome }}</td>
-                <td class="text-center">{{ cliente.endereco }}</td>
+                <td class="text-center">{{ cliente.nomeCliente }}</td>
+                <td class="text-center">{{ cliente.endereco?.logradouro }}, {{ cliente.endereco?.numero }}, {{ cliente.endereco?.bairro }}, {{ cliente.endereco?.cidade }} - {{ cliente.endereco?.uf }}</td>
                 <td class="text-center">
                   <div class="btn-group">
                     <button class="btn btn-sm btn-primary me-2" (click)="editarCliente(cliente); rolarParaTopo()">
                       <i class="bi bi-pencil"></i> Editar
                     </button>
-                    <button class="btn btn-sm btn-danger" (click)="excluirCliente(cliente.id)">
+                    <button class="btn btn-sm btn-danger" (click)="excluirCliente(cliente.clienteId)">
                       <i class="bi bi-trash"></i> Excluir
                     </button>
                   </div>

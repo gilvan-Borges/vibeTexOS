@@ -1,5 +1,4 @@
-<!-- src/app/components/pages/distribuicao-ordem-servico/distribuicao-ordem-servico.component.html -->
-<div class="container py-5">
+<div class="container py-1">
   <!-- Formulário Nova Ordem de Serviço -->
   <div class="card mb-5 shadow-lg border-0 rounded-3">
     <div class="card-header bg-primary text-white py-3">
@@ -11,7 +10,8 @@
           <div class="col-md-6">
             <label for="codigoOS" class="form-label fw-bold">Código O.S</label>
             <input type="text" class="form-control" id="codigoOS" formControlName="codigoOS" 
-                   [class.is-invalid]="serviceForm.get('codigoOS')?.touched && serviceForm.get('codigoOS')?.invalid">
+                   [class.is-invalid]="serviceForm.get('codigoOS')?.touched && serviceForm.get('codigoOS')?.invalid"
+                   [attr.readonly]="!editandoOrdemId">
             <div class="invalid-feedback">{{getErrorMessage('codigoOS')}}</div>
           </div>
 
@@ -27,8 +27,11 @@
 
           <div class="col-md-6">
             <label for="tipoServico" class="form-label fw-bold">Tipo de Serviço</label>
-            <input type="text" class="form-control" id="tipoServico" formControlName="tipoServico"
-                   [class.is-invalid]="serviceForm.get('tipoServico')?.touched && serviceForm.get('tipoServico')?.invalid">
+            <select class="form-select" id="tipoServico" formControlName="tipoServico"
+                    [class.is-invalid]="serviceForm.get('tipoServico')?.touched && serviceForm.get('tipoServico')?.invalid">
+              <option value="">Selecione o tipo de serviço</option>
+              <option *ngFor="let tipo of tipoServico" [value]="tipo">{{tipo}}</option>
+            </select>
             <div class="invalid-feedback">{{getErrorMessage('tipoServico')}}</div>
           </div>
 
@@ -48,11 +51,21 @@
           </div>
 
           <div class="col-md-6">
-            <label for="data" class="form-label fw-bold">Data</label>
-            <input type="date" class="form-control" id="data" formControlName="data"
-                   [class.is-invalid]="serviceForm.get('data')?.touched && serviceForm.get('data')?.invalid"
-                   [min]="minDate">
-            <div class="invalid-feedback">{{getErrorMessage('data')}}</div>
+            <div class="row">
+              <div class="col-md-6">
+                <label for="data" class="form-label fw-bold">Data</label>
+                <input type="date" class="form-control" id="data" formControlName="data"
+                       [class.is-invalid]="serviceForm.get('data')?.touched && serviceForm.get('data')?.invalid"
+                       [min]="minDate">
+                <div class="invalid-feedback">{{getErrorMessage('data')}}</div>
+              </div>
+              <div class="col-md-6">
+                <label for="hora" class="form-label fw-bold">Hora</label>
+                <input type="time" class="form-control" id="hora" formControlName="hora"
+                       [class.is-invalid]="serviceForm.get('hora')?.touched && serviceForm.get('hora')?.invalid">
+                <div class="invalid-feedback">{{getErrorMessage('hora')}}</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -68,11 +81,11 @@
     </div>
   </div>
 
-  <!-- Listagem de Ordens de Serviço em Tabela -->
+  <!-- Listagem de Ordens de Serviço do Dia em Tabela -->
   <div class="orders-section">
-    <h3 class="mb-4 fw-bold text-dark" style="border-bottom: 2px solid #007bff;">Ordens de Serviço Atribuídas</h3>
+    <h3 class="mb-4 fw-bold text-dark" style="border-bottom: 2px solid #007bff;">Ordens de Serviço Atribuídas (Hoje)</h3>
     <div class="table-responsive">
-      <table class="table modern-table shadow-lg rounded-3">
+      <table class="table modern-table shadow-lg rounded-3" *ngIf="ordensDoDia.length > 0; else noOrders">
         <thead class="bg-gradient-blue text-white">
           <tr>
             <th scope="col" class="py-3">Código O.S.</th>
@@ -86,7 +99,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let ordem of ordensServico" class="align-middle" [ngClass]="{
+          <tr *ngFor="let ordem of ordensDoDia" class="align-middle" [ngClass]="{
             'bg-yellow-soft': ordem.status === 'pendente',
             'bg-red-soft': ordem.status === 'cancelado'
           }">
@@ -94,8 +107,63 @@
             <td class="py-3">{{ ordem.cliente }}</td>
             <td class="py-3">{{ ordem.endereco }}</td>
             <td class="py-3" [ngClass]="{'blink-yellow': !ordem.colaborador}">{{ ordem.colaborador || 'Não atribuído' }}</td>
-            <td class="py-3">{{ ordem.tipoServico }}</td> <!-- Corrigido para ordem.tipoServico -->
-            <td class="py-3">{{ ordem.data | date:'dd/MM/yyyy' }}</td>
+            <td class="py-3">{{ ordem.tipoServico }}</td>
+            <td class="py-3">{{ ordem.dataHoraCadastro | date:'dd/MM/yyyy' }}</td>
+            <td class="py-3">
+              <span class="badge bg-light text-dark rounded-pill">{{ ordem.status }}</span>
+            </td>
+            <td class="py-3 text-center">
+              <div class="d-flex justify-content-center gap-2">
+                <button class="btn btn-sm btn-primary rounded-pill" (click)="atualizarOrdem(ordem)" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-warning rounded-pill" (click)="cancelarOrdem(ordem)" title="Cancelar">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-danger rounded-pill" (click)="excluirOrdem(ordem)" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #noOrders>
+        <div class="alert alert-info text-center py-4">
+          <i class="bi bi-info-circle me-2"></i> Nenhuma ordem de serviço atribuída para hoje
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Rodapé para Ordens de Serviço Agendadas (Datas Futuras) -->
+  <div class="orders-scheduled-section mt-5" *ngIf="ordensAgendadas.length > 0">
+    <h3 class="mb-4 fw-bold text-dark" style="border-bottom: 2px solid #28a745;">Ordens de Serviço Agendadas</h3>
+    <div class="table-responsive">
+      <table class="table modern-table shadow-lg rounded-3">
+        <thead class="bg-gradient-green text-white">
+          <tr>
+            <th scope="col" class="py-3">Código O.S.</th>
+            <th scope="col" class="py-3">Cliente</th>
+            <th scope="col" class="py-3">Endereço</th>
+            <th scope="col" class="py-3">Colaborador</th>
+            <th scope="col" class="py-3">Tipo de Serviço</th>
+            <th scope="col" class="py-3">Data</th>
+            <th scope="col" class="py-3">Status</th>
+            <th scope="col" class="py-3 text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ordem of ordensAgendadas" class="align-middle" [ngClass]="{
+            'bg-green-soft': ordem.status === 'Pendente',
+            'bg-red-soft': ordem.status === 'Cancelado',
+          }">
+            <td class="py-3">{{ ordem.codigoOS }}</td>
+            <td class="py-3">{{ ordem.cliente }}</td>
+            <td class="py-3">{{ ordem.endereco }}</td>
+            <td class="py-3" [ngClass]="{'blink-yellow': !ordem.colaborador}">{{ ordem.colaborador || 'Não atribuído' }}</td>
+            <td class="py-3">{{ ordem.tipoServico }}</td>
+            <td class="py-3">{{ ordem.dataHoraCadastro | date:'dd/MM/yyyy' }}</td>
             <td class="py-3">
               <span class="badge bg-light text-dark rounded-pill">{{ ordem.status }}</span>
             </td>
@@ -116,10 +184,11 @@
         </tbody>
       </table>
     </div>
-    <ng-template #noOrders>
+    <ng-template #noScheduledOrders>
       <div class="alert alert-info text-center py-4">
-        <i class="bi bi-info-circle me-2"></i> Nenhuma ordem de serviço atribuída
+        <i class="bi bi-info-circle me-2"></i> Nenhuma ordem de serviço agendada
       </div>
     </ng-template>
   </div>
+  
 </div>

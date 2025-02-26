@@ -116,8 +116,9 @@ h3 {
 }
 
 .action-cell {
-  width: 40px;
-  text-align: center;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
 }
 
 /* Botão para ver no mapa */
@@ -404,5 +405,140 @@ h3 {
   80%, 100% {
     transform: scale(2);
     opacity: 0;
+  }
+}
+
+.btn-form {
+  background-color: #6c757d;
+  border: none;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: 4px;
+}
+
+.btn-form:hover {
+  background-color: #5a6268;
+}
+
+.formulario-container {
+  background: white;
+  border-radius: 8px;
+  margin: 20px 0;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.formulario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section h5 {
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.checklist-table, .material-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.checklist-table th, .material-table th,
+.checklist-table td, .material-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.status-ok { color: #2ecc71; }
+.status-nok { color: #e74c3c; }
+.status-na { color: #95a5a6; }
+
+.fotos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.foto-item {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.foto-item img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.foto-info {
+  padding: 8px;
+  background: #f8f9fa;
+}
+
+.observacoes {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.assinatura-container {
+  text-align: center;
+  padding: 16px;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+}
+
+.assinatura-container img {
+  max-width: 300px;
+  height: auto;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+.btn-close:hover {
+  color: #000;
+}
+
+.formulario-content {
+  padding: 10px 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

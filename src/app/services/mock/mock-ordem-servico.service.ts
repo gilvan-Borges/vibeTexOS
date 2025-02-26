@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { delay, Observable, of } from 'rxjs';
 
 export interface OrdemServico {
   id: string;
@@ -30,6 +30,31 @@ export interface DesempenhoTecnico {
   historicoDiario: {
     data: string;
     osRealizadas: number;
+  }[];
+}
+
+export interface FormularioOS {
+  id: string;
+  ordemServicoId: string;
+  dataPreenchimento: Date;
+  tecnicoId: string;
+  tecnicoNome: string;
+  checklist: {
+    item: string;
+    status: 'OK' | 'NOK' | 'NA';
+    observacao?: string;
+  }[];
+  assinaturaCliente?: string;
+  fotos: {
+    url: string;
+    descricao: string;
+    dataHora: Date;
+  }[];
+  observacoesGerais?: string;
+  materialUtilizado: {
+    codigo: string;
+    descricao: string;
+    quantidade: number;
   }[];
 }
 
@@ -174,5 +199,62 @@ export class MockOrdemServicoService {
     }
 
     return historico;
+  }
+
+  // Método público para acessar o formulário mockado
+  getFormularioMock(id: string): Observable<FormularioOS> {
+    return of(this.gerarFormularioMock(id)).pipe(delay(500));
+  }
+
+  private gerarFormularioMock(id: string): FormularioOS {
+    return {
+      id: id,
+      ordemServicoId: `OS${Math.floor(Math.random() * 10000)}`,
+      dataPreenchimento: new Date(),
+      tecnicoId: `TEC${Math.floor(Math.random() * 10 + 1)}`,
+      tecnicoNome: `Técnico ${Math.floor(Math.random() * 10 + 1)}`,
+      checklist: [
+        {
+          item: 'Equipamento limpo e organizado',
+          status: Math.random() > 0.5 ? 'OK' : 'NOK',
+          observacao: Math.random() > 0.5 ? 'Necessita manutenção preventiva' : undefined
+        },
+        {
+          item: 'Teste de funcionamento realizado',
+          status: 'OK'
+        },
+        {
+          item: 'Calibração verificada',
+          status: Math.random() > 0.7 ? 'NA' : 'OK',
+          observacao: 'Calibração dentro do prazo'
+        }
+      ],
+      assinaturaCliente: 'data:image/png;base64,iVBORw0K...', // Base64 mockado
+      fotos: [
+        {
+          url: 'https://example.com/foto1.jpg',
+          descricao: 'Antes do serviço',
+          dataHora: new Date(Date.now() - 3600000)
+        },
+        {
+          url: 'https://example.com/foto2.jpg',
+          descricao: 'Depois do serviço',
+          dataHora: new Date()
+        }
+      ],
+      observacoesGerais: 'Serviço realizado conforme procedimento padrão. Cliente satisfeito com o resultado.',
+      materialUtilizado: [
+        {
+          codigo: 'MAT001',
+          descricao: 'Filtro de ar',
+          quantidade: 1
+        },
+        {
+          codigo: 'MAT002',
+          descricao: 'Óleo lubrificante',
+          quantidade: 2
+        }
+      ]
+    };
   }
 }
