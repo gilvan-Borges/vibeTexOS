@@ -16,11 +16,11 @@ import { EditarColaboradorComponent } from './components/pages/editar-colaborado
 
 import { OrdemServicoExecComponent } from './components/pages/ordem-servico-exec/ordem-servico-exec.component';
 import { OrdemServicoComponent } from './components/pages/ordem-servico/ordem-servico.component';
-import { FormularioServicoComponent } from './components/pages/formulario-servico/formulario-servico.component';
 import { UsuariosComponent } from './components/pages/usuarios/usuarios.component';
 import { CadastrarClienteComponent } from './components/pages/cadastrar-cliente/cadastrar-cliente.component';
 import { DistribuicaoOrdemServicoComponent } from './components/pages/distribuicao-ordem-servico/distribuicao-ordem-servico.component';
 import { EmpresasComponent } from './components/pages/empresas/empresas.component';
+import { ConsultarOrdemServicoComponent } from './components/pages/consultar-ordem-servico/consultar-ordem-servico.component';
 
 
 export const routes: Routes = [
@@ -108,7 +108,11 @@ export const routes: Routes = [
         component: DistribuicaoOrdemServicoComponent,
         canActivate: [AuthGuard] // Altere o guard para verificar se o usuário está logado
     },
-
+    {
+        path: 'pages/consultar-ordem-servico',
+        component: ConsultarOrdemServicoComponent,
+        canActivate: [AuthGuard] // Altere o guard para verificar se o usuário está logado
+    },
 
     {
         path: 'pages/historico-tecnico/:id',

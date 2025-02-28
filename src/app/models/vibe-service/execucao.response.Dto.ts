@@ -1,9 +1,14 @@
 export interface ExecucaoResponseDto {
-    execucaoServicoId: string;
-    fotoInicioServico?: string;
-    statusExecucao?: string;
-    dataEHoraInicioExecucao?: Date;
-    latitudeInicioExecucaoServico?: string;
-    longitudeInicioExecucaoServico?: string;
+  execucaoServicoId: string; // Agora garantido
+  fotoInicio?: string;
+  fotoFimServico?: string;
+  statusExecucao?: string;
+  dataEHoraInicioExecucao?: string;
+  dataEHoraFimExecucao?: string | Date;
+  duracao?: string;
+  latitudeInicioExecucaoServico?: string;
+  longitudeInicioExecucaoServico?: string;
+  latitudeFimExecucaoServico?: string;
+  longitudeFimExecucaoServico?: string;
   }
   

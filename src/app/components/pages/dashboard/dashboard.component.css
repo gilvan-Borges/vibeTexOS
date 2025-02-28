@@ -971,3 +971,165 @@ th {
   grid-column: span 1;
 }
 
+/* Novo estilo moderno para a tabela de desempenho */
+.table-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  margin-top: 2rem;
+  overflow: hidden;
+}
+
+.table-container h5 {
+  color: #1a1a1a;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-left: 0.5rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 1rem;
+}
+
+.table thead th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Link do nome do colaborador */
+.table tbody td a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.table tbody td a:hover {
+  color: #2563eb;
+}
+
+/* Barra de progresso modernizada */
+.progress {
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-bar.bg-success {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.progress-bar.bg-warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.progress-bar.bg-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .table-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table td, .table th {
+    padding: 0.75rem;
+  }
+}
+
+/* Novos estilos para a tabela */
+.table td.col-metrics {
+  width: 80px;
+  padding: 1rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.table th.col-metrics {
+  width: 80px;
+  padding: 1rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.table td a {
+  text-decoration: none;
+  color: #2563eb;
+  transition: all 0.2s ease;
+}
+
+.table td a:hover {
+  color: #1d4ed8;
+}
+
+.table td a i {
+  font-size: 1.5rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.table td a:hover i {
+  color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.table td a span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Novos estilos para a tabela */
+.table th.col-empresa,
+.table td:first-child {
+  width: 120px;
+  padding: 1rem 0.5rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

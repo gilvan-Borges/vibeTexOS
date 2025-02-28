@@ -4,7 +4,7 @@ import { Observable, forkJoin, Subscription, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment.development';
 import { RegistrarPontoInicioResponseDto } from '../models/control-app/registrar.ponto.inicio.response.dto';
-import { Usuario } from '../components/pages/dashboard/dashboard.component';
+import { Usuario } from '../models/control-app/usuario.model'; // Updated import path
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { ControllAppService } from './controllApp.service';

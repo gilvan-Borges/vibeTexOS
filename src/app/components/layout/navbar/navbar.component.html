@@ -60,7 +60,8 @@
         </div>
       </div>
 
-      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/cadastrar-cliente" class="nav-link">
+      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/cadastrar-cliente"
+        class="nav-link">
         <i class="fas fa-building me-2"></i>
         <span>Clientes</span>
       </a>
@@ -75,11 +76,29 @@
         <span>Horas Trabalhadas</span>
       </a>
 
-      <!-- Nova opção para Gerenciar Ordem de Serviço -->
-      <a *ngIf="role === 'Administrador' || role === 'Roteirizador'" routerLink="/pages/gerenciar-ordem-servico" class="nav-link">
-        <i class="fas fa-tasks"></i>
-        <span>Gerenciar O.S.</span>
-      </a>
+      <!-- Dropdown de Gerenciar Ordem de Serviço -->
+      <div *ngIf="role === 'Administrador' || role === 'Roteirizador'" class="nav-item custom-dropdown">
+        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdownOs()">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <i class="fas fa-tasks me-2"></i>
+              <span>Gerenciar O.S.</span>
+            </div>
+            <i class="fas fa-chevron-down transition-icon" [class.rotate]="isDropdownOsOpen"></i>
+          </div>
+        </button>
+        <div class="dropdown-content" [class.show]="isDropdownOsOpen">
+          <a class="dropdown-item" routerLink="/pages/gerenciar-ordem-servico">
+            <i class="fas fa-plus me-2"></i>
+            <span>Cadastrar O.S.</span>
+          </a>
+          <a class="dropdown-item" routerLink="/pages/consultar-ordem-servico">
+            <i class="fas fa-search me-2"></i>
+            <span>Consultar O.S.</span>
+          </a>
+        </div>
+      </div>
+
 
       <!-- Menu para Colaborador -->
       <a *ngIf="role === 'Colaborador'" [routerLink]="['/pages/horas-colaborador', usuarioId]" class="nav-link"

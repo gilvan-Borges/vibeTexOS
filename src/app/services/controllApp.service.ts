@@ -286,8 +286,5 @@ export class ControllAppService {
     );
   }
 
-  getFormularioById(id: string): Observable<any> {
-    return this.httpClient.get(`${this.apiUrl}/formulario/${id}`);
-  }
   
 }

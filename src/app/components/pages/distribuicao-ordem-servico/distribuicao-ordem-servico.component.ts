@@ -72,6 +72,8 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
       hora: ['', Validators.required]
     });
 
+    
+
     // Quando o cliente muda, atualiza o campo "endereco"
     this.serviceForm.get('cliente')?.valueChanges.subscribe(clienteId => {
       const cliente = this.clientes.find(c => c.id === clienteId);
@@ -144,7 +146,7 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   }
 
   // Carrega ordens de serviço e filtra apenas as que têm "ativo = true"
-  async carregarOrdensServico() {
+  carregarOrdensServico() {
     try {
       this.isLoading = true;
       this.vibeService.buscarOrdemServico().subscribe({
@@ -159,6 +161,16 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
               const colaborador = this.colaboradores.find(c => c.id === ordem.usuarioId);
               colaboradorNome = colaborador ? colaborador.nome : 'Não atribuído';
             }
+  
+            // Valida e formata dataHoraCadastro
+            let dataHoraCadastroFormatada: string = ''; // Default to empty string
+            if (ordem.dataHoraCadastro) {
+              const dataHora = new Date(ordem.dataHoraCadastro);
+              if (!isNaN(dataHora.getTime())) {
+                dataHoraCadastroFormatada = dataHora.toISOString();
+              }
+            }
+  
             return {
               id: ordem.id || undefined,
               ordemDeServicoId: ordem.ordemDeServicoId,
@@ -167,33 +179,35 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
               cliente: ordem.cliente?.nomeCliente || 'Cliente não identificado',
               clienteId: ordem.clienteId,
               tipoServico: ordem.tipoServico,
-              dataHoraCadastro: ordem.dataHoraCadastro,
+              dataHoraCadastro: dataHoraCadastroFormatada,
               status: ordem.statusOrdem,
               endereco: ordem.cliente?.endereco 
                 ? `${ordem.cliente.endereco.logradouro}, ${ordem.cliente.endereco.bairro}`
                 : 'Endereço não disponível',
               usuarioId: ordem.usuarioId,
               colaborador: colaboradorNome,
-              // Se quiser marcar atribuída como true quando tem colaborador:
               atribuida: ordem.atribuida === true || !!ordem.usuarioId
             };
           });
   
-          // Aqui entra a nova forma de filtrar pela data
+          // Filtra ordens com data válida
+          this.ordensServico = this.ordensServico.filter(ordem => ordem.dataHoraCadastro);
+  
+          // Filtra ordens do dia e agendadas
           const hojeStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
   
           // Ordens de hoje
           this.ordensDoDia = this.ordensServico.filter(ordem => {
             if (!ordem.dataHoraCadastro) return false;
             const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
-            return dataOrdemStr === hojeStr; // igual ao dia de hoje
+            return dataOrdemStr === hojeStr;
           });
   
           // Ordens agendadas (futuras)
           this.ordensAgendadas = this.ordensServico.filter(ordem => {
             if (!ordem.dataHoraCadastro) return false;
             const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
-            return dataOrdemStr > hojeStr; // depois de hoje
+            return dataOrdemStr > hojeStr;
           });
   
           console.log('Ordens do dia:', this.ordensDoDia);
@@ -216,11 +230,10 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     }
   }
   
-
-  // Criação de nova ordem
   onSubmit() {
     if (this.serviceForm.invalid) {
       this.serviceForm.markAllAsTouched();
+      console.log('Formulário inválido:', this.serviceForm.errors);
       return;
     }
   
@@ -231,7 +244,6 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     const hora = this.serviceForm.get('hora')?.value;
     const dataHora = `${data}T${hora}:00.000Z`;
   
-    // Cria o objeto de requisição
     const requestData: CriarOrdemDeServicoRequestDto = {
       tipoServico: tipoServico,
       dataHoraCadastro: dataHora
@@ -243,7 +255,10 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
         next: (response) => {
           if (colaboradorId) {
             this.vibeService.atualizarOrdemServicoDespacho(response.ordemDeServicoId, colaboradorId).subscribe({
-              next: () => this.resetFormAndRefresh(),
+              next: (despachoResponse) => {
+                this.salvarNoLocalStorage(response.ordemDeServicoId, despachoResponse.despachoId || 'ID_Despacho_Gerado');
+                this.resetFormAndRefresh();
+              },
               error: (err) => {
                 console.error('Erro ao despachar ordem:', err);
                 this.resetFormAndRefresh();
@@ -263,7 +278,10 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
         next: (response: CriarOrdemDeServicoResponseDto) => {
           if (colaboradorId) {
             this.vibeService.atualizarOrdemServicoDespacho(response.ordemDeServicoId, colaboradorId).subscribe({
-              next: () => this.resetFormAndRefresh(),
+              next: (despachoResponse) => {
+                this.salvarNoLocalStorage(response.ordemDeServicoId, despachoResponse.despachoId || 'ID_Despacho_Gerado');
+                this.resetFormAndRefresh();
+              },
               error: (err) => {
                 console.error('Erro ao despachar ordem:', err);
                 this.resetFormAndRefresh();
@@ -280,6 +298,19 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     }
   }
   
+  // Novo método para salvar no localStorage
+  private salvarNoLocalStorage(ordemServicoId: string, despachoId: string) {
+    const despachoData = {
+      ordemServicoId: ordemServicoId,
+      despachoId: despachoId,
+      timestamp: new Date().toISOString() // Opcional: para rastrear quando foi salvo
+    };
+    
+    // Salva no localStorage (pode sobrescrever ou adicionar em uma lista, dependendo do que você quer)
+    localStorage.setItem('ultimoDespacho', JSON.stringify(despachoData));
+    console.log('Dados salvos no localStorage:', despachoData);
+  }
+  
 
   // Cancelar (resetar) o form
   onCancel() {
@@ -289,43 +320,41 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   }
 
   atualizarOrdem(ordem: OrdemServico) {
-    // Obtenha o ID da ordem
-    const ordemDeServicoId = ordem.ordemDeServicoId;
-  
-    // Leia os novos valores do formulário
     const novoTipoServico = this.serviceForm.get('tipoServico')?.value;
     const novaData = this.serviceForm.get('data')?.value;
     const novaHora = this.serviceForm.get('hora')?.value;
-    const novaDataHoraCadastro = `${novaData}T${novaHora}:00.000Z`;
   
-    // Monte o objeto de requisição com os dados atualizados
+    let novaDataHoraCadastro: string;
+    if (novaData && novaHora) {
+      const dataHora = new Date(`${novaData}T${novaHora}:00.000Z`);
+      novaDataHoraCadastro = !isNaN(dataHora.getTime()) && novaData !== "0001-01-01" 
+        ? dataHora.toISOString() 
+        : new Date().toISOString();
+    } else {
+      novaDataHoraCadastro = new Date().toISOString();
+    }
+  
     const requestData: CriarOrdemDeServicoRequestDto = {
       tipoServico: novoTipoServico,
       dataHoraCadastro: novaDataHoraCadastro
     };
   
-    // Chama o endpoint de atualização (PUT)
-    this.vibeService.atualizarOrdemServico(ordemDeServicoId, requestData)
+    console.log('Payload enviado para atualização:', requestData);
+  
+    this.vibeService.atualizarOrdemServico(ordem.ordemDeServicoId, requestData)
       .subscribe({
         next: (response: CriarOrdemDeServicoResponseDto) => {
           console.log('Ordem atualizada com sucesso:', response);
-  
-          // Atualize os campos do formulário com os dados retornados
           this.serviceForm.patchValue({
             codigoOS: response.numeroOrdemDeServico,
             cliente: response.clienteId,
             tipoServico: response.tipoServico,
-            data: response.dataHoraCadastro.split('T')[0],
-            hora: response.dataHoraCadastro.split('T')[1].substring(0, 5),
-            // Se houver outros campos para atualizar, inclua-os aqui
+            data: response.dataHoraCadastro?.split('T')[0],
+            hora: response.dataHoraCadastro?.split('T')[1].substring(0, 5),
           });
-  
-          // Atualize o estado de edição, se necessário
           this.editandoOrdemId = response.ordemDeServicoId;
-  
-          // Opcional: role para o topo ou recarregue a lista de ordens
+          this.carregarOrdensServico();
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          // this.carregarOrdensServico(); // se desejar atualizar a lista
         },
         error: (error) => {
           console.error('Erro ao atualizar ordem:', error);
@@ -337,22 +366,47 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     // Habilita o campo 'codigoOS', se necessário
     this.serviceForm.get('codigoOS')?.enable();
   
+    // Formata a data e hora corretamente
+    let dataFormatada = '';
+    let horaFormatada = '';
+  
+    // Verifica se a data é válida
+    if (ordem.dataHoraCadastro && ordem.dataHoraCadastro !== "0001-01-01T00:00:00") {
+      const dataHora = new Date(ordem.dataHoraCadastro);
+      if (!isNaN(dataHora.getTime())) {
+        dataFormatada = dataHora.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        horaFormatada = dataHora.toISOString().split('T')[1].substring(0, 5); // Formato HH:mm
+      }
+    }
+  
+    // Se a data não for válida, usa a data atual como padrão
+    if (!dataFormatada) {
+      const hoje = new Date();
+      dataFormatada = hoje.toISOString().split('T')[0];
+      horaFormatada = hoje.toISOString().split('T')[1].substring(0, 5);
+      console.warn('Data inválida ou ausente na ordem, usando data atual como padrão:', {
+        dataFormatada,
+        horaFormatada,
+        dataHoraCadastroOriginal: ordem.dataHoraCadastro
+      });
+    }
+  
     // Preenche o formulário com os dados da ordem
     this.serviceForm.patchValue({
       codigoOS: ordem.numeroOrdemDeServico,
       cliente: ordem.clienteId,
       tipoServico: ordem.tipoServico,
-      colaborador: ordem.usuarioId || '', // Se não houver colaborador, deixa em branco
-      // Verifica se dataHoraCadastro existe e está no formato ISO esperado
-      data: ordem.dataHoraCadastro ? ordem.dataHoraCadastro.split('T')[0] : '',
-      hora: ordem.dataHoraCadastro && ordem.dataHoraCadastro.split('T')[1] 
-              ? ordem.dataHoraCadastro.split('T')[1].substring(0, 5) 
-              : '',
+      colaborador: ordem.usuarioId || '',
+      data: dataFormatada,
+      hora: horaFormatada,
       endereco: ordem.endereco
     });
   
     // Define qual ordem está sendo editada
     this.editandoOrdemId = ordem.ordemDeServicoId;
+  
+    // Log para depuração
+    console.log('Formulário preenchido com valores:', this.serviceForm.value);
   
     // Role para o topo para que o usuário veja o formulário
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -374,14 +428,33 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   // Excluir (inativar) chamando o endpoint
   excluirOrdem(ordem: OrdemServico) {
     if (confirm('Tem certeza que deseja excluir esta ordem de serviço?')) {
+      this.isLoading = true;
       this.vibeService.deletarOrdemServico(ordem.ordemDeServicoId).subscribe({
-        next: (response) => {
-          console.log('Ordem inativada/excluída:', response);
-          // Após inativar, recarrega a listagem (somente "ativo = true" virá)
-          this.carregarOrdensServico();
+        next: () => {
+          // Remove a ordem da lista local
+          this.ordensServico = this.ordensServico.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+          this.ordensDoDia = this.ordensDoDia.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+          this.ordensAgendadas = this.ordensAgendadas.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+          
+          console.log('Ordem excluída com sucesso');
+          alert('Ordem de serviço excluída com sucesso!');
+          this.isLoading = false;
         },
         error: (error) => {
-          console.error('Erro ao excluir ordem de serviço:', error);
+          // Se o erro for 200, significa que deu certo mas veio vazio
+          if (error.status === 200) {
+            // Remove a ordem da lista local
+            this.ordensServico = this.ordensServico.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+            this.ordensDoDia = this.ordensDoDia.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+            this.ordensAgendadas = this.ordensAgendadas.filter(o => o.ordemDeServicoId !== ordem.ordemDeServicoId);
+            
+            console.log('Ordem excluída com sucesso');
+            alert('Ordem de serviço excluída com sucesso!');
+          } else {
+            console.error('Erro ao excluir ordem de serviço:', error);
+            alert('Erro ao excluir ordem de serviço!');
+          }
+          this.isLoading = false;
         }
       });
     }

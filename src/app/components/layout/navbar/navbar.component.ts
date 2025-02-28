@@ -16,6 +16,7 @@ import { Subscription } from 'rxjs';
 export class NavbarComponent implements OnInit, OnDestroy {
   isMenuOpen: boolean = false;
   isSidebarClosed: boolean = false;
+  isDropdownOsOpen = false;
   autenticado: boolean = false;
   nomeUsuario: string = '';
   usuarioId: string = '';
@@ -159,6 +160,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.authService.logout().then(() => {
       console.log('Usuário desconectado.');
     });
+  }
+
+  toggleDropdownOs(): void {
+    this.isDropdownOsOpen = !this.isDropdownOsOpen;
+    // Fecha outros dropdowns se necessário
+    if (this.isDropdownOpen) {
+      this.isDropdownOpen = false;
+    }
+    if (this.isClientDropdownOpen) {
+      this.isClientDropdownOpen = false;
+    }
   }
   
   toggleDropdown() {

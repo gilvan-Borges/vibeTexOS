@@ -1,48 +1,116 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { FormularioOS, MockOrdemServicoService, OrdemServico } from '../../../services/mock/mock-ordem-servico.service';
+import { FormsModule, ReactiveFormsModule, FormGroup } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { VibeService } from '../../../services/vibe.service';
+import { ControllAppService } from '../../../services/controllApp.service';
+import { FormularioService } from '../../../services/formulario.service';
+
+// Interface para tipar os dados do usuário
+interface UserData {
+  nome: string;
+  isOnline: boolean;
+  fotoUrl: string;
+  latitudeAtual: string | null | undefined;
+  longitudeAtual: string | null | undefined;
+  dataHoraUltimaAutenticacao: string;
+}
+
+// Interface para tipar os dados de trajeto e execução
+interface Trajeto {
+  nome: string;
+  latitudeInicio: number;
+  longitudeInicio: number;
+  latitudeFim: number;
+  longitudeFim: number;
+  enderecoInicio: string;
+  enderecoFim: string;
+  horaInicio: string;
+  horaFim: string | null;
+  inicio: string;
+  ordemServico: string;
+  status: string;
+  tipoServico: string;
+  formularioId: string;
+  latitudeInicioExecucaoServico: string;
+  longitudeInicioExecucaoServico: string;
+  latitudeFimExecucaoServico: string;
+  longitudeFimExecucaoServico: string;
+  nomeCliente: string;
+  hasTrajetoCoordenadas: boolean;
+  hasExecucaoCoordenadas: boolean;
+  assinaturaCliente?: string;
+  cpfCliente?: string;
+  telefoneCliente?: string;
+  cepCliente?: string;
+  logradouroCliente?: string;
+  numeroCliente?: string;
+  complementoCliente?: string;
+  bairroCliente?: string;
+  cidadeCliente?: string;
+  estadoCliente?: string;
+  fotoInicio?: string;
+  fotoFim?: string;
+}
 
 @Component({
   selector: 'app-historico-tecnico',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
   templateUrl: './historico-tecnico.component.html',
   styleUrls: ['./historico-tecnico.component.css']
 })
 export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
-  // Dados do usuário mockados (GILVAN BORGES, Barra da Tijuca, Rio de Janeiro)
-  nomeUsuario: string = 'GILVAN BORGES';
-  isOnline: boolean = true;
-  horaInicioExpediente: string | null = '09:21:06'; // Exemplo da imagem
-  horaFimExpediente: string | null = null; // Em andamento
-  dataHoraAutenticacao: string = new Date().toLocaleString();
-  userLocation: { latitude: string, longitude: string } = {
-    latitude: '-22.9975824', // Coordenadas aproximadas de Barra da Tijuca, RJ
-    longitude: '-43.4142322'
-  };
-  shiftLocation: { latitude: string, longitude: string } = {
-    latitude: '-22.9975824', // Mesma localização inicial para teste
-    longitude: '-43.4142322'
+  nomeUsuario: string = '';
+  isOnline: boolean = false;
+  horaInicioExpediente: string | null = null;
+  horaFimExpediente: string | null = null;
+  dataHoraAutenticacao: string = '';
+  fotoPerfilUrl: string = '';
+
+  userLocation: { latitude: string; longitude: string } = {
+    latitude: '',
+    longitude: '',
   };
 
-  // Trajetos baseados nas ordens de serviço mockadas
-  trajetos: any[] = [];
-  trajetosFiltrados: any[] = [];
-  dataSelecionada: string = new Date().toISOString().split('T')[0]; // Data atual
+  trajetos: Trajeto[] = [];
+  trajetosFiltrados: Trajeto[] = [];
+  dataSelecionada: string = new Date().toISOString().split('T')[0];
   mensagemSemDados: string = '';
   hoje: string = new Date().toISOString().split('T')[0];
-  formulariosAbertos: { [key: string]: boolean } = {};
-  formularioSelecionado: FormularioOS | null = null;
 
   private mapUserLocation: L.Map | null = null;
   private mapShiftLocation: L.Map | null = null;
+  private usuarioId: string = '';
+  private readonly BASE_URL: string = 'http://localhost:5030';
 
-  constructor(private mockService: MockOrdemServicoService) {}
+  mostrarFormulario: boolean = false;
+  formularioServico: FormGroup;
+  trajetoSelecionado: Trajeto | null = null;
+
+  constructor(
+    private route: ActivatedRoute,
+    private vibeService: VibeService,
+    private controllAppService: ControllAppService,
+    private formularioService: FormularioService
+  ) {
+    this.formularioServico = this.formularioService.criarFormulario();
+  }
 
   ngOnInit(): void {
-    // Corrige o problema dos ícones do Leaflet
+    this.initLeafletIcons();
+    this.usuarioId = this.route.snapshot.params['id'];
+    this.carregarDadosUsuario();
+    this.carregarPontos();
+    this.carregarOrdensServico();
+  }
+
+  private initLeafletIcons(): void {
     const iconRetinaUrl = 'assets/marker-icon-2x.png';
     const iconUrl = 'assets/marker-icon.png';
     const shadowUrl = 'assets/marker-shadow.png';
@@ -54,27 +122,271 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
       tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
+      shadowSize: [41, 41],
     });
     L.Marker.prototype.options.icon = iconDefault;
+  }
 
-    // Carrega os trajetos baseados nas ordens de serviço mockadas
-    this.carregarTrajetos();
+  private carregarDadosUsuario(): void {
+    this.vibeService.buscarUsuarioPorId(this.usuarioId).subscribe({
+      next: (usuario: UserData) => {
+        this.nomeUsuario = usuario.nome;
+        this.isOnline = usuario.isOnline;
+        this.fotoPerfilUrl = usuario.fotoUrl;
+        this.dataHoraAutenticacao = usuario.dataHoraUltimaAutenticacao;
+
+        this.userLocation = {
+          latitude: usuario.latitudeAtual ?? '',
+          longitude: usuario.longitudeAtual ?? '',
+        };
+
+        this.initMaps();
+      },
+      error: (error) => console.error('Erro ao carregar dados do usuário:', error),
+    });
+  }
+
+  private carregarPontos(): void {
+    this.controllAppService.PontoGetAll().subscribe({
+      next: (pontos) => {
+        const pontosUsuario = pontos.filter((ponto: any) => ponto.usuarioId === this.usuarioId);
+        if (pontosUsuario.length > 0) {
+          const ultimoPonto = pontosUsuario[pontosUsuario.length - 1];
+          if (ultimoPonto.inicioExpediente) {
+            const dataInicio = new Date(ultimoPonto.inicioExpediente);
+            this.horaInicioExpediente = dataInicio.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            });
+          }
+          if (ultimoPonto.fimExpediente) {
+            const dataFim = new Date(ultimoPonto.fimExpediente);
+            this.horaFimExpediente = dataFim.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            });
+          }
+        }
+      },
+      error: (error) => console.error('Erro ao carregar horários do expediente:', error),
+    });
+  }
+
+  private carregarOrdensServico(): void {
+    this.vibeService.buscarOrdemServicoUsuarioId(this.usuarioId).subscribe({
+      next: (ordens: any[]) => {
+        console.log('Ordens de serviço retornadas:', ordens);
+
+        const trajetosAgrupados = new Map<string, any[]>();
+        ordens.forEach((ordem: any) => {
+          if (ordem.trajetos && ordem.trajetos.length > 0) {
+            trajetosAgrupados.set(ordem.numeroOrdemDeServico, ordem.trajetos);
+          }
+        });
+
+        this.trajetos = Array.from(trajetosAgrupados.entries()).map(([ordemServico, trajetos]) => {
+          const trajeto = trajetos[0];
+
+          // Convert string coordinates to numbers, handling null or undefined values
+          const parseCoordinate = (value: string | null | undefined): number => {
+            if (!value || value === 'string') return 0;
+            const parsed = parseFloat(value);
+            return isNaN(parsed) ? 0 : parsed;
+          };
+
+          // Extract trajectory coordinates using correct property names from API
+          const latitudeInicio = parseCoordinate(trajeto.latitudeInicioTrajeto);
+          const longitudeInicio = parseCoordinate(trajeto.longitudeInicioTrajeto);
+          const latitudeFim = parseCoordinate(trajeto.latitudeFimTrajeto);
+          const longitudeFim = parseCoordinate(trajeto.longitudeFimTrajeto);
+
+          let dataHoraInicio = trajeto.dataEHoraIncioTrajeto || trajeto.dataHoraInicio;
+          let inicioDate: Date;
+
+          if (!dataHoraInicio || typeof dataHoraInicio !== 'string') {
+            console.warn(`DataHoraInicio inválida para a ordem ${ordemServico}:`, dataHoraInicio);
+            inicioDate = new Date();
+            dataHoraInicio = inicioDate.toISOString();
+          } else {
+            inicioDate = new Date(dataHoraInicio);
+            if (isNaN(inicioDate.getTime())) {
+              console.warn(`DataHoraInicio não pôde ser convertida para uma data válida para a ordem ${ordemServico}:`, dataHoraInicio);
+              inicioDate = new Date();
+              dataHoraInicio = inicioDate.toISOString();
+            }
+          }
+
+          let horaFim: string | null = null;
+          if (trajeto.dataEHoraFimDoTrajeto || trajeto.dataHoraFim) {
+            const fimDate = new Date(trajeto.dataEHoraFimDoTrajeto || trajeto.dataHoraFim);
+            if (isNaN(fimDate.getTime())) {
+              console.warn(`DataHoraFim não pôde ser convertida para uma data válida para a ordem ${ordemServico}:`, trajeto.dataHoraFim);
+            } else {
+              horaFim = fimDate.toLocaleTimeString('pt-BR');
+            }
+          }
+
+          const ordem = ordens.find(o => o.numeroOrdemDeServico === ordemServico);
+
+          const execucao = ordem?.execucoes && ordem.execucoes.length > 0 ? ordem.execucoes[0] : {};
+
+          const latitudeInicioExecucao = typeof execucao.latitudeInicioExecucaoServico === 'string' && execucao.latitudeInicioExecucaoServico !== 'string' ? execucao.latitudeInicioExecucaoServico : '';
+          const longitudeInicioExecucao = typeof execucao.longitudeInicioExecucaoServico === 'string' && execucao.longitudeInicioExecucaoServico !== 'string' ? execucao.longitudeInicioExecucaoServico : '';
+          const latitudeFimExecucao = typeof execucao.latitudeFimExecucaoServico === 'string' && execucao.latitudeFimExecucaoServico !== 'string' ? execucao.latitudeFimExecucaoServico : '';
+          const longitudeFimExecucao = typeof execucao.longitudeFimExecucaoServico === 'string' && execucao.longitudeFimExecucaoServico !== 'string' ? execucao.longitudeFimExecucaoServico : '';
+
+          // Update hasTrajetoCoordenadas to check the parsed values
+          const hasTrajetoCoordenadas = latitudeInicio !== 0 && longitudeInicio !== 0 && latitudeFim !== 0 && longitudeFim !== 0;
+          const hasExecucaoCoordenadas = !!latitudeInicioExecucao && !!longitudeInicioExecucao && !!latitudeFimExecucao && !!longitudeFimExecucao;
+
+          // Usar ordem.cliente para obter os dados do cliente
+          const cliente = ordem?.cliente || {};
+          
+          // Simplificar endereço para mostrar apenas o bairro quando disponível
+          const bairro = cliente.endereco?.bairro || '';
+          
+          // Usar apenas o bairro como endereço principal para exibição
+          const enderecoFinal = bairro ? 
+            bairro : 
+            (execucao.enderecoInicioExecucao || trajeto.enderecoCliente || 'Endereço não disponível');
+
+          // Manter o endereço completo para o formulário detalhado
+          const logradouro = cliente.endereco?.logradouro || '';
+          const numero = cliente.endereco?.numero || '';
+          const complemento = cliente.endereco?.complemento ? `, ${cliente.endereco?.complemento}` : '';
+          const cidade = cliente.endereco?.localidade ? `, ${cliente.endereco?.localidade}` : '';
+          const estado = cliente.endereco?.uf ? `-${cliente.endereco?.uf}` : '';
+          
+          // Endereço completo para uso no formulário detalhado
+          const enderecoCompleto = `${logradouro} ${numero}${complemento}${cidade}${estado}`;
+
+          const fotoInicio = execucao.fotoInicioServico ? `${this.BASE_URL}${execucao.fotoInicioServico}` : '';
+          const fotoFim = execucao.fotoFimServico ? `${this.BASE_URL}${execucao.fotoFimServico}` : '';
+          const assinaturaCliente = ordem?.assinaturaCliente ? `${this.BASE_URL}${ordem.assinaturaCliente}` : '';
+
+          return {
+            nome: this.nomeUsuario,
+            latitudeInicio, // Use the parsed value
+            longitudeInicio, // Use the parsed value
+            latitudeFim, // Use the parsed value
+            longitudeFim, // Use the parsed value
+            enderecoInicio: enderecoFinal, // Apenas o bairro para exibição na tabela
+            enderecoCompleto: enderecoCompleto, // Endereço completo para uso no formulário
+            enderecoFim: execucao.enderecoFimExecucao || enderecoFinal,
+            horaInicio: inicioDate.toLocaleTimeString('pt-BR'),
+            horaFim,
+            inicio: dataHoraInicio,
+            ordemServico,
+            status: ordem?.statusOrdem || 'Desconhecido',
+            tipoServico: ordem?.tipoServico || 'Desconhecido',
+            formularioId: ordem?.ordemDeServicoId || '',
+            latitudeInicioExecucaoServico: latitudeInicioExecucao,
+            longitudeInicioExecucaoServico: longitudeInicioExecucao,
+            latitudeFimExecucaoServico: latitudeFimExecucao,
+            longitudeFimExecucaoServico: longitudeFimExecucao,
+            nomeCliente: cliente.nomeCliente || 'Cliente não disponível',
+            hasTrajetoCoordenadas,
+            hasExecucaoCoordenadas,
+            assinaturaCliente,
+            cpfCliente: cliente.cpfCliente || '',
+            telefoneCliente: cliente.telefoneCliente || '',
+            cepCliente: cliente.endereco?.cep || '',
+            logradouroCliente: cliente.endereco?.logradouro || '',
+            numeroCliente: cliente.endereco?.numero || '',
+            complementoCliente: cliente.endereco?.complemento || '',
+            bairroCliente: cliente.endereco?.bairro || '',
+            cidadeCliente: cliente.endereco?.localidade || '',
+            estadoCliente: cliente.endereco?.uf || '',
+            fotoInicio,
+            fotoFim
+          };
+        });
+
+        console.log('Trajetos carregados:', this.trajetos.map(t => ({
+          ordemServico: t.ordemServico,
+          inicio: t.inicio,
+          dataFormatada: new Date(t.inicio).toISOString().split('T')[0],
+          nomeCliente: t.nomeCliente,
+          cpfCliente: t.cpfCliente,
+          telefoneCliente: t.telefoneCliente,
+          cepCliente: t.cepCliente,
+          logradouroCliente: t.logradouroCliente,
+          numeroCliente: t.numeroCliente,
+          complementoCliente: t.complementoCliente,
+          bairroCliente: t.bairroCliente,
+          cidadeCliente: t.cidadeCliente,
+          estadoCliente: t.estadoCliente,
+          latitudeInicio: t.latitudeInicio,
+          longitudeInicio: t.longitudeInicio,
+          latitudeFim: t.latitudeFim,
+          longitudeFim: t.longitudeFim,
+          latitudeInicioExecucaoServico: t.latitudeInicioExecucaoServico,
+          longitudeInicioExecucaoServico: t.longitudeInicioExecucaoServico,
+          latitudeFimExecucaoServico: t.latitudeFimExecucaoServico,
+          longitudeFimExecucaoServico: t.longitudeFimExecucaoServico,
+          hasTrajetoCoordenadas: t.hasTrajetoCoordenadas,
+          hasExecucaoCoordenadas: t.hasExecucaoCoordenadas,
+          assinaturaCliente: t.assinaturaCliente,
+          fotoInicio: t.fotoInicio,
+          fotoFim: t.fotoFim
+        })));
+
+        this.filtrarPorData();
+      },
+      error: (error) => console.error('Erro ao carregar ordens de serviço:', error),
+    });
+  }
+
+  // Método para formatar o código O.S com zeros à esquerda
+  formatarCodigoOS(codigo: string): string {
+    if (!codigo) return '000';
+    
+    // Converte para número e de volta para string para remover zeros à esquerda existentes
+    const codigoNumerico = parseInt(codigo, 10);
+    if (isNaN(codigoNumerico)) return codigo;
+    
+    // Adiciona zeros à esquerda para garantir 3 dígitos
+    return codigoNumerico.toString().padStart(3, '0');
+  }
+
+  filtrarPorData(): void {
+    this.mensagemSemDados = '';
+
+    const dataSelecionadaDate = new Date(this.dataSelecionada);
+    const dataFormatada = dataSelecionadaDate.toISOString().split('T')[0];
+
+    this.trajetosFiltrados = this.trajetos.filter((trajeto) => {
+      if (!trajeto.inicio) {
+        console.warn('Trajeto sem data de início:', trajeto);
+        const dataAtual = new Date().toISOString().split('T')[0];
+        return dataAtual === dataFormatada;
+      }
+
+      const dataTrajetoDate = new Date(trajeto.inicio);
+      if (isNaN(dataTrajetoDate.getTime())) {
+        console.warn('Data de início inválida no trajeto:', trajeto.inicio);
+        const dataAtual = new Date().toISOString().split('T')[0];
+        return dataAtual === dataFormatada;
+      }
+
+      const dataTrajeto = dataTrajetoDate.toISOString().split('T')[0];
+      console.log(`Comparando data do trajeto ${dataTrajeto} com data selecionada ${dataFormatada}`);
+      return dataTrajeto === dataFormatada;
+    });
+
+    if (this.trajetosFiltrados.length === 0) {
+      const [ano, mes, dia] = this.dataSelecionada.split('-');
+      const dataFormatadaExibicao = `${dia}/${mes}/${ano}`;
+      this.mensagemSemDados = `Não há registros para o dia ${dataFormatadaExibicao}`;
+    } else {
+      console.log('Trajetos filtrados:', this.trajetosFiltrados);
+    }
+
     this.initMaps();
   }
 
-  ngOnDestroy(): void {
-    if (this.mapUserLocation) {
-      this.mapUserLocation.remove();
-    }
-    if (this.mapShiftLocation) {
-      this.mapShiftLocation.remove();
-    }
-  }
-
-  /**
-   * Inicializa os mapas com as localizações mockadas.
-   */
   private initMaps(): void {
     this.initUserMap(
       'mapUserLocation',
@@ -83,130 +395,163 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       this.nomeUsuario,
       this.dataHoraAutenticacao
     );
-    this.initShiftMap(
-      'mapShiftLocation',
-      this.shiftLocation,
-      'Local de Início do Expediente',
-      this.nomeUsuario,
-      new Date().toLocaleString()
-    );
+    this.initExecutionStartMap('mapShiftLocation', this.nomeUsuario);
   }
 
-  /**
-   * Inicializa o mapa de localização do usuário (mapUserLocation).
-   */
   private initUserMap(
     mapId: string,
-    location: { latitude: string, longitude: string },
+    location: { latitude: string; longitude: string },
     popupTitle: string,
     nomeUsuario: string,
     dataHoraAutenticacao: string
   ): void {
     const lat = parseFloat(location.latitude);
     const lng = parseFloat(location.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      console.error('❌ Coordenadas inválidas para o mapa do usuário', location);
-      return;
-    }
+
     if (this.mapUserLocation) {
       this.mapUserLocation.remove();
     }
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error('❌ Coordenadas inválidas para o mapa do usuário', location);
+
+      this.mapUserLocation = L.map(mapId).setView([-23.0, -43.0], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap',
+      }).addTo(this.mapUserLocation);
+
+      L.marker([-23.0, -43.0])
+        .addTo(this.mapUserLocation!)
+        .bindPopup('Localização do usuário indisponível no momento.')
+        .openPopup();
+      return;
+    }
+
     this.mapUserLocation = L.map(mapId).setView([lat, lng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
     }).addTo(this.mapUserLocation);
 
     const statusText = this.isOnline ? 'Localização Atual' : 'Última Localização';
     const horaText = this.isOnline ? 'Hora de Login' : 'Horário de Encerramento';
 
-    L.marker([lat, lng])
-      .addTo(this.mapUserLocation)
-      .bindPopup(
-        `${statusText}<br>
-         Nome: ${nomeUsuario}<br>
-         ${horaText}: ${dataHoraAutenticacao}
-        `
-      )
-      .openPopup();
+    if (this.mapUserLocation) {
+      L.marker([lat, lng])
+        .addTo(this.mapUserLocation)
+        .bindPopup(
+          `${statusText}<br>
+           Nome: ${nomeUsuario}<br>
+           ${horaText}: ${dataHoraAutenticacao}`
+        )
+        .openPopup();
+    }
   }
 
-  /**
-   * Inicializa o mapa do início do expediente (mapShiftLocation).
-   */
-  private initShiftMap(
-    mapId: string,
-    location: { latitude: string, longitude: string },
-    popupTitle: string,
-    nomeUsuario: string,
-    dataHoraAutenticacao: string
-  ): void {
-    const lat = parseFloat(location.latitude);
-    const lng = parseFloat(location.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      console.error('❌ Coordenadas inválidas para o mapa do expediente', location);
-      return;
-    }
+  private initExecutionStartMap(mapId: string, nomeUsuario: string): void {
     if (this.mapShiftLocation) {
       this.mapShiftLocation.remove();
     }
-    this.mapShiftLocation = L.map(mapId).setView([lat, lng], 15);
+
+    this.mapShiftLocation = L.map(mapId).setView([-23.0, -43.0], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
     }).addTo(this.mapShiftLocation);
 
-    L.marker([lat, lng])
-      .addTo(this.mapShiftLocation)
-      .bindPopup(
-        `${popupTitle}<br>
-         Nome: ${nomeUsuario}<br>
-         Hora de Login: ${dataHoraAutenticacao}
-        `
-      )
-      .openPopup();
-  }
+    const markers: L.Marker[] = [];
 
-  /**
-   * Carrega os trajetos baseados nas ordens de serviço mockadas.
-   */
-  private carregarTrajetos(): void {
-    this.mockService.getOrdensServico().subscribe((ordens: OrdemServico[]) => {
-      this.trajetos = ordens.map((ordem, index) => ({
-        nome: this.nomeUsuario,
-        latitudeInicio: -22.9975824 * 1e7, // Barra da Tijuca, RJ
-        longitudeInicio: -43.4142322 * 1e7,
-        latitudeFim: this.gerarCoordenadaAleatoria(-22.9975824, 0.01) * 1e7, // Fim próximo
-        longitudeFim: this.gerarCoordenadaAleatoria(-43.4142322, 0.01) * 1e7,
-        enderecoInicio: 'Avenida Malibu, Barra da Tijuca, Rio de Janeiro',
-        enderecoFim: 'Endereço não disponível',
-        horaInicio: '09:21:06',
-        horaFim: null,
-        inicio: new Date(ordem.dataAbertura).toISOString(),
-        ordemServico: ordem.codigo,
-        formularioId: `FORM${index + 1}`
-      }));
+    this.trajetosFiltrados.forEach((trajeto, index) => {
+      const lat = parseFloat(trajeto.latitudeInicioExecucaoServico);
+      const lng = parseFloat(trajeto.longitudeInicioExecucaoServico);
 
-      console.log('📍 Trajetos mapeados com endereços:', this.trajetos);
-      this.filtrarPorData(); // Atualiza a lista filtrada após carregar
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const marker = L.marker([lat, lng])
+          .addTo(this.mapShiftLocation as L.Map)
+          .bindPopup(
+            `Início da Execução (${index + 1})<br>
+             Ordem de Serviço: ${trajeto.ordemServico}<br>
+             Nome: ${nomeUsuario}<br>
+             Data/Hora: ${trajeto.horaInicio}`
+          );
+        markers.push(marker);
+      }
     });
+
+    if (markers.length > 0) {
+      const group = new L.FeatureGroup(markers);
+      if (this.mapShiftLocation) {
+        this.mapShiftLocation.fitBounds(group.getBounds(), {
+          padding: [50, 50],
+        });
+      }
+    } else {
+      L.marker([-23.0, -43.0])
+        .addTo(this.mapShiftLocation as L.Map)
+        .bindPopup('Nenhum ponto de início de execução disponível para o dia selecionado.')
+        .openPopup();
+    }
   }
 
-  /**
-   * Gera uma coordenada aleatória próxima a uma posição base.
-   */
-  private gerarCoordenadaAleatoria(base: number, variacao: number): number {
-    return base + (Math.random() * 2 - 1) * variacao;
-  }
+  mostrarRotaNoMapa(trajeto: Trajeto, tipoRota: 'trajeto' | 'execucao'): void {
+    let inicioLat: number,
+      inicioLng: number,
+      fimLat: number,
+      fimLng: number,
+      popupInicio: string,
+      popupFim: string;
 
-  /**
-   * Exibe no mapa o trajeto (início/fim) selecionado na tabela.
-   */
-  verNoMapa(trajeto: any): void {
-    const inicioLat = trajeto.latitudeInicio / 1e7;
-    const inicioLng = trajeto.longitudeInicio / 1e7;
-    const fimLat = trajeto.latitudeFim / 1e7;
-    const fimLng = trajeto.longitudeFim / 1e7;
+    if (tipoRota === 'trajeto') {
+      // Handle trajectory coordinates, converting if necessary
+      const rawLat = trajeto.latitudeInicio;
+      const rawLng = trajeto.longitudeInicio;
+      const rawLatFim = trajeto.latitudeFim;
+      const rawLngFim = trajeto.longitudeFim;
+
+      // Only divide by 1e7 if the values are large, indicating they need conversion
+      inicioLat = Math.abs(rawLat) > 100 ? rawLat / 1e7 : rawLat;
+      inicioLng = Math.abs(rawLng) > 100 ? rawLng / 1e7 : rawLng;
+      fimLat = Math.abs(rawLatFim) > 100 ? rawLatFim / 1e7 : rawLatFim;
+      fimLng = Math.abs(rawLngFim) > 100 ? rawLngFim / 1e7 : rawLngFim;
+      
+      popupInicio = 'Início do Trajeto';
+      popupFim = 'Fim do Trajeto';
+      console.log('Coordenadas do trajeto:', { inicioLat, inicioLng, fimLat, fimLng });
+    } else {
+      // Handle execution coordinates
+      inicioLat = parseFloat(trajeto.latitudeInicioExecucaoServico);
+      inicioLng = parseFloat(trajeto.longitudeInicioExecucaoServico);
+      fimLat = parseFloat(trajeto.latitudeFimExecucaoServico);
+      fimLng = parseFloat(trajeto.longitudeFimExecucaoServico);
+      popupInicio = 'Início da Execução';
+      popupFim = 'Fim da Execução';
+      console.log('Coordenadas da execução:', { inicioLat, inicioLng, fimLat, fimLng });
+    }
+
+    if (isNaN(inicioLat) || isNaN(inicioLng) || isNaN(fimLat) || isNaN(fimLng)) {
+      console.error('❌ Coordenadas inválidas para a rota', {
+        inicioLat,
+        inicioLng,
+        fimLat,
+        fimLng,
+      });
+
+      if (this.mapUserLocation) {
+        this.mapUserLocation.remove();
+      }
+      this.mapUserLocation = L.map('mapUserLocation').setView([-23.0, -43.0], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap',
+      }).addTo(this.mapUserLocation);
+
+      L.marker([-23.0, -43.0])
+        .addTo(this.mapUserLocation!)
+        .bindPopup('Coordenadas indisponíveis para exibir a rota.')
+        .openPopup();
+      return;
+    }
 
     if (this.mapUserLocation) {
       this.mapUserLocation.remove();
@@ -215,24 +560,25 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
     this.mapUserLocation = L.map('mapUserLocation').setView([inicioLat, inicioLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
     }).addTo(this.mapUserLocation);
 
-    L.marker([inicioLat, inicioLng])
-      .addTo(this.mapUserLocation)
-      .bindPopup('Início do Trajeto')
-      .openPopup();
+    if (this.mapUserLocation) {
+      L.marker([inicioLat, inicioLng])
+        .addTo(this.mapUserLocation)
+        .bindPopup(popupInicio)
+        .openPopup();
 
-    L.marker([fimLat, fimLng])
-      .addTo(this.mapUserLocation)
-      .bindPopup('Fim do Trajeto');
+      L.marker([fimLat, fimLng])
+        .addTo(this.mapUserLocation)
+        .bindPopup(popupFim);
 
-    this.calcularERenderizarRota(inicioLat, inicioLng, fimLat, fimLng);
+      this.calcularERenderizarRota(inicioLat, inicioLng, fimLat, fimLng);
+    } else {
+      console.error('MapUserLocation não inicializado corretamente.');
+    }
   }
 
-  /**
-   * Chama o OSRM para obter a rota entre os pontos e desenha no mapa.
-   */
   private async calcularERenderizarRota(
     inicioLat: number,
     inicioLng: number,
@@ -244,7 +590,6 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
         `https://router.project-osrm.org/route/v1/driving/${inicioLng},${inicioLat};${fimLng},${fimLat}?overview=full&geometries=geojson`
       );
       const data = await response.json();
-
       if (data.routes && data.routes.length > 0) {
         const coordinates = data.routes[0].geometry.coordinates;
         const latLngs = coordinates.map((coord: number[]) => [coord[1], coord[0]]);
@@ -252,13 +597,13 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
         const polyline = L.polyline(latLngs, {
           color: '#007bff',
           weight: 4,
-          opacity: 0.8
+          opacity: 0.8,
         });
 
         if (this.mapUserLocation) {
           polyline.addTo(this.mapUserLocation);
           this.mapUserLocation.fitBounds(polyline.getBounds(), {
-            padding: [50, 50]
+            padding: [50, 50],
           });
         }
       }
@@ -266,13 +611,13 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       console.error('❌ Erro ao calcular rota:', error);
       const latlngs: L.LatLngTuple[] = [
         [inicioLat, inicioLng],
-        [fimLat, fimLng]
+        [fimLat, fimLng],
       ];
       const polyline = L.polyline(latlngs, {
         color: '#007bff',
         weight: 4,
         opacity: 0.8,
-        dashArray: '10, 10'
+        dashArray: '10, 10',
       });
 
       if (this.mapUserLocation) {
@@ -282,9 +627,6 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Exibe a última localização do usuário no mapa (botão "Ver Minha Localização").
-   */
   verMinhaLocalizacao(): void {
     const lat = parseFloat(this.userLocation.latitude);
     const lng = parseFloat(this.userLocation.longitude);
@@ -293,10 +635,24 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       this.mapUserLocation.remove();
     }
 
+    if (isNaN(lat) || isNaN(lng)) {
+      this.mapUserLocation = L.map('mapUserLocation').setView([-23.0, -43.0], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap',
+      }).addTo(this.mapUserLocation);
+
+      L.marker([-23.0, -43.0])
+        .addTo(this.mapUserLocation!)
+        .bindPopup('Localização do usuário indisponível no momento.')
+        .openPopup();
+      return;
+    }
+
     this.mapUserLocation = L.map('mapUserLocation').setView([lat, lng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
     }).addTo(this.mapUserLocation);
 
     const popupContent = `
@@ -307,67 +663,109 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       </div>
     `;
 
-    L.marker([lat, lng])
-      .addTo(this.mapUserLocation)
-      .bindPopup(popupContent)
-      .openPopup();
-  }
-
-  /**
-   * Filtra os trajetos locais pela data selecionada (sem recarregar do servidor).
-   */
-  filtrarPorData(): void {
-    this.mensagemSemDados = '';
-    const dataFormatada = new Date(this.dataSelecionada).toISOString().split('T')[0];
-
-    this.trajetosFiltrados = this.trajetos.filter((trajeto) => {
-      if (!trajeto.inicio) return false;
-      const dataTrajeto = new Date(trajeto.inicio).toISOString().split('T')[0];
-      return dataTrajeto === dataFormatada;
-    });
-
-    if (this.trajetosFiltrados.length === 0) {
-      this.mensagemSemDados = `Não há registros para o dia ${new Date(this.dataSelecionada).toLocaleDateString()}`;
+    if (this.mapUserLocation) {
+      L.marker([lat, lng])
+        .addTo(this.mapUserLocation)
+        .bindPopup(popupContent)
+        .openPopup();
     }
   }
 
-  /**
-   * Ordena a lista filtrada por algum campo (ex: horaInicio).
-   */
-  ordenarPor(campo: string): void {
+  ordenarPor(campo: keyof Trajeto): void {
     this.trajetosFiltrados.sort((a, b) => {
-      if (a[campo] < b[campo]) return -1;
-      if (a[campo] > b[campo]) return 1;
-      return 0;
+      const valorA = a[campo];
+      const valorB = b[campo];
+
+      if (valorA == null && valorB == null) return 0;
+      if (valorA == null) return 1;
+      if (valorB == null) return -1;
+
+      if (typeof valorA === 'string' && typeof valorB === 'string') {
+        return valorA.localeCompare(valorB);
+      }
+
+      if (typeof valorA === 'number' && typeof valorB === 'number') {
+        return valorA - valorB;
+      }
+
+      return String(valorA).localeCompare(String(valorB));
     });
   }
 
-  /**
-   * Abre o Google Maps em outra aba com as coordenadas fornecidas.
-   */
   abrirGoogleMapsComCoordenadas(latitude: number, longitude: number): void {
-    const url = `https://www.google.com/maps?q=${latitude / 1e7},${longitude / 1e7}`;
+    // Modify this method to handle coordinates properly
+    const lat = typeof latitude === 'number' ? latitude : parseFloat(String(latitude));
+    const lng = typeof longitude === 'number' ? longitude : parseFloat(String(longitude));
+    
+    // Only divide by 1e7 if the values are large, indicating they need conversion
+    const finalLat = Math.abs(lat) > 100 ? lat / 1e7 : lat;
+    const finalLng = Math.abs(lng) > 100 ? lng / 1e7 : lng;
+    
+    const url = `https://www.google.com/maps?q=${finalLat},${finalLng}`;
     window.open(url, '_blank');
   }
 
-  async verFormulario(trajeto: any): Promise<void> {
-    this.formulariosAbertos[trajeto.formularioId] = !this.formulariosAbertos[trajeto.formularioId];
-    
-    if (this.formulariosAbertos[trajeto.formularioId]) {
-      // Usa o método público do MockOrdemServicoService
-      this.mockService.getFormularioMock(trajeto.formularioId).subscribe((formulario: FormularioOS) => {
-        this.formularioSelecionado = formulario;
-
-        // Scroll suave até o formulário
-        setTimeout(() => {
-          const element = document.getElementById(`formulario-${trajeto.formularioId}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 100);
-      });
-    } else {
-      this.formularioSelecionado = null;
+  abrirFormulario(trajeto: Trajeto): void {
+    if (trajeto.formularioId) {
+      this.trajetoSelecionado = trajeto;
+      this.mostrarFormulario = true;
+      this.inicializarFormulario(trajeto);
     }
+  }
+
+  fecharFormulario(): void {
+    this.mostrarFormulario = false;
+    this.trajetoSelecionado = null;
+    this.formularioServico.reset();
+  }
+
+  private async inicializarFormulario(trajeto: Trajeto): Promise<void> {
+    try {
+      const dados = {
+        codigoOS: this.formatarCodigoOS(trajeto.ordemServico) || '',
+        nomeColaborador: this.nomeUsuario || '',
+        empresaColaborador: 'VIBETEX',
+        nomeCliente: trajeto.nomeCliente || '',
+        cpf: trajeto.cpfCliente || '',
+        telefone: trajeto.telefoneCliente || '',
+        cep: trajeto.cepCliente || '',
+        // Use o endereço completo aqui para o formulário
+        logradouro: trajeto.logradouroCliente || '', 
+        numero: trajeto.numeroCliente || '',
+        complemento: trajeto.complementoCliente || '',
+        bairro: trajeto.bairroCliente || '',
+        cidade: trajeto.cidadeCliente || '',
+        estado: trajeto.estadoCliente || '',
+        observacoes: '',
+        fotoInicio: trajeto.fotoInicio || '',
+        fotoFim: trajeto.fotoFim || '',
+        assinatura: trajeto.assinaturaCliente || ''
+      };
+
+      console.log('Dados do formulário antes de preencher:', dados);
+      this.formularioServico.patchValue(dados);
+      console.log('Formulário após preenchimento:', this.formularioServico.value);
+    } catch (error) {
+      console.error('Erro ao inicializar formulário:', error);
+      alert('Erro ao carregar o formulário.');
+    }
+  }
+
+  gerarPDF(): void {
+    if (!this.formularioServico.valid) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const formData = this.formularioServico.value;
+    console.log('Dados enviados para gerarPDF:', formData);
+    
+    const assinaturaBase64 = formData.assinatura || '';
+    this.formularioService.gerarPDF(formData, assinaturaBase64);
+  }
+
+  ngOnDestroy(): void {
+    if (this.mapUserLocation) this.mapUserLocation.remove();
+    if (this.mapShiftLocation) this.mapShiftLocation.remove();
   }
 }

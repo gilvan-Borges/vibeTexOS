@@ -1,4 +1,3 @@
-
 export interface CriarOrdemDeServicoResponseDto {
     ordemDeServicoId: string;
     usuarioId: string;
@@ -12,4 +11,5 @@ export interface CriarOrdemDeServicoResponseDto {
     statusOrdem: string;
     assinaturaCliente: string | null;
     atribuida: boolean;
-}
+    despachoId?: string; // Adicionado como opcional, já que nem toda ordem terá um despacho inicialmente
+  }

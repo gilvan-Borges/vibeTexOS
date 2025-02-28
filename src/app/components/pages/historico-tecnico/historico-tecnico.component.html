@@ -47,7 +47,7 @@
 <!-- Mapas -->
 <div class="maps-container">
   <div class="map-box">
-    <h3>Localização Atual</h3>
+    <h3>Rota Selecionada</h3>
     <div id="mapUserLocation" class="map"></div>
     <div class="map-actions">
       <button
@@ -61,7 +61,7 @@
   </div>
 
   <div class="map-box">
-    <h3>Local de Início do Expediente</h3>
+    <h3>Locais de Início de Execução</h3>
     <div id="mapShiftLocation" class="map"></div>
   </div>
 </div>
@@ -78,35 +78,41 @@
 
     <!-- Tabela só é mostrada quando há dados -->
     <table class="styled-table" *ngIf="!mensagemSemDados">
-      <!-- Legenda para acessibilidade -->
       <caption>Lista de ordens de serviço registradas</caption>
       <thead>
         <tr>
-          <th (click)="ordenarPor('ordemServico')">
-            Ordem de Serviço ⬍
+          <th style="width: 80px;" (click)="ordenarPor('ordemServico')">
+            O.S. ⬍
+          </th>
+          <th (click)="ordenarPor('nomeCliente')">
+            Cliente ⬍
+          </th>
+          <th (click)="ordenarPor('cpfCliente')">
+            CPF ⬍
           </th>
           <th (click)="ordenarPor('enderecoInicio')">
-            Local de Início ⬍
+            Bairro ⬍
           </th>
-          <th (click)="ordenarPor('horaInicio')">
-            Hora Início ⬍
+          <th (click)="ordenarPor('tipoServico')">
+            Tipo de Serviço ⬍
           </th>
-          <th (click)="ordenarPor('enderecoFim')">
-            Local de Fim ⬍
+          <th (click)="ordenarPor('status')">
+            Status ⬍
           </th>
-          <th (click)="ordenarPor('horaFim')">
-            Hora Fim ⬍
-          </th>
-          <th>Ações</th>
+          <th>Rota</th>
+          <th>Execução</th>
+          <th>Formulário</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let trajeto of trajetosFiltrados">
-          <td>{{ trajeto.ordemServico }}</td>
+          <td>{{ formatarCodigoOS(trajeto.ordemServico) }}</td>
+          <td>{{ trajeto.nomeCliente }}</td>
+          <td>{{ trajeto.cpfCliente }}</td>
           <td class="endereco-cell">
             {{ trajeto.enderecoInicio }}
             <button
-              *ngIf="trajeto.latitudeInicio"
+              *ngIf="trajeto.latitudeInicio && trajeto.latitudeInicio !== 0"
               class="btn-maps"
               (click)="abrirGoogleMapsComCoordenadas(trajeto.latitudeInicio, trajeto.longitudeInicio)"
               title="Ver no Google Maps"
@@ -120,41 +126,39 @@
               ⌛
             </span>
           </td>
-          <td class="hora-cell">
-            {{ trajeto.horaInicio || 'N/A' }}
-          </td>
-          <td class="endereco-cell">
-            {{ trajeto.enderecoFim }}
+          <td>{{ trajeto.tipoServico }}</td>
+          <td>{{ trajeto.status }}</td>
+          <td>
             <button
-              *ngIf="trajeto.latitudeFim"
-              class="btn-maps"
-              (click)="abrirGoogleMapsComCoordenadas(trajeto.latitudeFim, trajeto.longitudeFim)"
-              title="Ver no Google Maps"
-            >
-              🗺️
-            </button>
-            <span
-              *ngIf="trajeto.enderecoFim === 'Carregando...'"
-              class="loading-indicator"
-            >
-              ⌛
-            </span>
-          </td>
-          <td class="hora-cell">
-            {{ trajeto.horaFim || 'N/A' }}
-          </td>
-          <td class="action-cell">
-            <button
+              *ngIf="trajeto.hasTrajetoCoordenadas"
               class="btn-map"
-              (click)="verNoMapa(trajeto)"
-              title="Ver a rota no mapa"
+              (click)="mostrarRotaNoMapa(trajeto, 'trajeto')"
+              title="Ver a rota do trajeto no mapa"
             >
               ↝
             </button>
+            <span *ngIf="!trajeto.hasTrajetoCoordenadas" class="text-muted">
+              Indisponível
+            </span>
+          </td>
+          <td>
+            <button
+              *ngIf="trajeto.hasExecucaoCoordenadas"
+              class="btn-map"
+              (click)="mostrarRotaNoMapa(trajeto, 'execucao')"
+              title="Ver a rota da execução no mapa"
+            >
+              ↝
+            </button>
+            <span *ngIf="!trajeto.hasExecucaoCoordenadas" class="text-muted">
+              Indisponível
+            </span>
+          </td>
+          <td>
             <button
               *ngIf="trajeto.formularioId"
               class="btn-form"
-              (click)="verFormulario(trajeto)"
+              (click)="abrirFormulario(trajeto)"
               title="Ver formulário"
             >
               📋
@@ -166,113 +170,145 @@
   </div>
 </div>
 
-<!-- Seção de Formulários -->
-<div *ngFor="let trajeto of trajetosFiltrados">
-  <div
-    *ngIf="formulariosAbertos[trajeto.formularioId]"
-    class="formulario-container"
-    [id]="'formulario-' + trajeto.formularioId"
-  >
-    <div class="formulario-header">
-      <h4>📋 Formulário - O.S. {{ trajeto.ordemServico }}</h4>
-      <button
-        class="btn-close"
-        (click)="verFormulario(trajeto)"
-        title="Fechar formulário"
-      >
-        ✕
-      </button>
-    </div>
-    
-    <div class="formulario-content" *ngIf="formularioSelecionado">
-      <!-- Informações Gerais -->
-      <div class="form-section">
-        <h5>ℹ️ Informações Gerais</h5>
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Data:</label>
-            <span>{{ formularioSelecionado.dataPreenchimento | date:'dd/MM/yyyy HH:mm' }}</span>
-          </div>
-          <div class="info-item">
-            <label>Técnico:</label>
-            <span>{{ formularioSelecionado.tecnicoNome }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Checklist -->
-      <div class="form-section">
-        <h5>✔️ Checklist</h5>
-        <table class="checklist-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Status</th>
-              <th>Observação</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of formularioSelecionado.checklist">
-              <td>{{ item.item }}</td>
-              <td>
-                <span [class]="'status-' + item.status.toLowerCase()">
-                  {{ item.status }}
-                </span>
-              </td>
-              <td>{{ item.observacao || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Material Utilizado -->
-      <div class="form-section">
-        <h5>🛠️ Material Utilizado</h5>
-        <table class="material-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Descrição</th>
-              <th>Quantidade</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let material of formularioSelecionado.materialUtilizado">
-              <td>{{ material.codigo }}</td>
-              <td>{{ material.descricao }}</td>
-              <td>{{ material.quantidade }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Fotos -->
-      <div class="form-section">
-        <h5>📸 Fotos do Serviço</h5>
-        <div class="fotos-grid">
-          <div class="foto-item" *ngFor="let foto of formularioSelecionado.fotos">
-            <img [src]="foto.url" [alt]="foto.descricao">
-            <div class="foto-info">
-              <p>{{ foto.descricao }}</p>
-              <small>{{ foto.dataHora | date:'dd/MM/yyyy HH:mm' }}</small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Observações -->
-      <div class="form-section">
-        <h5>📝 Observações Gerais</h5>
-        <p class="observacoes">{{ formularioSelecionado.observacoesGerais }}</p>
-      </div>
-
-      <!-- Assinatura -->
-      <div class="form-section">
-        <h5>✍️ Assinatura do Cliente</h5>
-        <div class="assinatura-container">
-          <img [src]="formularioSelecionado.assinaturaCliente" alt="Assinatura do cliente">
+<!-- Seção do Formulário na Parte Inferior -->
+<div *ngIf="mostrarFormulario" class="formulario-container mt-4">
+  <h3>Formulário da Ordem de Serviço {{ trajetoSelecionado?.ordemServico }}</h3>
+  <form [formGroup]="formularioServico">
+    <!-- Seção: Dados da O.S. -->
+    <div class="form-section">
+      <h4 class="section-title">Dados da O.S.</h4>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="codigoOS" class="form-label">Código O.S.</label>
+          <input type="text" id="codigoOS" class="form-control" formControlName="codigoOS" readonly>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- Seção: Dados do Colaborador -->
+    <div class="form-section">
+      <h4 class="section-title">Dados do Colaborador</h4>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="nomeColaborador" class="form-label">Nome do Colaborador</label>
+          <input type="text" id="nomeColaborador" class="form-control" formControlName="nomeColaborador" readonly>
+        </div>
+        <div class="col-md-6">
+          <label for="empresaColaborador" class="form-label">Empresa</label>
+          <input type="text" id="empresaColaborador" class="form-control" formControlName="empresaColaborador" readonly>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Dados do Cliente -->
+    <div class="form-section">
+      <h4 class="section-title">Dados do Cliente</h4>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="nomeCliente" class="form-label">Nome do Cliente</label>
+          <input type="text" id="nomeCliente" class="form-control" formControlName="nomeCliente" readonly>
+        </div>
+        <div class="col-md-6">
+          <label for="cpf" class="form-label">CPF</label>
+          <input type="text" id="cpf" class="form-control" formControlName="cpf" readonly>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="telefone" class="form-label">Telefone</label>
+          <input type="text" id="telefone" class="form-control" formControlName="telefone" readonly>
+        </div>
+        <div class="col-md-6">
+          <label for="cep" class="form-label">CEP</label>
+          <input type="text" id="cep" class="form-control" formControlName="cep" readonly>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="logradouro" class="form-label">Logradouro</label>
+          <input type="text" id="logradouro" class="form-control" formControlName="logradouro" readonly>
+        </div>
+        <div class="col-md-3">
+          <label for="numero" class="form-label">Número</label>
+          <input type="text" id="numero" class="form-control" formControlName="numero" readonly>
+        </div>
+        <div class="col-md-3">
+          <label for="complemento" class="form-label">Complemento</label>
+          <input type="text" id="complemento" class="form-control" formControlName="complemento" readonly>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label for="bairro" class="form-label">Bairro</label>
+          <input type="text" id="bairro" class="form-control" formControlName="bairro" readonly>
+        </div>
+        <div class="col-md-4">
+          <label for="cidade" class="form-label">Cidade</label>
+          <input type="text" id="cidade" class="form-control" formControlName="cidade" readonly>
+        </div>
+        <div class="col-md-4">
+          <label for="estado" class="form-label">Estado</label>
+          <input type="text" id="estado" class="form-control" formControlName="estado" readonly>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Observações -->
+    <div class="form-section">
+      <h4 class="section-title">Observações</h4>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="observacoes" class="form-label">Observações</label>
+          <textarea id="observacoes" class="form-control" formControlName="observacoes" rows="3" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Fotos -->
+    <div class="form-section">
+      <h4 class="section-title">Fotos</h4>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Foto de Início</label>
+          <div class="foto-container">
+            <img *ngIf="formularioServico.get('fotoInicio')?.value" [src]="formularioServico.get('fotoInicio')?.value"
+              class="img-fluid rounded" alt="Foto Início">
+            <p *ngIf="!formularioServico.get('fotoInicio')?.value" class="text-muted">Nenhuma foto disponível</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Foto de Fim</label>
+          <div class="foto-container">
+            <img *ngIf="formularioServico.get('fotoFim')?.value" [src]="formularioServico.get('fotoFim')?.value"
+              class="img-fluid rounded" alt="Foto Fim">
+            <p *ngIf="!formularioServico.get('fotoFim')?.value" class="text-muted">Nenhuma foto disponível</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Assinatura -->
+    <div class="form-section">
+      <h4 class="section-title">Assinatura do Cliente</h4>
+      <div class="signature-container">
+        <img *ngIf="formularioServico.get('assinatura')?.value" [src]="formularioServico.get('assinatura')?.value"
+          class="img-fluid rounded" alt="Assinatura do Cliente" style="max-width: 200px; max-height: 100px;">
+        <p *ngIf="!formularioServico.get('assinatura')?.value" class="text-muted">Nenhuma assinatura disponível</p>
+      </div>
+    </div>
+
+    <!-- Botão para Gerar PDF -->
+    <div class="form-section">
+      <div class="row d-flex justify-content-center">
+        <div class="col-md-6 d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-primary w-100" (click)="gerarPDF()">
+            Gerar PDF
+          </button>
+          <button type="button" class="btn btn-secondary w-100" (click)="fecharFormulario()">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
 </div>

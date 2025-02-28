@@ -1,5 +1,5 @@
 <div class="container-fluid dashboard-container">
-  <!-- Filtro de Período (as per previous suggestions, unchanged) -->
+  <!-- Filtro de Período -->
   <div class="period-filter mb-4">
     <div class="filter-content d-flex align-items-center justify-content-between p-3 rounded-lg shadow-sm" style="background: linear-gradient(135deg, #e0e7ff, #a5b4fc); border: 1px solid #bfdbfe;">
       <select class="form-select form-select-sm text-dark fw-semibold border-0 bg-transparent" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
@@ -21,31 +21,31 @@
     </div>
   </div>
 
-  <!-- Cards de Métricas (Including Efficiency Cards Side by Side) -->
+  <!-- Cards de Métricas -->
   <div class="metrics-container">
     <div class="metric-card gradient-bg-primary">
       <h6>Total de O.S.</h6>
-      <h3>35</h3>
+      <h3>{{ totalOS }}</h3>
       <i class="fas fa-clipboard-list icon"></i>
     </div>
     <div class="metric-card gradient-bg-success">
       <h6>O.S. Realizadas</h6>
-      <h3>28</h3>
+      <h3>{{ osRealizadas }}</h3>
       <i class="fas fa-check-circle icon"></i>
     </div>
     <div class="metric-card gradient-bg-warning">
       <h6>O.S. Não Atribuídas</h6>
-      <h3>0</h3>
+      <h3>{{ osNaoAtribuidas }}</h3>
       <i class="fas fa-clock icon"></i>
     </div>
     <div class="metric-card gradient-bg-danger">
       <h6>O.S. Não Realizadas</h6>
-      <h3>7</h3>
+      <h3>{{ osNaoRealizadas }}</h3>
       <i class="fas fa-times-circle icon"></i>
     </div>
     <div class="metric-card gradient-bg-success">
       <h6>Eficiência Hoje</h6>
-      <h3>80%</h3>
+      <h3>{{ efficiencyGeneral }}%</h3>
       <i class="fas fa-chart-pie icon"></i>
     </div>
 
@@ -56,13 +56,12 @@
           <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
         </div>
         <div class="efficiency-stats">
-          <p class="mb-1"><i class="fas fa-check-circle text-success"></i> O.S. Realizadas: 28</p>
-          <p class="mb-1"><i class="fas fa-times-circle text-danger"></i> O.S. Não Realizadas: 7</p>
-          <p class="mb-0"><i class="fas fa-clock text-warning"></i> O.S. Não Atribuídas: 0</p>
+          <p class="mb-1"><i class="fas fa-check-circle text-success"></i> O.S. Realizadas: {{ osRealizadas }}</p>
+          <p class="mb-1"><i class="fas fa-times-circle text-danger"></i> O.S. Não Realizadas: {{ osNaoRealizadas }}</p>
+          <p class="mb-0"><i class="fas fa-clock text-warning"></i> O.S. Não Atribuídas: {{ osNaoAtribuidas }}</p>
         </div>
       </div>
     </div>
-    
   </div>
 
   <!-- Mapa de Colaboradores (Largura total) -->
@@ -77,17 +76,19 @@
 
   <!-- Tabela de Desempenho Detalhado -->
   <div class="table-container">
-    <h5>Desempenho Detalhado</h5>
-    <table class="table table-striped">
+    <h5>
+      <i class="fas fa-chart-line me-2"></i>
+      Desempenho Detalhado
+    </h5>
+    <table class="table">
       <thead>
         <tr>
-          <th>Foto</th>
+          <th class="col-empresa">Empresa</th>
           <th>Colaborador</th>
-          <th>O.S. Atribuídas</th>
-          <th>O.S. Realizadas</th>
-          <th>O.S. Pendentes</th>
-          <th>Tempo Médio</th>
-          <th>Empresa</th>
+          <th class="col-metrics">Atrib.</th>
+          <th class="col-metrics">Real.</th>
+          <th class="col-metrics">Pend.</th>
+          <th class="col-metrics">T. Médio</th>
           <th>Eficiência</th>
           <th>Jornada</th>
         </tr>
@@ -95,30 +96,37 @@
       <tbody>
         <tr *ngFor="let colaborador of colaboradoresDesempenho">
           <td>
-            <img [src]="colaborador.fotoUrl" alt="{{ colaborador.nome }}" class="profile-photo" />
+            <span class="fw-medium">{{ colaborador.empresa }}</span>
           </td>
-          <td>{{ colaborador.nome }}</td>
-          <td>{{ colaborador.osAtribuidas }}</td>
-          <td>{{ colaborador.osRealizadas }}</td>
-          <td>{{ colaborador.osPendentes }}</td>
-          <td>{{ colaborador.tempoMedio }}</td>
-          <td>{{ colaborador.empresa }}</td>
+          <td>
+            <a [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]" 
+               class="d-flex flex-column align-items-center">
+              <i class="fas fa-user-circle mb-1 fs-4"></i>
+              <span>{{ colaborador.nome }}</span>
+            </a>
+          </td>
+          <td class="text-center col-metrics">{{ colaborador.osAtribuidas }}</td>
+          <td class="text-center col-metrics text-success">{{ colaborador.osRealizadas }}</td>
+          <td class="text-center col-metrics text-warning">{{ colaborador.osPendentes }}</td>
+          <td class="text-center col-metrics">{{ colaborador.tempoMedio }}</td>
           <td>
             <div class="progress">
-              <div 
-                class="progress-bar" 
-                [ngClass]="{
-                  'bg-success': colaborador.eficiencia >= 70,
-                  'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
-                  'bg-danger': colaborador.eficiencia < 50
-                }" 
-                [style.width.%]="colaborador.eficiencia"
-              >{{ colaborador.eficiencia }}%</div>
+              <div class="progress-bar" 
+                   [ngClass]="{
+                     'bg-success': colaborador.eficiencia >= 70,
+                     'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
+                     'bg-danger': colaborador.eficiencia < 50
+                   }" 
+                   [style.width.%]="colaborador.eficiencia"
+                   [attr.title]="colaborador.eficiencia + '%'">
+              </div>
             </div>
+            <small class="d-block text-center mt-1">{{ colaborador.eficiencia }}%</small>
           </td>
-          <td>{{ colaborador.jornada }}</td>
+          <td class="text-center">{{ colaborador.jornada }}</td>
         </tr>
       </tbody>
     </table>
   </div>
+  
 </div>

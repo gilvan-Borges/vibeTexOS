@@ -152,7 +152,6 @@ export class CadastrarUsuarioComponent implements OnInit {
     console.log("📌 Tentando cadastrar usuário...");
 
     const formData = new FormData();
-    // Excluindo empresa e matricula do formData inicial
     Object.keys(this.formulario.controls)
       .filter(key => key !== 'empresa' && key !== 'matricula')
       .forEach(key => {
@@ -162,7 +161,6 @@ export class CadastrarUsuarioComponent implements OnInit {
 
     formData.append('IsOnline', 'false');
 
-    // Fix the extension check
     const extensao = this.fotoUrl?.name.split('.').pop();
     if (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao.toLowerCase())) {
       this.mensagem = 'Erro: Arquivo inválido ou sem extensão.';
@@ -184,13 +182,15 @@ export class CadastrarUsuarioComponent implements OnInit {
           const matricula = this.formulario.get('matricula')?.value;
           const usuarioId = response.usuarioId;
 
+          // Salvar usuarioId no localStorage
+          localStorage.setItem('tempUsuarioId', usuarioId);
+
           if (!empresaId || !matricula || !usuarioId) {
             console.error('❌ Dados inválidos:', { empresaId, matricula, usuarioId });
             this.mensagem = 'Erro: Dados técnicos inválidos.';
             return;
           }
 
-          // Encontrar o nome da empresa selecionada
           const empresaSelecionada = this.empresas.find(emp => emp.empresaId === empresaId);
           if (!empresaSelecionada) {
             console.error('❌ Empresa não encontrada');
@@ -198,34 +198,38 @@ export class CadastrarUsuarioComponent implements OnInit {
             return;
           }
 
-          // Atualizar direto com os dados técnicos
           const dadosTecnicos = {
             NumeroMatricula: matricula,
-            Empresa: empresaSelecionada.nomeDaEmpresa, // Enviando o nome da empresa ao invés do ID
-            
+            Empresa: empresaSelecionada.nomeDaEmpresa,
           };
 
-          console.log('📤 Atualizando dados técnicos:', dadosTecnicos);
+          console.log('⏳ Aguardando para atualizar dados técnicos...');
 
-          // O empresaId vai apenas na URL
-          this.vibeService.atualizarUsuarioTecnico(
-            empresaId, // ID da empresa usado apenas na URL
-            usuarioId,
-            dadosTecnicos // Objeto com nome da empresa ao invés do ID
-          ).subscribe({
-            next: (tecResponse) => {
-              console.log('✅ Informações técnicas atualizadas:', tecResponse);
-              this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
-              this.formulario.reset();
-              this.fotoPreview = null;
-              this.fotoUrl = null;
-              setTimeout(() => this.mensagem = '', 5000);
-            },
-            error: (err) => {
-              console.error('❌ Erro ao atualizar informações técnicas:', err);
-              this.mensagem = `Erro ao vincular empresa/matrícula: ${err.error || err.message || 'Erro desconhecido'}`;
-            }
-          });
+          // Adicionar delay de 2 segundos antes de fazer o PUT
+          setTimeout(() => {
+            console.log('📤 Atualizando dados técnicos:', dadosTecnicos);
+            
+            this.vibeService.atualizarUsuarioTecnico(
+              empresaId,
+              usuarioId,
+              dadosTecnicos
+            ).subscribe({
+              next: (tecResponse) => {
+                console.log('✅ Informações técnicas atualizadas:', tecResponse);
+                this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
+                // Limpar usuarioId do localStorage após sucesso
+                localStorage.removeItem('tempUsuarioId');
+                this.formulario.reset();
+                this.fotoPreview = null;
+                this.fotoUrl = null;
+                setTimeout(() => this.mensagem = '', 5000);
+              },
+              error: (err) => {
+                console.error('❌ Erro ao atualizar informações técnicas:', err);
+                this.mensagem = `Erro ao vincular empresa/matrícula: ${err.error || err.message || 'Erro desconhecido'}`;
+              }
+            });
+          }, 2000); // Delay de 2 segundos
         },
         error: (err) => {
           console.error('❌ Erro ao cadastrar usuário:', err);

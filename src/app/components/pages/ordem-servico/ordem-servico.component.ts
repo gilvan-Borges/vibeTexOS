@@ -18,10 +18,12 @@ interface OrdemServico {
   statusOrdem: string;
   numeroOrdemDeServico: string;
   atribuida: boolean;
-  cliente?: ClienteResponseDto; // Se ainda usar o campo `cliente`
+  cliente?: ClienteResponseDto;
   observacoesReparo: string;
   dataEHoraInicioServico: string | null;
-  clienteData?: ClienteResponseDto | null; // Adicionando clienteData como opcional e com tipo específico
+  dataHoraCadastro: string; // Campo da API para filtrar o dia atual
+  clienteData?: ClienteResponseDto | null;
+  despachoId?: string;
 }
 
 @Component({
@@ -54,7 +56,7 @@ export class OrdemServicoComponent implements OnInit {
       if (segment === 'Pendente') {
         this.statusOrdem = 'Pendente';
       } else if (segment === 'realizadas') {
-        this.statusOrdem = 'Concluída';
+        this.statusOrdem = 'Concluida';
       }
       console.log('Segmento de URL:', segment);
       console.log('Status definido:', this.statusOrdem);
@@ -86,9 +88,8 @@ export class OrdemServicoComponent implements OnInit {
   
     this.vibeService.buscarOrdemServicoUsuarioId(this.usuarioId).subscribe({
       next: (response: CriarOrdemDeServicoResponseDto[]) => {
-        // Obter a data atual (sem horário para comparação)
         const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0); // Zera horas, minutos, segundos e milissegundos
+        hoje.setHours(0, 0, 0, 0); // Define a data atual apenas até o início do dia
   
         console.log('Resposta bruta do serviço:', response);
   
@@ -102,55 +103,42 @@ export class OrdemServicoComponent implements OnInit {
             numeroOrdemDeServico: ordem.numeroOrdemDeServico || '',
             atribuida: ordem.atribuida === true,
             observacoesReparo: ordem.observacoesReparo || '',
-            dataEHoraInicioServico: ordem.dataEHoraInicioServico || null
+            dataEHoraInicioServico: ordem.dataEHoraInicioServico || null,
+            dataHoraCadastro: ordem.dataHoraCadastro || '', // Mapeia o campo da API
+            clienteData: null, // Inicializa como null, será preenchido abaixo
+            despachoId: ordem.despachoId
           }))
           .filter(ordem => {
-            // Converter dataEHoraInicioServico para Date, tratando diferentes formatos e null
             let dataOrdem: Date | null = null;
-            if (ordem.dataEHoraInicioServico) {
-              if (typeof ordem.dataEHoraInicioServico === 'string') {
-                // Tenta parsear no formato ISO (YYYY-MM-DDTHH:mm:ssZ) ou simplesmente YYYY-MM-DD
-                dataOrdem = new Date(ordem.dataEHoraInicioServico);
-                if (isNaN(dataOrdem.getTime())) {
-                  // Tenta parsear no formato DD/MM/YYYY
-                  const partes = ordem.dataEHoraInicioServico.split('/');
-                  if (partes.length === 3) {
-                    dataOrdem = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
-                  } else {
-                    // Tenta parsear no formato MM/DD/YYYY (caso o backend use este formato)
-                    const partes2 = ordem.dataEHoraInicioServico.split('-');
-                    if (partes2.length === 3) {
-                      dataOrdem = new Date(ordem.dataEHoraInicioServico);
-                    }
-                  }
-                }
-                if (isNaN(dataOrdem.getTime())) {
-                  console.error('Formato de data inválido, ignorando ordem:', ordem.dataEHoraInicioServico, 'Ordem:', ordem);
-                  return false; // Pula ordens com data inválida
-                }
+            if (ordem.dataHoraCadastro && ordem.dataHoraCadastro.trim() !== '') {
+              dataOrdem = new Date(ordem.dataHoraCadastro);
+              if (isNaN(dataOrdem.getTime())) {
+                console.error('Formato de dataHoraCadastro inválido, ignorando ordem:', ordem.dataHoraCadastro, 'Ordem:', ordem);
+                return false;
               }
+              dataOrdem.setHours(0, 0, 0, 0); // Normaliza para o início do dia
+            } else {
+              console.warn('dataHoraCadastro ausente ou vazio para ordem:', ordem);
+              return false; // Rejeita ordens sem dataHoraCadastro válida
             }
-  
-            if (dataOrdem) {
-              dataOrdem.setHours(0, 0, 0, 0); // Zera horário para comparação
-            }
-  
-            // Filtrar por status, data atual e se está atribuída
-            const dataCorrespondente = dataOrdem ? dataOrdem.getTime() === hoje.getTime() : true; // Considera null como válido para o dia atual
+
+            // Apenas inclui ordens do dia atual e do usuarioId logado
+            const dataCorrespondente = dataOrdem.getTime() === hoje.getTime();
             const ordemAtribuida = ordem.atribuida === true;
             const statusCorreto = ordem.statusOrdem === this.statusOrdem;
-  
+            const usuarioCorreto = ordem.usuarioId === this.usuarioId;
+
             console.log('Ordem filtrada:', {
               dataCorrespondente,
               ordemAtribuida,
               statusCorreto,
+              usuarioCorreto,
               ordem
             });
-  
-            return statusCorreto && ordemAtribuida && dataCorrespondente;
+
+            return statusCorreto && ordemAtribuida && dataCorrespondente && usuarioCorreto;
           });
-  
-        // Carregar dados do cliente para cada ordem filtrada
+
         this.ordensFiltradas.forEach(ordem => {
           this.vibeService.buscarClientesPorId(ordem.clienteId).subscribe({
             next: (clienteData) => {
@@ -161,9 +149,9 @@ export class OrdemServicoComponent implements OnInit {
             }
           });
         });
-  
+
         console.log(
-          `Encontradas ${this.ordensFiltradas.length} ordens para o dia atual, status ${this.statusOrdem} e atribuídas:`,
+          `Encontradas ${this.ordensFiltradas.length} ordens para o dia atual, status ${this.statusOrdem}, atribuídas e do usuário ${this.usuarioId}:`,
           this.ordensFiltradas
         );
       },
@@ -187,51 +175,66 @@ export class OrdemServicoComponent implements OnInit {
     });
   }
 
-  iniciarOrdemServico(ordemId: string) {
+  iniciarOrdemServico(ordem: OrdemServico) {
     if (this.pausaAtiva) {
-      console.warn('Não é possível iniciar ordem durante uma pausa ativa');
+      alert('Não é possível iniciar ordem durante uma pausa ativa');
       return;
     }
 
     if (!this.usuarioId) {
-      console.error('ID do usuário não encontrado');
+      alert('ID do usuário não encontrado');
       return;
     }
 
-    if (!ordemId) {
-      console.error('ID da ordem não fornecido');
+    if (!ordem.ordemDeServicoId || !ordem.despachoId) {
+      alert('ID da Ordem de Serviço ou Despacho não fornecido');
       return;
     }
 
-    // Primeiro obtém a localização atual
+    // Aqui, usamos non-null assertion (!) pois já verificamos que despachoId não é undefined
+    const despachoId = ordem.despachoId!;
+
+    // Aqui, ordemDeServicoId já foi verificado como não nulo/undefined, então é seguro tratar como string
     this.obterLocalizacaoAtual()
       .then((position: GeolocationPosition) => {
-        // Validar coordenadas
         if (!position?.coords?.latitude || !position?.coords?.longitude) {
           throw new Error('Coordenadas inválidas');
         }
 
+        const latitude = position.coords.latitude.toFixed(6);
+        const longitude = position.coords.longitude.toFixed(6);
+
         const request: IniciarTrajetoRequestDto = {
-          latitudeInicioTrajeto: position.coords.latitude.toString(),
-          longitudeInicioTrajeto: position.coords.longitude.toString()
+          latitudeInicioTrajeto: latitude,
+          longitudeInicioTrajeto: longitude
         };
 
         console.log('Iniciando trajeto com dados:', {
-          ordemId,
+          ordemDeServicoId: ordem.ordemDeServicoId,
+          despachoId: despachoId,
           usuarioId: this.usuarioId,
           request
         });
 
-        // Inicia o trajeto com as coordenadas
-        this.vibeService.iniciarTrajeto(ordemId, this.usuarioId!, request)
+        return this.vibeService.iniciarTrajeto(despachoId, this.usuarioId!, request)
           .pipe(
-            tap(response => console.log('Resposta do serviço:', response)),
+            tap(response => {
+              console.log('Resposta do serviço:', response);
+              if (!response) {
+                throw new Error('Resposta vazia do servidor');
+              }
+            }),
             catchError(error => {
-              console.error('Detalhes do erro:', {
-                status: error.status,
-                message: error.message,
-                error: error.error
-              });
+              console.error('Erro detalhado:', error);
+              let mensagem = 'Erro ao iniciar trajeto: ';
+              if (error.status === 400) {
+                mensagem += error.error?.message || 'Dados inválidos fornecidos';
+              } else if (error.status === 404) {
+                mensagem += 'Ordem de serviço ou usuário não encontrado';
+              } else {
+                mensagem += error.message || 'Erro na comunicação com o servidor';
+              }
+              alert(mensagem);
               throw error;
             })
           )
@@ -241,34 +244,25 @@ export class OrdemServicoComponent implements OnInit {
                 throw new Error('TrajetoId não recebido na resposta');
               }
 
-              // Salva todos os dados importantes no localStorage
               localStorage.setItem('trajetoId', response.trajetoId);
               localStorage.setItem('latitudeInicioTrajeto', request.latitudeInicioTrajeto!);
               localStorage.setItem('longitudeInicioTrajeto', request.longitudeInicioTrajeto!);
               localStorage.setItem('osEmAndamento', 'true');
               localStorage.setItem('osIniciada', 'false');
 
+              // Navega usando ordemDeServicoId como codigo
               this.router.navigate(['/pages/ordem-servico-exec', this.usuarioId], {
-                queryParams: { codigo: ordemId }
+                queryParams: { codigo: ordem.ordemDeServicoId }
               });
             },
             error: (error) => {
-              let errorMessage = 'Erro ao iniciar trajeto: ';
-              if (error.status === 400) {
-                errorMessage += 'Dados inválidos fornecidos';
-              } else if (error.status === 404) {
-                errorMessage += 'Ordem de serviço ou usuário não encontrado';
-              } else {
-                errorMessage += error.message || 'Erro desconhecido';
-              }
-              console.error(errorMessage, error);
-              // Aqui você pode adicionar uma notificação visual para o usuário
+              console.error('Erro ao iniciar trajeto:', error);
             }
           });
       })
       .catch(error => {
         console.error('Erro ao obter localização:', error);
-        // Adicione uma notificação visual para o usuário
+        alert('Não foi possível obter sua localização. Por favor, verifique se o GPS está ativado.');
       });
   }
 
@@ -280,7 +274,7 @@ export class OrdemServicoComponent implements OnInit {
     if (!data) return 'Data/Hora não disponível';
     try {
       const date = new Date(data);
-      return date.toISOString(); // Retorna "2025-02-25T20:11:00.000Z"
+      return date.toISOString(); 
     } catch (erro) {
       console.error('Erro ao formatar data e hora:', erro);
       return 'Data/Hora inválida';

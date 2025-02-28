@@ -1,6 +1,7 @@
 export interface OrdemServico {
   id?: string;
   ordemDeServicoId: string;
+  despachoId?: string;
   numeroOrdemDeServico: string;
   codigoOS: string;
   cliente: string;

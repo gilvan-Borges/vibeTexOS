@@ -7,9 +7,7 @@
     <!-- Botão de Início -->
     <div class="row mb-4">
       <div class="col">
-        <button class="btn btn-primary btn-lg w-100" 
-                [disabled]="disabled[0]"
-                (click)="iniciarOS()">
+        <button class="btn btn-primary btn-lg w-100" [disabled]="disabled[0]" (click)="iniciarOS()">
           Iniciar O.S.
         </button>
       </div>
@@ -19,27 +17,16 @@
     <div class="row mb-4">
       <div class="col">
         <!-- Botão de Cancelar -->
-        <button class="btn btn-danger btn-lg w-100 mb-3" 
-                [disabled]="disabled[1]"
-                (click)="cancelarOS()">
+        <button class="btn btn-danger btn-lg w-100 mb-3" [disabled]="disabled[1]" (click)="cancelarOS()">
           Cancelar O.S.
         </button>
 
         <!-- Botão de Finalizar -->
-        <button class="btn btn-success btn-lg w-100" 
-                [disabled]="disabled[2]"
-                (click)="finalizarOS()">
+        <button class="btn btn-success btn-lg w-100" [disabled]="disabled[2]" (click)="finalizarOS()">
           Finalizar O.S.
         </button>
       </div>
     </div>
-  </div> 
-</div>
-
-<div class="row mt-4" *ngIf="mostrarFormulario">
-  <div class="col-12">
-    <!-- Se for um componente standalone -->
-    <app-formulario-servico></app-formulario-servico>
   </div>
 </div>
 
@@ -55,11 +42,8 @@
       </div>
       <div class="modal-body text-center">
         <div class="webcam-container border rounded">
-          <webcam [trigger]="triggerObservable" 
-                  (imageCapture)="handleImage($event)" 
-                  [allowCameraSwitch]="true"
-                  [videoOptions]="{ facingMode: 'environment' }" 
-                  (initError)="errors = [$event]">
+          <webcam [trigger]="triggerObservable" (imageCapture)="handleImage($event)" [allowCameraSwitch]="true"
+            [videoOptions]="{ facingMode: 'environment' }" (initError)="errors = [$event]">
           </webcam>
         </div>
         <div *ngIf="errors.length > 0" class="alert alert-danger mt-3">
@@ -72,15 +56,17 @@
         <!-- Seleção de motivo apenas para cancelamento -->
         <div *ngIf="tipoRegistro === 'cancelamento'" class="mt-3">
           <label for="motivoCancelamento" class="form-label fw-bold">Motivo do Cancelamento</label>
-          <select class="form-select" id="motivoCancelamento" [(ngModel)]="motivoCancelamento" (change)="onMotivoChange($event)">
+          <select class="form-select" id="motivoCancelamento" [(ngModel)]="motivoCancelamento"
+            (ngModelChange)="atualizarMotivo()">
             <option value="">Selecione um motivo</option>
             <option *ngFor="let motivo of motivosCancelamento" [value]="motivo">{{ motivo }}</option>
           </select>
 
-          <!-- Campo para "Outros" -->
-          <div *ngIf="mostrarCampoOutros" class="mt-3">
+          <!-- Campo para "Outros" (dinâmico) -->
+          <div *ngIf="mostrarCampoOutros" class="mt-3 outros-field">
             <label for="outrosMotivo" class="form-label fw-bold">Especifique o motivo</label>
-            <textarea class="form-control" id="outrosMotivo" [(ngModel)]="outrosMotivo" rows="3" placeholder="Digite o motivo"></textarea>
+            <textarea class="form-control" id="outrosMotivo" [(ngModel)]="outrosMotivo" rows="2"
+              placeholder="Digite o motivo"></textarea>
           </div>
         </div>
       </div>
@@ -96,3 +82,152 @@
   </div>
 </div>
 <div class="modal-backdrop fade show" *ngIf="modalVisible"></div>
+
+<!-- Formulário -->
+<div *ngIf="mostrarFormulario" class="formulario-container mt-4">
+  <form [formGroup]="formularioServico" (ngSubmit)="onSubmit()">
+    <!-- Seção: Dados da O.S. -->
+    <div class="form-section">
+      <h3 class="section-title">Dados da O.S.</h3>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="codigoOS" class="form-label">Código O.S.</label>
+          <input type="text" id="codigoOS" class="form-control" formControlName="codigoOS" readonly>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Dados do Colaborador -->
+    <div class="form-section">
+      <h3 class="section-title">Dados do Colaborador</h3>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="nomeColaborador" class="form-label">Nome do Colaborador</label>
+          <input type="text" id="nomeColaborador" class="form-control" formControlName="nomeColaborador" readonly>
+        </div>
+        <div class="col-md-6">
+          <label for="empresaColaborador" class="form-label">Empresa</label>
+          <input type="text" id="empresaColaborador" class="form-control" formControlName="empresaColaborador" readonly>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Dados do Cliente -->
+    <div class="form-section">
+      <h3 class="section-title">Dados do Cliente</h3>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="nomeCliente" class="form-label">Nome do Cliente</label>
+          <input type="text" id="nomeCliente" class="form-control" formControlName="nomeCliente" required>
+        </div>
+        <div class="col-md-6">
+          <label for="cpf" class="form-label">CPF</label>
+          <input type="text" id="cpf" class="form-control" formControlName="cpf" mask="000.000.000-00" required>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="telefone" class="form-label">Telefone</label>
+          <input type="text" id="telefone" class="form-control" formControlName="telefone" mask="(00) 00000-0000"
+            required>
+        </div>
+        <div class="col-md-6">
+          <label for="cep" class="form-label">CEP</label>
+          <input type="text" id="cep" class="form-control" formControlName="cep" mask="00000-000"
+            (blur)="buscarCepHandler()" required>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="logradouro" class="form-label">Logradouro</label>
+          <input type="text" id="logradouro" class="form-control" formControlName="logradouro" required>
+        </div>
+        <div class="col-md-3">
+          <label for="numero" class="form-label">Número</label>
+          <input type="text" id="numero" class="form-control" formControlName="numero" required>
+        </div>
+        <div class="col-md-3">
+          <label for="complemento" class="form-label">Complemento</label>
+          <input type="text" id="complemento" class="form-control" formControlName="complemento">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label for="bairro" class="form-label">Bairro</label>
+          <input type="text" id="bairro" class="form-control" formControlName="bairro" required>
+        </div>
+        <div class="col-md-4">
+          <label for="cidade" class="form-label">Cidade</label>
+          <input type="text" id="cidade" class="form-control" formControlName="cidade" required>
+        </div>
+        <div class="col-md-4">
+          <label for="estado" class="form-label">Estado</label>
+          <input type="text" id="estado" class="form-control" formControlName="estado" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Observações -->
+    <div class="form-section">
+      <h3 class="section-title">Observações</h3>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="observacoes" class="form-label">Observações</label>
+          <textarea id="observacoes" class="form-control" formControlName="observacoes" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Fotos -->
+    <div class="form-section">
+      <h3 class="section-title">Fotos</h3>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Foto de Início</label>
+          <div class="foto-container">
+            {{ formularioServico.get('fotoInicio')?.value | json }} <!-- Adicionar log para depuração -->
+            <img *ngIf="formularioServico.get('fotoInicio')?.value" [src]="formularioServico.get('fotoInicio')?.value"
+              class="img-fluid rounded" alt="Foto Início">
+            <p *ngIf="!formularioServico.get('fotoInicio')?.value" class="text-muted">Nenhuma foto disponível</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Foto de Fim</label>
+          <div class="foto-container">
+            {{ formularioServico.get('fotoFim')?.value | json }} <!-- Adicionar log para depuração -->
+            <img *ngIf="formularioServico.get('fotoFim')?.value" [src]="formularioServico.get('fotoFim')?.value"
+              class="img-fluid rounded" alt="Foto Fim">
+            <p *ngIf="!formularioServico.get('fotoFim')?.value" class="text-muted">Nenhuma foto disponível</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Assinatura -->
+    <div class="form-section signature-container">
+      <h3 class="section-title">Assinatura do Cliente</h3>
+      <canvas #signaturePadCanvas class="signature-pad"></canvas>
+      <div class="signature-actions mt-2">
+        <button type="button" class="btn btn-secondary" (click)="limparAssinatura()">
+          Limpar Assinatura
+        </button>
+      </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="form-section">
+      <div class="row d-flex justify-content-center">
+        <div class="col-md-6 d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-primary w-100"
+            (click)="formularioService.gerarPDF(formularioServico.value, signaturePad?.toDataURL() || '')">
+            Gerar PDF
+          </button>
+          <button type="submit" class="btn btn-success w-100"
+            [disabled]="!formularioServico.valid || (signaturePad && signaturePad.isEmpty())">
+            Enviar
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

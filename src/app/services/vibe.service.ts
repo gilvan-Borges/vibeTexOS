@@ -9,7 +9,8 @@ import { ExecucaoResponseDto } from "../models/vibe-service/execucao.response.Dt
 import { ExecucaoRequestDto } from "../models/vibe-service/execucao.request.Dto";
 import { IniciarTrajetoRequestDto } from '../models/vibe-service/iniciarTrajetoRequestDto';
 import { IniciarTrajetoResponseDto } from '../models/vibe-service/iniciarTrajetoResponseDto';
-
+import { ExecucaoFimResponseDto } from "../models/vibe-service/execucao.Fim.Response.Dto";
+import { ExecucaoFimRequestDto } from "../models/vibe-service/execucao.Fim.Request.Dto";
 
 @Injectable({
     providedIn: 'root'
@@ -18,7 +19,7 @@ import { IniciarTrajetoResponseDto } from '../models/vibe-service/iniciarTrajeto
 export class VibeService {
 
     constructor(private httpClient: HttpClient) { }
-    private apiUrl = 'http://localhost:5030/api';
+    public apiUrl = 'http://localhost:5030/api';
 
     private handleError(error: HttpErrorResponse) {
         let errorMessage = 'An error occurred';
@@ -45,7 +46,7 @@ export class VibeService {
 
 
     atualizarUsuarioTecnico(empresaId: string, usuarioId: string, data: any): Observable<any> {
-        const url = `${this.apiUrl}/usuario/tecnico/${empresaId}/${usuarioId}`;
+        const url = `${this.apiUrl}/usuario/${empresaId}/${usuarioId}/atualizar-tecnico`;
         console.log('📡 Atualizando usuário técnico:', { url, data });
 
         return this.httpClient.put<any>(url, data, {
@@ -99,8 +100,8 @@ export class VibeService {
     }
 
     atualizarOrdemServico(
-        ordemDeServicoId: string,  requestData: CriarOrdemDeServicoRequestDto): Observable<any> {
-    
+        ordemDeServicoId: string, requestData: CriarOrdemDeServicoRequestDto): Observable<any> {
+
         return this.httpClient.put<any>(`${this.apiUrl}/usuario/ordem-servico/${ordemDeServicoId}`,
             requestData,
             { headers: this.getHeaders() }
@@ -124,6 +125,7 @@ export class VibeService {
         );
     }
 
+
     iniciarTrajeto(despachoId: string, usuarioId: string, request: IniciarTrajetoRequestDto): Observable<IniciarTrajetoResponseDto> {
         return this.httpClient.post<IniciarTrajetoResponseDto>(
             `${this.apiUrl}/tarefa/${despachoId}/${usuarioId}/iniciar-trajeto`,
@@ -135,8 +137,8 @@ export class VibeService {
         );
     }
 
-    finalizarTrajeto(trajetoId: string, data: any): Observable<any> {
-        return this.httpClient.post<any>(`${this.apiUrl}/tarefa/finalizar-trajeto/${trajetoId}`, data, {
+    finalizarTrajeto(trajetoId: string, usuarioId: string, data: any): Observable<any> {
+        return this.httpClient.post<any>(`${this.apiUrl}/tarefa/finalizar-trajeto/${trajetoId}/${usuarioId}`, data, {
             headers: this.getHeaders()
         }).pipe(
             catchError(this.handleError)
@@ -157,27 +159,43 @@ export class VibeService {
             );
     }
 
-    iniciarExecucaoServico(trajetoIdFinalizado: string, usuarioId: string, request: ExecucaoRequestDto): Observable<ExecucaoResponseDto> {
-        const url = `${this.apiUrl}/tarefa/iniciar-execucao-servico/${trajetoIdFinalizado}/${usuarioId}`; // Ajuste o endpoint conforme o backend
+    // Iniciar execução with FormData
+    iniciarExecucaoServico(trajetoIdFinalizado: string, usuarioId: string, request: FormData): Observable<ExecucaoResponseDto> {
+        const url = `${this.apiUrl}/tarefa/iniciar-execucao-servico/${trajetoIdFinalizado}/${usuarioId}`;
         return this.httpClient.post<ExecucaoResponseDto>(url, request, {
-            headers: this.getHeaders()
+            headers: new HttpHeaders({
+                // Não defina 'Content-Type' explicitamente, pois FormData define automaticamente multipart/form-data
+            })
         });
     }
 
-    cancelarExecucaoServico(execucaoServicoId: string, usuarioId: string, request: ExecucaoRequestDto): Observable<ExecucaoResponseDto> {
+    cancelarExecucaoServico(execucaoServicoId: string, usuarioId: string, formData: FormData): Observable<ExecucaoResponseDto> {
         const url = `${this.apiUrl}/tarefa/cancelar-execucao-servico/${execucaoServicoId}/${usuarioId}`;
 
-        return this.httpClient.post<ExecucaoResponseDto>(url, request, {
-            headers: this.getHeaders()
+        return this.httpClient.post<ExecucaoResponseDto>(url, formData, {
+            headers: new HttpHeaders({
+                // Não defina 'Content-Type' explicitamente, pois FormData define automaticamente multipart/form-data
+            })
         });
     }
 
-    finalizarExecucaoServico(execucaoServicoId: string, usuarioId: string, request: ExecucaoRequestDto): Observable<ExecucaoResponseDto> {
-        const url = `${this.apiUrl}/tarefa/finalizar-execucao-servico/${execucaoServicoId}/${usuarioId}`;
+    public finalizarExecucaoServico(execucaoId: string, usuarioId: string, data: FormData | ExecucaoFimRequestDto): Observable<ExecucaoFimResponseDto> {
+        const url = `${this.apiUrl}/tarefa/finalizar-execucao-servico/${execucaoId}/${usuarioId}`;
 
-        return this.httpClient.post<ExecucaoResponseDto>(url, request, {
-            headers: this.getHeaders()
+        // If it's FormData, send it directly
+        if (data instanceof FormData) {
+            return this.httpClient.post<ExecucaoFimResponseDto>(url, data);
+        }
+
+        // If it's ExecucaoFimRequestDto, convert to FormData
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, value);
+            }
         });
+
+        return this.httpClient.post<ExecucaoFimResponseDto>(url, formData);
     }
 
     cadastrarEmpresa(data: any): Observable<any> {
@@ -286,4 +304,38 @@ export class VibeService {
             catchError(this.handleError)
         );
     }
+
+    buscarUsuario(): Observable<any> {
+        return this.httpClient.get<any>(`${this.apiUrl}/usuario/public/tecnico`, {
+            headers: this.getHeaders()
+        }).pipe(
+            catchError(this.handleError)
+        );
+    }
+
+    buscarFotoUsuario(usuarioId: string): Observable<any> {
+        return this.httpClient.get(`${this.apiUrl}/usuario/public/tecnico/foto/${usuarioId}`, {
+            responseType: 'blob'
+        }).pipe(
+            catchError(this.handleError)
+        );
+    }
+
+    enviarFormularioServico(ordemServicoId: string, formData: FormData): Observable<any> {
+        const url = `${this.apiUrl}/tarefa/ordem-servico/${ordemServicoId}/assinatura`;
+
+        // Using new HttpHeaders without Content-Type for FormData
+        const headers = new HttpHeaders({
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        });
+
+        return this.httpClient.put<any>(url, formData, { headers }).pipe(
+            tap(response => console.log('Formulário enviado com sucesso:', response)),
+            catchError(error => {
+                console.error('Erro ao enviar formulário:', error);
+                return throwError(() => error);
+            })
+        );
+    }
+
 }

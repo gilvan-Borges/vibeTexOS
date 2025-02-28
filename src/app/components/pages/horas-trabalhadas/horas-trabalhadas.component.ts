@@ -3,9 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { UsuarioService } from '../../../services/usuario.service';
-import { Usuario } from '../dashboard/dashboard.component';
+
+
 import { environment } from '../../../../environments/environment.development';
 import { UsuarioResponseDto } from '../../../models/control-app/usuario.response.dto';
+import { Usuario } from '../../../models/control-app/usuario.model';
 
 
 @Component({

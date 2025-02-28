@@ -3,351 +3,97 @@ import { AfterViewInit, Component, NgZone, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
-import { forkJoin, Subscription } from 'rxjs';
-import { ControllAppService } from '../../../services/controllApp.service';
-import { UsuarioService } from '../../../services/usuario.service';
-import { FormGroup, FormControl, Validators } from '@angular/forms';
-import { environment } from '../../../../environments/environment.development';
+import { Observable } from 'rxjs';
 import { ServicoLocalizacao } from '../../../services/localizacao.service';
+import { VibeService } from '../../../services/vibe.service';
+import { UsuarioService } from '../../../services/usuario.service';
+import { environment } from '../../../../environments/environment.development';
+import { ControllAppService } from '../../../services/controllApp.service';
+import { RegisterRequestDto } from '../../../models/control-app/register.request,dto';
 
-
-export interface Usuario {
+export interface OrdemServico {
+  ordemDeServicoId: string;
   usuarioId: string;
-  nome: string;
-  userName: string;
-  email: string;
-  senha: string;
-  cpf: string;
-  role: string;
-  horaEntrada: string;
-  horaSaida: string;
-  horaAlmocoInicio: string;
-  horaAlmocoFim: string;
-  fotoUrl?: string;
-  isOnline: boolean;
-  latitudeAtual: string;
-  longitudeAtual: string;
-  dataHoraUltimaAutenticacao: Date;
+  clienteId: string;
+  tipoServico: string;
+  statusOrdem: string;
+  numeroOrdemDeServico: string;
+  dataHoraCadastro: string;
+  atribuida: boolean;
 }
 
 export interface DesempenhoColaborador {
+  usuarioId: string; // Add this line
+  empresa: string;
+  nome: string;
+  osAtribuidas: number;
+  osRealizadas: number;
+  osPendentes: number;
+  tempoMedio: string;
+  eficiencia: number;
+  jornada: string;
+}
+
+export interface Colaborador {
   usuarioId: string;
   nome: string;
-  fotoUrl: string; // URL da foto de perfil
-  osAtribuidas: number; // O.S. vinculadas ao usuarioId
-  osRealizadas: number; // O.S. concluídas
-  osPendentes: number; // O.S. não concluídas
-  tempoMedio: string; // Tempo médio de execução das O.S. (ex.: "1h 30m")
-  empresa: string; // Empresa que o colaborador trabalha
-  eficiencia: number; // Percentual de eficiência (0-100)
-  jornada: string; // Horário de trabalho (ex.: "8h/diárias, 9h-18h")
-  status: string; // Status do colaborador ("Online" ou "Offline")
+  empresa: string;
+  horaEntrada: string;
+  horaSaida: string;
+  latitudeAtual?: string; // Opcional, usado no mapa
+  longitudeAtual?: string; // Opcional, usado no mapa
+  dataHoraUltimaAutenticacao?: Date; // Opcional, usado no mapa
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
-    CommonModule, 
-    RouterLink,
-    FormsModule
-  ],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
   private map: any;
-  colaboradoresEmServico: any[] = [];
-  colaboradores: any[] = [];
-  totalUsersCount: number = 0;
-  activeUsersCount: number = 0;
-  totalServices: number = 0;
-  servicesInProgress: number = 0;
-  servicesCompleted: number = 0;
-  totalServicesOverall: number = 0;
-  servicesCompletedOverall: number = 0;
-  colaboradoresOnlineCount: number = 0;
-  efficiencyGeneral: number = 0;
-  percentualTrabalhado: number = 0;
-  colaboradorSelecionado: any = null; 
 
-  availableYears: number[] = [];  // Lista de anos disponíveis
-  selectedYear: number = new Date().getFullYear();  // Ano selecionado inicialmente
-
-  formulario: FormGroup;
-
-  // Métricas do dashboard (mockadas)
   periodoSelecionado: string = 'hoje';
   dataInicial: string = '';
   dataFinal: string = '';
 
-  totalOS: number = 35; // Mockado com valores da sua solicitação
-  osRealizadas: number = 28;
+  totalOS: number = 0;
+  osRealizadas: number = 0;
   osNaoAtribuidas: number = 0;
-  osNaoRealizadas: number = 7;
-  mapaFiltro: string = 'todos';
+  osNaoRealizadas: number = 0;
+  efficiencyGeneral: number = 0;
   colaboradoresDesempenho: DesempenhoColaborador[] = [];
+  colaboradores: Colaborador[] = [];
 
   constructor(
-    private controllAppService: ControllAppService,
-    private usuarioService: UsuarioService,
     private ngZone: NgZone,
-    private servicoLocalizacao: ServicoLocalizacao
-  ) {
-    this.formulario = new FormGroup({
-      nome: new FormControl('', [Validators.required, Validators.minLength(8)]),
-      userName: new FormControl('', [Validators.required, Validators.minLength(5)]),
-      cpf: new FormControl('', [Validators.required, Validators.pattern(/^\d{11}$/)]),
-      email: new FormControl('', [Validators.required, Validators.email]),
-      role: new FormControl('', [Validators.required]),
-      horaInicio: new FormControl('', [Validators.required]),
-      horaAlmocoInicio: new FormControl('', [Validators.required]),
-      horaAlmocoFim: new FormControl('', [Validators.required]),
-      horaFim: new FormControl('', [Validators.required]),
-      senha: new FormControl('', [Validators.required, Validators.minLength(6)]),
-      senhaConfirmacao: new FormControl('', [Validators.required, Validators.minLength(6)])
-    });
-  }
+    private servicoLocalizacao: ServicoLocalizacao,
+    private vibeService: VibeService,
+    private usuarioService: UsuarioService,
+    private controllAppService: ControllAppService
+  ) {}
 
   ngOnInit() {
     this.initMap();
-
-    const usuarioData = localStorage.getItem('usuario');
-    if (usuarioData) {
-      const usuario = JSON.parse(usuarioData).usuario;
-      if (usuario?.usuarioId) {
-        console.log('Atualizando status do usuário com ID:', usuario.usuarioId);
-        this.controllAppService.atualizarStatusUsuario(usuario.usuarioId, true).subscribe({
-          next: () => console.log('Status atualizado com sucesso.'),
-          error: (err) => console.error('Erro ao atualizar status do usuário:', err)
-        });
-      }
-    }
-
-    this.loadAvailableYears();
-    this.loadHorasTrabalhadas();
-    this.carregarServicosDia();
-    this.obterColaboradoresEmServico();
-    this.carregarTodosColaboradores();
-    this.carregarServicosGerais();
-
-    // Mock de dados para o desempenho detalhado (mantendo o fornecido)
-    this.colaboradoresDesempenho = [
-      {
-        usuarioId: '1',
-        nome: 'João Silva',
-        fotoUrl: 'https://gilvandev.com/img/logo_vibetex.png', // Mock de foto
-        osAtribuidas: 20,
-        osRealizadas: 18,
-        osPendentes: 2,
-        tempoMedio: '1h 30m',
-        empresa: 'VibeTex Soluções',
-        eficiencia: 90, // 90% de eficiência
-        jornada: '8h/diárias, 9h-18h',
-        status: 'Online'
-      },
-      {
-        usuarioId: '2',
-        nome: 'Maria Santos',
-        fotoUrl: 'https://gilvandev.com/img/Avatar.png', // Mock de foto
-        osAtribuidas: 15,
-        osRealizadas: 10,
-        osPendentes: 5,
-        tempoMedio: '2h 10m',
-        empresa: 'VibeTex Soluções',
-        eficiencia: 67, // 67% de eficiência
-        jornada: '8h/diárias, 9h-18h',
-        status: 'Offline'
-      }
-    ].filter(colaborador => colaborador.status === 'Online'); // Filtra apenas online
-
-    // Calcula eficiência geral com base nos mocks
-    this.efficiencyGeneral = Math.round((this.osRealizadas / this.totalOS) * 100) || 0;
+    this.carregarDados();
+    setInterval(() => {
+      this.carregarDados();
+    }, 30000);
   }
 
-  private obterColaboradoresEmServico(): void {
-    this.controllAppService.PontoGetAll().subscribe({
-      next: (response) => {
-        if (!response || !Array.isArray(response)) {
-          this.colaboradoresEmServico = [];
-          return;
-        }
-
-        const hoje = new Date().toISOString().split('T')[0];
-        const pontosFiltrados = response.filter((ponto) => {
-          const dataExpediente = ponto.inicioExpediente ? new Date(ponto.inicioExpediente).toISOString().split('T')[0] : null;
-          return dataExpediente === hoje && !ponto.fimExpediente && ponto.usuarioId;
-        });
-
-        if (pontosFiltrados.length === 0) {
-          this.colaboradoresEmServico = [];
-          return;
-        }
-
-        const requisicoesUsuarios = pontosFiltrados.map((ponto) =>
-          this.controllAppService.usuarioGetById(ponto.usuarioId)
-        );
-
-        forkJoin(requisicoesUsuarios).subscribe({
-          next: (usuarios) => {
-            console.log('Usuários obtidos:', usuarios);
-            
-            this.colaboradoresEmServico = pontosFiltrados.map((ponto, index) => {
-              const usuario = usuarios[index];
-              console.log('Processando usuário:', usuario);
-              console.log('Foto original do usuário:', usuario?.fotoUrl);
-              
-              const fotoUrlCompleta = usuario?.fotoUrl ? 
-                `${environment.mediaUrl}/${usuario.fotoUrl.split('/').pop()}` : 
-                "https://via.placeholder.com/40x40";
-              console.log('Foto URL completa:', fotoUrlCompleta);
-              
-              const colaborador = {
-                usuarioId: usuario?.usuarioId || null,
-                nome: usuario?.nome || "Nome não encontrado",
-                fotoUrl: fotoUrlCompleta,
-                inicioExpediente: this.formatarHora(ponto.inicioExpediente),
-                inicioPausa: this.formatarHora(ponto.inicioPausa),
-                retornoPausa: this.formatarHora(ponto.retornoPausa),
-                fimExpediente: this.formatarHora(ponto.fimExpediente, true),
-                status: usuario?.isOnline ? "Online" : "Offline",
-                endereco: "Buscando...",
-                latitude: usuario?.latitudeAtual,
-                longitude: usuario?.longitudeAtual
-              };
-
-              // Buscar endereço se tiver coordenadas usando ServicoLocalizacao
-              if (usuario?.latitudeAtual && usuario?.longitudeAtual) {
-                this.servicoLocalizacao.getEndereco(usuario.latitudeAtual, usuario.longitudeAtual).subscribe({
-                  next: (endereco) => {
-                    this.ngZone.run(() => {
-                      const index = this.colaboradoresEmServico.findIndex(c => c.usuarioId === colaborador.usuarioId);
-                      if (index !== -1) {
-                        this.colaboradoresEmServico[index].endereco = endereco;
-                      }
-                    });
-                  },
-                  error: (err) => {
-                    console.error('Erro ao buscar endereço:', err);
-                    colaborador.endereco = 'Erro ao buscar endereço';
-                  }
-                });
-              } else {
-                colaborador.endereco = 'Coordenadas não disponíveis';
-              }
-
-              return colaborador;
-            });
-          },
-          error: (err) => {
-            console.error('Erro ao obter usuários:', err);
-            this.colaboradoresEmServico = [];
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Erro ao obter pontos:', err);
-        this.colaboradoresEmServico = [];
+  ngAfterViewInit(): void {
+    this.initMap();
+    setTimeout(() => {
+      if (this.map) {
+        this.carregarColaboradoresOnlineNoMapa();
       }
-    });
+    }, 1000);
   }
 
-  formatarHora(data: string | null, isFim: boolean = false): string {
-    if (!data) {
-      return isFim ? 'Em andamento' : 'Não disponível';
-    }
-
-    const date = new Date(data);
-    if (isNaN(date.getTime())) {
-      return isFim ? 'Em andamento' : 'Não disponível';
-    }
-
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  // Atualiza o gráfico ao mudar o ano no dropdown
-  onYearChange(event: any) {
-    this.selectedYear = parseInt(event.target.value, 10);
-  }
-
-  private carregarColaboradoresOnlineNoMapa(): void {
-    this.usuarioService.usuarioGetAll({ role: 'Colaborador' }).subscribe({
-      next: (usuarios: Usuario[]) => {
-        const colaboradoresOnline = usuarios.filter(u =>
-          u.isOnline &&
-          u.role === 'Colaborador' &&
-          u.latitudeAtual &&
-          u.longitudeAtual
-        );
-        this.processarColaboradoresOnline(colaboradoresOnline);
-      },
-      error: (error) => {
-        console.error('Erro ao carregar colaboradores:', error);
-      }
-    });
-  }
-
-  private processarColaboradoresOnline(colaboradoresOnline: Usuario[]): void {
-    console.log('Colaboradores online recebidos:', colaboradoresOnline);
-    this.map.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker) {
-        this.map.removeLayer(layer);
-      }
-    });
-  
-    colaboradoresOnline.forEach(colaborador => {
-      console.log('Coordenadas do colaborador:', {
-        latitude: colaborador.latitudeAtual,
-        longitude: colaborador.longitudeAtual
-      });
-      const lat = parseFloat(colaborador.latitudeAtual);
-      const lng = parseFloat(colaborador.longitudeAtual);
-  
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const customIcon = L.icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34]
-        });
-  
-        let dataLogin = '-';
-        if (colaborador.dataHoraUltimaAutenticacao) {
-          const data = new Date(colaborador.dataHoraUltimaAutenticacao);
-          if (!isNaN(data.getTime())) {
-            dataLogin = data.toLocaleString('pt-BR', {
-              dateStyle: 'short',
-              timeStyle: 'short'
-            });
-          }
-        }
-  
-        L.marker([lat, lng], { icon: customIcon })
-          .addTo(this.map)
-          .bindPopup(
-            `<strong>Colaborador</strong><br>
-            Nome: ${colaborador.nome}<br>
-            Último login: ${dataLogin}`
-          );
-      }
-    });
-  
-    if (colaboradoresOnline.length > 0) {
-      const bounds = L.latLngBounds(
-        colaboradoresOnline.map(c => [parseFloat(c.latitudeAtual), parseFloat(c.longitudeAtual)])
-      );
-      this.map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  
-    this.colaboradoresOnlineCount = colaboradoresOnline.length;
-  }
-
-  // Inicializa o mapa
   private initMap(): void {
-    if (this.map) {
-      return;  // Evita inicialização duplicada
-    }
+    if (this.map) return;
 
     this.map = L.map('map', {
       center: [-22.6378335427398, -43.041989248970395],
@@ -361,485 +107,358 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     this.map.whenReady(() => {
       console.log('Mapa inicializado com sucesso.');
-      this.carregarColaboradoresOnlineNoMapa();  // Adiciona os primeiros marcadores
+      this.carregarColaboradoresOnlineNoMapa();
     });
   }
 
-  private atualizarMapa(): void {
-    if (!this.map) {
-      console.warn('Mapa não está inicializado.');
-      return;
-    }
-
-    console.log("🌍 Atualizando mapa com os seguintes dados:");
-    console.log("📍 Colaboradores em serviço:", this.colaboradoresEmServico);
-
-    try {
-      // Remove os marcadores existentes
-      this.map.eachLayer((layer: any) => {
-        if (layer instanceof L.Marker) {
-          this.map.removeLayer(layer);
-        }
-      });
-
-      // Verifica se já existe algum TileLayer
-      let hasTileLayer = false;
-      this.map.eachLayer((layer: any) => {
-        if (layer instanceof L.TileLayer) {
-          hasTileLayer = true;
-        }
-      });
-
-      if (!hasTileLayer) {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '© OpenStreetMap'
-        }).addTo(this.map);
+  private carregarColaboradoresOnlineNoMapa(): void {
+    this.controllAppService.usuarioGetAll({} as RegisterRequestDto).subscribe({
+      next: (response: any[]) => {
+        const colaboradores = response.map(colab => ({
+          usuarioId: colab.usuarioId,
+          nome: colab.nome,
+          empresa: colab.empresa || 'N/A',
+          horaEntrada: colab.horaEntrada || '00:00',
+          horaSaida: colab.horaSaida || '00:00',
+          latitudeAtual: colab.latitudeAtual,
+          longitudeAtual: colab.longitudeAtual,
+          dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined
+        } as Colaborador));
+        const colaboradoresOnline = colaboradores.filter(u =>
+          u.latitudeAtual && u.longitudeAtual
+        );
+        this.processarColaboradoresOnline(colaboradoresOnline);
+      },
+      error: (error) => {
+        console.error('Erro ao carregar colaboradores:', error);
       }
-
-      // Adiciona novos marcadores
-      this.colaboradoresEmServico.forEach(colaborador => {
-        if (colaborador.latitude && colaborador.longitude) {
-          const lat = parseFloat(colaborador.latitude);
-          const lng = parseFloat(colaborador.longitude);
-
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const customIcon = L.icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-              iconSize: [25, 41],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34]
-            });
-
-            L.marker([lat, lng])
-              .addTo(this.map)
-              .bindPopup(
-                `<strong>Colaborador</strong><br>
-                    Nome: ${colaborador.nomeUsuario}<br>
-                    Hora de Login: ${colaborador.dataHoraUltimaAutenticacao}<br>
-                    `
-              );
-          }
-        }
-      });
-
-      console.log('Mapa atualizado com sucesso');
-    } catch (error) {
-      console.error('Erro ao atualizar mapa:', error);
-    }
+    });
   }
 
-  // Carrega os anos disponíveis dinamicamente
-  private loadAvailableYears() {
-    const usuarioData = localStorage.getItem('usuario');
-    const usuarioId = usuarioData ? JSON.parse(usuarioData).usuario?.usuarioId : null;
-    
-    if (!usuarioId) {
-      console.error('ID do usuário não encontrado no localStorage');
-      return;
-    }
-  
-    this.controllAppService.getHorasTrabalhadas(usuarioId).subscribe({
-      next: (horas) => {
-        if (!horas || !Array.isArray(horas)) {
-          console.warn('Dados inválidos retornados pela API.');
-          return;
-        }
+  private processarColaboradoresOnline(colaboradoresOnline: Colaborador[]): void {
+    this.map.eachLayer((layer: any) => {
+      if (layer instanceof L.Marker) {
+        this.map.removeLayer(layer);
+      }
+    });
 
-        const yearsSet = new Set<number>();
+    colaboradoresOnline.forEach(colaborador => {
+      const lat = parseFloat(colaborador.latitudeAtual!);
+      const lng = parseFloat(colaborador.longitudeAtual!);
 
-        horas.forEach((h) => {
-          if (h.data && typeof h.data === 'string') {
-            const dataFormatada = this.converterTimeSpanParaData(h.data);
-            if (dataFormatada) {
-              const ano = new Date(dataFormatada).getFullYear();
-              yearsSet.add(ano);
-            } else {
-              console.warn('Data inválida no registro:', h);
-            }
-          }
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const customIcon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34]
         });
 
-        this.availableYears = Array.from(yearsSet).sort();
-      },
-      error: (err) => {
-        console.error('Erro ao carregar anos disponíveis:', err);
-      }
-    });
-  }
-
-  /**
-   * Função para converter TimeSpan (HH:mm:ss ou dias:HH:mm:ss) em uma data válida.
-   */
-  private converterTimeSpanParaData(timeSpan: string): string | null {
-    try {
-      // Assume que o TimeSpan vem no formato HH:mm:ss ou d.HH:mm:ss
-      const timeParts = timeSpan.split(':');
-
-      // Se for d.HH:mm:ss (dias incluídos), trate isso
-      if (timeParts.length === 3 || timeParts.length === 4) {
-        let dias = 0, horas = 0, minutos = 0, segundos = 0;
-
-        if (timeParts.length === 4) {
-          dias = parseInt(timeParts[0], 10);
-          horas = parseInt(timeParts[1], 10);
-          minutos = parseInt(timeParts[2], 10);
-          segundos = parseInt(timeParts[3], 10);
-        } else {
-          horas = parseInt(timeParts[0], 10);
-          minutos = parseInt(timeParts[1], 10);
-          segundos = parseInt(timeParts[2], 10);
+        let dataLogin = '-';
+        if (colaborador.dataHoraUltimaAutenticacao) {
+          const data = new Date(colaborador.dataHoraUltimaAutenticacao);
+          if (!isNaN(data.getTime())) {
+            dataLogin = data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+          }
         }
 
-        // Data base: hoje ou uma data fixa (por exemplo, 1970-01-01)
-        const dataBase = new Date();
-        dataBase.setHours(horas);
-        dataBase.setMinutes(minutos);
-        dataBase.setSeconds(segundos);
-        dataBase.setDate(dataBase.getDate() + dias);  // Adiciona dias se aplicável
-
-        // Formata para o padrão yyyy-MM-dd
-        return dataBase.toISOString().split('T')[0];
+        L.marker([lat, lng], { icon: customIcon })
+          .addTo(this.map)
+          .bindPopup(
+            `<strong>Colaborador</strong><br>
+            Nome: ${colaborador.nome}<br>
+            Último login: ${dataLogin}`
+          );
       }
+    });
 
-      return null;
-    } catch (error) {
-      console.error('Erro ao converter TimeSpan:', error);
-      return null;
+    if (colaboradoresOnline.length > 0) {
+      // Garantir que o array passado para L.latLngBounds seja um array de LatLngTuple ([number, number][])
+      const boundsCoordinates: [number, number][] = colaboradoresOnline
+        .map(c => {
+          const lat = parseFloat(c.latitudeAtual!);
+          const lng = parseFloat(c.longitudeAtual!);
+          return !isNaN(lat) && !isNaN(lng) ? [lat, lng] as [number, number] : null;
+        })
+        .filter((coord): coord is [number, number] => coord !== null);
+
+      if (boundsCoordinates.length > 0) {
+        const bounds = L.latLngBounds(boundsCoordinates);
+        this.map.fitBounds(bounds, { padding: [50, 50] });
+      }
     }
   }
-  
-  private formatarData(data: any): string {
-    if (!data) return '-';
 
-    // Se data for uma string válida, converta para Date
-    const date = typeof data === 'string' ? new Date(data) : data;
-
-    // Se não for uma data válida, retorna um valor padrão
-    if (isNaN(date.getTime())) {
-      return '-';
-    }
-
-    // Formata no estilo brasileiro
-    return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  private carregarDados() {
+    this.carregarMetricasPorPeriodo();
+    this.carregarColaboradoresAtivos(); // Nova função separada
   }
 
-  // Carrega os dados de horas trabalhadas
-  private loadHorasTrabalhadas() {
-    const usuarioData = localStorage.getItem('usuario');
-    const usuarioId = usuarioData ? JSON.parse(usuarioData).usuario?.usuarioId : null;
-    
-    if (!usuarioId) {
-      console.error('ID do usuário não encontrado no localStorage');
-      return;
-    }
-  
-    this.controllAppService.getHorasTrabalhadas(usuarioId).subscribe({
-      next: (horas) => {
-        if (!horas || !Array.isArray(horas)) {
-          console.error('Erro: Os dados retornados não são válidos.');
+  private carregarMetricasPorPeriodo() {
+    console.log('🔄 Iniciando carregamento de métricas por período...');
+
+    this.vibeService.buscarOrdemServico().subscribe({
+      next: (ordens: OrdemServico[]) => {
+        if (!ordens || ordens.length === 0) {
+          this.resetarMetricas();
           return;
         }
 
-        // Apenas executa o código se os dados forem válidos
-        this.totalServicesOverall = horas.length;
-        this.servicesCompletedOverall = horas.filter(s => s.fim).length;
+        const ordensFiltradas = this.filtrarOrdensPorPeriodo(ordens);
+        this.atualizarMetricasGerais(ordensFiltradas);
       },
-      error: (err) => {
-        console.error('Erro ao carregar horas trabalhadas:', err);
-      }
+      error: (err) => console.error('❌ Erro ao carregar ordens:', err)
     });
   }
 
-  // Prepara os dados para o gráfico no formato necessário
-  private prepareSeriesData(monthlyData: { [month: number]: { [extraHours: number]: number } }) {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  private carregarColaboradoresAtivos() {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
-    return Object.keys(monthlyData).map(month => {
-      const monthData = monthlyData[parseInt(month, 10)];
+    this.usuarioService.usuarioGetAll({ role: 'Colaborador' }).subscribe({
+      next: (colaboradores: any[]) => {
+        if (!colaboradores || colaboradores.length === 0) {
+          this.colaboradoresDesempenho = [];
+          this.colaboradores = [];
+          return;
+        }
+
+        // Filtra apenas colaboradores online e ativos hoje
+        this.colaboradores = colaboradores
+          .filter(colab => 
+            colab.role === 'Colaborador' && 
+            colab.isOnline === true
+          )
+          .map(colab => ({
+            usuarioId: colab.usuarioId,
+            nome: colab.nome,
+            empresa: colab.empresa || 'VibeTex Soluções',
+            horaEntrada: colab.horaEntrada || '08:00',
+            horaSaida: colab.horaSaida || '18:00',
+            latitudeAtual: colab.latitudeAtual || '',
+            longitudeAtual: colab.longitudeAtual || '',
+            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? 
+              new Date(colab.dataHoraUltimaAutenticacao) : undefined
+          }));
+
+        // Busca as ordens de serviço apenas do dia atual
+        this.vibeService.buscarOrdemServico().subscribe({
+          next: (ordens: OrdemServico[]) => {
+            const ordensHoje = ordens.filter(ordem => {
+              const dataOrdem = new Date(ordem.dataHoraCadastro);
+              return dataOrdem >= hoje;
+            });
+
+            this.atualizarDesempenhoColaboradores(this.colaboradores, ordensHoje);
+          },
+          error: (err) => console.error('Erro ao carregar ordens do dia:', err)
+        });
+      },
+      error: (err) => console.error('Erro ao carregar colaboradores:', err)
+    });
+  }
+
+  private atualizarDesempenhoColaboradores(colaboradores: Colaborador[], ordens: OrdemServico[]) {
+    this.colaboradoresDesempenho = colaboradores.map(colaborador => {
+      const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
+      const ordensFinalizadas = ordensDoColaborador.filter(o => 
+        ['concluído', 'concluida', 'concluido', 'finalizada', 'finalizado']
+          .includes(o.statusOrdem?.toLowerCase().trim() || '')
+      );
+
       return {
-        name: monthNames[parseInt(month, 10)],
-        data: Object.keys(monthData).map(extraHours => ({
-          name: `${extraHours}h`,
-          y: monthData[parseInt(extraHours, 10)]
-        }))
+        usuarioId: colaborador.usuarioId,
+        empresa: colaborador.empresa,
+        nome: colaborador.nome,
+        osAtribuidas: ordensDoColaborador.length,
+        osRealizadas: ordensFinalizadas.length,
+        osPendentes: ordensDoColaborador.length - ordensFinalizadas.length,
+        tempoMedio: this.calcularTempoMedio(ordensFinalizadas),
+        eficiencia: ordensDoColaborador.length ? 
+          Math.round((ordensFinalizadas.length / ordensDoColaborador.length) * 100) : 0,
+        jornada: `${this.calcularPercentualJornada()}%`
       };
     });
   }
 
-  carregarTodosColaboradores(): void {
-    this.usuarioService.carregarTodosColaboradores().subscribe({
-      next: (colaboradores) => {
-        console.log('Dados brutos dos colaboradores:', colaboradores);
-        console.log('URL base da API:', environment.controllApp);
-        
-        this.colaboradores = colaboradores.map(colaborador => {
-          const fotoUrlCompleta = colaborador.fotoUrl ? 
-            `${environment.mediaUrl}/${colaborador.fotoUrl.split('/').pop()}` : 
-            'https://via.placeholder.com/40x40';
-          console.log('Foto original:', colaborador.fotoUrl);
-          console.log('Foto URL completa:', fotoUrlCompleta);
-          
-          return {
-            ...colaborador,
-            fotoUrl: fotoUrlCompleta
-          };
-        });
-        
-        console.log('Colaboradores processados:', this.colaboradores);
-        this.colaboradoresOnlineCount = colaboradores.filter(colab => colab.status === 'Online').length;
-      },
-      error: (err) => {
-        console.error('Erro ao carregar colaboradores:', err);
-      }
+  private resetarMetricas() {
+    this.totalOS = 0;
+    this.osRealizadas = 0;
+    this.osNaoAtribuidas = 0;
+    this.osNaoRealizadas = 0;
+    this.efficiencyGeneral = 0;
+  }
+
+  private atualizarMetricasGerais(ordens: OrdemServico[]) {
+    this.totalOS = ordens.length;
+    
+    // Realizadas: check for all possible concluded status variations
+    this.osRealizadas = ordens.filter(o => {
+      const status = o.statusOrdem?.toLowerCase().trim() || '';
+      return ['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada']
+        .includes(status);
+    }).length;
+    
+    // Não Atribuídas: contar apenas ordens onde atribuida === false
+    this.osNaoAtribuidas = ordens.filter(o => o.atribuida === false).length;
+    
+    // Não Realizadas: check for all possible canceled status variations
+    this.osNaoRealizadas = ordens.filter(o => {
+      const status = o.statusOrdem?.toLowerCase().trim() || '';
+      return ['cancelado', 'cancelada'].includes(status);
+    }).length;
+    
+    this.efficiencyGeneral = this.totalOS > 0 ? 
+      Math.round((this.osRealizadas / this.totalOS) * 100) : 0;
+
+    // Debug logging
+    console.log('📊 Métricas atualizadas:', {
+      total: this.totalOS,
+      naoAtribuidas: this.osNaoAtribuidas,
+      realizadas: this.osRealizadas,
+      naoRealizadas: this.osNaoRealizadas,
+      eficiencia: this.efficiencyGeneral
     });
   }
 
-  // Função para contar os usuários
-  contarUsuarios(usuarios: any[]): number {
-    if (!usuarios || !Array.isArray(usuarios)) {
-      console.warn('Lista de usuários inválida ou vazia.');
-      return 0;
-    }
-
-    return usuarios.length;
-  }
-
-  private carregarServicosDia() {
-    const dataAtual = new Date().toISOString().split('T')[0]; // Data no formato: YYYY-MM-DD
-
-    this.controllAppService.PontoGetAll().subscribe({
-      next: (servicos) => {
-        if (!servicos || !Array.isArray(servicos)) {
-          console.warn('Nenhum serviço encontrado.');
+  private buscarDadosColaboradores(ordens: OrdemServico[]) {
+    this.usuarioService.usuarioGetAll({ role: 'Colaborador' }).subscribe({
+      next: (colaboradores: any[]) => {
+        if (!colaboradores || colaboradores.length === 0) {
+          console.warn('Nenhum colaborador encontrado');
+          this.colaboradoresDesempenho = [];
+          this.colaboradores = [];
           return;
         }
 
-        // Corrige e filtra os serviços com base na data atual
-        const servicosDoDia = servicos.filter(servico => {
-          if (!servico.inicioExpediente || isNaN(new Date(servico.inicioExpediente).getTime())) {
-            console.warn('Data inválida em:', servico);
-            return false;
-          }
-          return new Date(servico.inicioExpediente).toISOString().split('T')[0] === dataAtual;
-        });
+        this.colaboradores = colaboradores
+          .filter(colab => colab.role === 'Colaborador')
+          .map(colab => ({
+            usuarioId: colab.usuarioId,
+            nome: colab.nome,
+            empresa: colab.empresa || 'VibeTex Soluções',
+            horaEntrada: colab.horaEntrada || '08:00',
+            horaSaida: colab.horaSaida || '18:00',
+            latitudeAtual: colab.latitudeAtual || '',
+            longitudeAtual: colab.longitudeAtual || '',
+            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined
+          }));
 
-        // Atualiza os contadores (mantém os mocks, mas respeita a API se houver dados)
-        this.totalServices = servicosDoDia.length;
-        this.servicesInProgress = servicosDoDia.filter(s => !s.fimExpediente).length;
-        this.servicesCompleted = servicosDoDia.filter(s => s.fimExpediente).length;
+        this.colaboradoresDesempenho = this.colaboradores.map(colaborador => {
+          const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
+          const ordensFinalizadas = ordensDoColaborador.filter(o => 
+            ['concluída', 'concluida', 'Concluído', 'finalizada', 'finalizado']
+              .includes(o.statusOrdem?.toLowerCase().trim() || '')
+          );
 
-        console.log('Serviços do dia carregados:', servicosDoDia);
-      },
-      error: (err) => {
-        console.error('Erro ao carregar serviços do dia:', err);
-      }
-    });
-  }
-
-  private carregarServicosGerais(): void {
-    this.controllAppService.PontoGetAll().subscribe({
-      next: (pontos) => {
-        this.totalServicesOverall = pontos.length;
-        this.servicesCompletedOverall = pontos.filter(ponto => ponto.fimExpediente).length;
-
-        // Calcular eficiência geral (mantém o mock se não houver API)
-        this.calcularEficienciaGeral();
-      },
-      error: (err) => {
-        console.error('Erro ao carregar serviços gerais:', err);
-      }
-    });
-  }
-
-  private calcularEficienciaGeral(): void {
-    if (this.totalServicesOverall === 0) {
-      this.efficiencyGeneral = 0;
-    } else {
-      this.efficiencyGeneral = Math.round((this.servicesCompletedOverall / this.totalServicesOverall) * 100);
-    }
-  }
-
-  getProgressBarClass(percentual: number): string {
-    if (percentual <= 30) {
-      return 'progress-0-30';
-    } else if (percentual <= 60) {
-      return 'progress-31-60';
-    } else {
-      return 'progress-61-100';
-    }
-  }
-
-  private atualizarProgresso(): void {
-    this.colaboradoresEmServico.forEach((colaborador) => {
-      colaborador.percentualTrabalhado = this.calcularPercentualTrabalhado(colaborador.inicioExpediente);
-    });
-  }
-
-  public calcularPercentualTrabalhado(horaInicio: string): number {
-    if (!horaInicio) return 0;
-
-    const inicio = new Date(`${new Date().toLocaleDateString('pt-BR').split('/').reverse().join('-')}T${horaInicio}`);
-    const agora = new Date();
-    const horasDecorridas = (agora.getTime() - inicio.getTime()) / (1000 * 60 * 60);
-
-    return Math.min(100, parseFloat(((horasDecorridas / 8) * 100).toFixed(2)));
-  }
-
-  public formatarPercentual(percentual: number): string {
-    return percentual.toFixed(2).replace('.', ',') + '%';
-  }
-
-  abrirModalExclusao(colaborador: any): void {
-    this.colaboradorSelecionado = colaborador;
-    console.log("📌 Modal de exclusão aberto para:", colaborador);
-  }
-  
-  fecharModalExclusao(): void {
-    this.colaboradorSelecionado = null;
-    console.log("❌ Modal de exclusão fechado.");
-  }
-  
-  excluirColaborador(): void {
-    if (!this.colaboradorSelecionado) {
-      console.warn('⚠️ Nenhum colaborador selecionado para exclusão.');
-      return;
-    }
-  
-    const usuarioId = this.colaboradorSelecionado.usuarioId || this.colaboradorSelecionado.id;
-    if (!usuarioId) {
-      console.error("❌ ID do colaborador está indefinido!");
-      alert("Erro ao excluir: ID do colaborador não encontrado.");
-      return;
-    }
-  
-    console.log(`🗑️ Tentando excluir colaborador ID: ${usuarioId}`);
-  
-    this.controllAppService.deleteById(usuarioId).subscribe({
-      next: () => {
-        console.log(`✅ Colaborador ${this.colaboradorSelecionado.nome} excluído com sucesso.`);
-  
-        this.colaboradores = this.colaboradores.filter(c => c.usuarioId !== usuarioId && c.id !== usuarioId);
-        this.colaboradorSelecionado = null;
-  
-        setTimeout(() => {
-          this.carregarTodosColaboradores();
-        }, 500);
-      },
-      error: (err) => {
-        console.error('❌ Erro ao excluir colaborador:', err);
-  
-        let errorMessage = 'Erro inesperado ao excluir colaborador.';
-        if (err.status === 403) {
-          errorMessage = '🚫 Permissão negada para excluir este colaborador.';
-        } else if (err.status === 404) {
-          errorMessage = '⚠️ Colaborador não encontrado.';
-        } else if (err.status === 500) {
-          errorMessage = '⚠️ Erro interno do servidor.';
-        }
-  
-        alert(errorMessage);
-      }
-    });
-  }
-  
-  confirmarExclusao(colaborador: any): void {
-    this.abrirModalExclusao(colaborador);
-  }
-
-  private calcularDataInicial(periodo: string): Date {
-    const hoje = new Date();
-    switch (periodo) {
-      case 'hoje':
-        return new Date(hoje.setHours(0, 0, 0, 0));
-      case 'semana':
-        return new Date(hoje.setDate(hoje.getDate() - 7));
-      case 'mes':
-        return new Date(hoje.setMonth(hoje.getMonth() - 1));
-      case 'ano':
-        return new Date(hoje.setFullYear(hoje.getFullYear() - 1));
-      default:
-        return new Date(hoje.setHours(0, 0, 0, 0));
-    }
-  }
-
-  // Desabilitar temporariamente para evitar resetar os mocks
-  atualizarDados() {
-    // Manter os valores mockados, ignorando chamadas à API por enquanto
-    /*
-    const dataInicial = this.periodoSelecionado === 'custom' ? new Date(this.dataInicial) : 
-                       this.calcularDataInicial(this.periodoSelecionado);
-    const dataFinal = this.periodoSelecionado === 'custom' ? new Date(this.dataFinal) : new Date();
-
-    this.ordemServicoService.getOrdensPorPeriodo(dataInicial, dataFinal).subscribe(ordens => {
-      this.totalOS = ordens.length;
-      this.osRealizadas = ordens.filter(o => o.status === 'Concluída').length;
-      this.osNaoAtribuidas = ordens.filter(o => !o.tecnicoId).length;
-      this.osNaoRealizadas = ordens.filter(o => o.status === 'Cancelada').length;
-
-      this.controllAppService.usuarioGetAll({ role: 'Colaborador' }).subscribe(tecnicos => {
-        this.colaboradoresDesempenho = tecnicos.map(tecnico => {
-          const ordensDoTecnico = ordens.filter(o => o.tecnicoId === tecnico.usuarioId);
-          const ordensFinalizadas = ordensDoTecnico.filter(o => o.status === 'Concluída');
-
-          const tempoMedio = ordensFinalizadas.reduce((acc, ordem) => {
-            return acc + (ordem.tempoReal || 0);
-          }, 0) / (ordensFinalizadas.length || 1);
-
-          const eficiencia = ordensDoTecnico.length ? 
-            (ordensFinalizadas.length / ordensDoTecnico.length) * 100 : 0;
+          const tempoMedio = this.calcularTempoMedio(ordensFinalizadas);
+          const osAtribuidas = ordensDoColaborador.length;
+          const osRealizadas = ordensFinalizadas.length;
+          const osPendentes = osAtribuidas - osRealizadas;
+          const eficiencia = osAtribuidas ? Math.round((osRealizadas / osAtribuidas) * 100) : 0;
+          const jornada = this.calcularPercentualJornada();
 
           return {
-            usuarioId: tecnico.usuarioId,
-            nome: tecnico.nome,
-            fotoUrl: tecnico.fotoUrl || 'assets/default-user.png',
-            osAtribuidas: ordensDoTecnico.length,
-            osRealizadas: ordensFinalizadas.length,
-            osPendentes: ordensDoTecnico.length - ordensFinalizadas.length,
-            tempoMedio: `${Math.round(tempoMedio)} min`,
-            empresa: 'VibeTex Soluções',
-            eficiencia: Math.round(eficiencia),
-            jornada: '8h/diárias, 9h-18h',
-            status: this.calcularStatusColaborador(tecnico)
+            usuarioId: colaborador.usuarioId, // Add this line
+            empresa: colaborador.empresa,
+            nome: colaborador.nome,
+            osAtribuidas,
+            osRealizadas,
+            osPendentes,
+            tempoMedio,
+            eficiencia,
+            jornada: `${jornada}%`
           };
-        }).filter(colaborador => colaborador.status === 'Online'); // Filtra apenas online
-      });
+        });
+
+        console.log('Desempenho dos colaboradores:', this.colaboradoresDesempenho);
+      },
+      error: (err) => console.error('Erro ao carregar colaboradores:', err)
     });
-    */
   }
 
-  private calcularStatusColaborador(colaborador: any): string {
-    if (colaborador.isOnline) {
-      const ultimaAtividade = new Date(colaborador.dataHoraUltimaAutenticacao);
-      const agora = new Date();
-      const diferencaMinutos = (agora.getTime() - ultimaAtividade.getTime()) / (1000 * 60);
+  private calcularTempoMedio(ordens: OrdemServico[]): string {
+    if (!ordens.length) return '0h 0m';
 
-      if (diferencaMinutos < 30) return 'Online';
-      if (diferencaMinutos < 60) return 'Busy';
+    const tempoTotalMs = ordens.reduce((acc, ordem) => {
+      const inicio = new Date(ordem.dataHoraCadastro).getTime();
+      const fim = ordem.statusOrdem?.toLowerCase() === 'concluída' ? new Date().getTime() : inicio;
+      return acc + (fim - inicio);
+    }, 0);
+
+    const tempoMedioMs = tempoTotalMs / ordens.length;
+    const horas = Math.floor(tempoMedioMs / (1000 * 60 * 60));
+    const minutos = Math.floor((tempoMedioMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${horas}h ${minutos}m`;
+  }
+
+  private calcularPercentualJornada(): number {
+    const horaInicio = new Date();
+    horaInicio.setHours(8, 0, 0, 0); // Início do expediente comercial: 08:00
+    const horaFim = new Date();
+    horaFim.setHours(18, 0, 0, 0); // Fim do expediente comercial: 18:00
+
+    const agora = new Date();
+    if (agora < horaInicio) return 0;
+    if (agora > horaFim) return 100;
+
+    const totalExpedienteMs = horaFim.getTime() - horaInicio.getTime();
+    const tempoDecorridoMs = agora.getTime() - horaInicio.getTime();
+    const percentual = (tempoDecorridoMs / totalExpedienteMs) * 100;
+
+    return Math.round(percentual);
+  }
+
+  private filtrarOrdensPorPeriodo(ordens: OrdemServico[]): OrdemServico[] {
+    if (!ordens || !Array.isArray(ordens)) {
+      console.warn('Lista de ordens inválida');
+      return [];
     }
-    return 'Offline';
+
+    const hoje = new Date();
+    let dataInicial: Date;
+    let dataFinal: Date;
+
+    switch (this.periodoSelecionado) {
+      case 'hoje':
+        dataInicial = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
+        dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+        break;
+      case 'semana':
+        dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+        dataInicial = new Date(dataFinal);
+        dataInicial.setDate(dataInicial.getDate() - 7);
+        break;
+      case 'mes':
+        dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+        dataInicial = new Date(dataFinal);
+        dataInicial.setMonth(dataInicial.getMonth() - 1);
+        break;
+      case 'custom':
+        if (this.dataInicial && this.dataFinal) {
+          dataInicial = new Date(this.dataInicial);
+          dataFinal = new Date(this.dataFinal);
+          dataFinal.setHours(23, 59, 59);
+        } else {
+          return ordens;
+        }
+        break;
+      default:
+        return ordens;
+    }
+
+    console.log('Filtrando ordens:', { dataInicial, dataFinal });
+
+    return ordens.filter(ordem => {
+      const dataOrdem = new Date(ordem.dataHoraCadastro);
+      return dataOrdem >= dataInicial && dataOrdem <= dataFinal;
+    });
   }
 
-  ngAfterViewInit(): void {
-    this.initMap();
-  
-    // Aguarda o mapa estar inicializado e carrega os colaboradores online
-    setTimeout(() => {
-      if (this.map) {
-        this.carregarColaboradoresOnlineNoMapa();
-        
-        // Inicia atualização periódica (a cada 30 segundos, como já está)
-        setInterval(() => {
-          if (this.map) {
-            this.carregarColaboradoresOnlineNoMapa();
-          }
-        }, 30000);
-      }
-    }, 1000);
-  }
-
-  ngOnDestroy(): void {
-    // Não há necessidade de parar atualizações automáticas aqui, pois não enviamos para a API
+  atualizarDados() {
+    console.log('Atualizando dados para período:', this.periodoSelecionado);
+    this.carregarDados();
   }
 }
