@@ -2,15 +2,14 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http
 import { Injectable } from "@angular/core";
 import { Observable, throwError } from "rxjs";
 import { catchError, map, tap } from "rxjs/operators";
-import { DespachoResponseDto } from "../models/vibe-service/despacho.response.dto";
 import { CriarOrdemDeServicoRequestDto } from "../models/vibe-service/criarOrdemDeServicoRequestDto";
 import { CriarOrdemDeServicoResponseDto } from "../models/vibe-service/criarOrdemDeServicoResponseDto";
 import { ExecucaoResponseDto } from "../models/vibe-service/execucao.response.Dto";
-import { ExecucaoRequestDto } from "../models/vibe-service/execucao.request.Dto";
 import { IniciarTrajetoRequestDto } from '../models/vibe-service/iniciarTrajetoRequestDto';
 import { IniciarTrajetoResponseDto } from '../models/vibe-service/iniciarTrajetoResponseDto';
 import { ExecucaoFimResponseDto } from "../models/vibe-service/execucao.Fim.Response.Dto";
 import { ExecucaoFimRequestDto } from "../models/vibe-service/execucao.Fim.Request.Dto";
+import { RegisterRoteirizadorRequestDto, RegisterRoteirizadorResponseDto } from "../models/vibe-service/registerRoteirizadorDto";
 
 @Injectable({
     providedIn: 'root'
@@ -34,9 +33,13 @@ export class VibeService {
     private getHeaders(): HttpHeaders {
         const token = localStorage.getItem('token');
         if (!token) {
-            console.warn('Token não encontrado');
-            return new HttpHeaders();
+            console.warn('Token não encontrado no localStorage');
+            return new HttpHeaders({
+                'Content-Type': 'application/json'
+            });
         }
+
+        console.log('Token encontrado:', token.substring(0, 10) + '...');
         return new HttpHeaders({
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -44,6 +47,23 @@ export class VibeService {
     }
 
 
+    cadastrarRoteirizador(request: FormData): Observable<any> {
+        return this.httpClient.post(`${this.apiUrl}/roteirizadores`, request, {
+            headers: this.getHeaders()
+        }).pipe(
+            catchError(this.handleError)
+        );
+    }
+
+
+    // Método para enviar como application/json
+    cadastrarRoteirizadorJson(data: { nome: string; userName: string; senha: string }): Observable<any> {
+        // Usa getHeaders() e adiciona Content-Type
+        const headers = this.getHeaders().set('Content-Type', 'application/json');
+        return this.httpClient.post(`${this.apiUrl}/roteirizadores`, data, { headers }).pipe(
+            catchError(this.handleError)
+        );
+    }
 
     atualizarUsuarioTecnico(empresaId: string, usuarioId: string, data: any): Observable<any> {
         const url = `${this.apiUrl}/usuario/${empresaId}/${usuarioId}/atualizar-tecnico`;
@@ -198,48 +218,6 @@ export class VibeService {
         return this.httpClient.post<ExecucaoFimResponseDto>(url, formData);
     }
 
-    cadastrarEmpresa(data: any): Observable<any> {
-        return this.httpClient.post<any>(`${this.apiUrl}/usuario/empresa`, data, {
-            headers: this.getHeaders()
-        }).pipe(
-            catchError(this.handleError)
-        );
-    }
-
-    atualizarEmpresa(empresaId: string, data: any): Observable<any> {
-        return this.httpClient.put<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, data, {
-            headers: this.getHeaders()
-        }).pipe(
-            catchError(this.handleError)
-        );
-    }
-
-    buscarEmpresasPorId(empresaId: string): Observable<any> {
-        return this.httpClient.get<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, {
-            headers: this.getHeaders()
-        }).pipe(
-            catchError(this.handleError)
-        );
-    }
-
-
-    buscarEmpresas(): Observable<any> {
-        return this.httpClient.get<any>(`${this.apiUrl}/usuario/empresa/todos`, {
-            headers: this.getHeaders()
-        }).pipe(
-            catchError(this.handleError)
-        );
-    }
-
-    deletarEmpresa(empresaId: string): Observable<any> {
-        return this.httpClient.delete<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, {
-            headers: this.getHeaders(),
-            responseType: 'text' as 'json' // Add this line to handle empty responses
-        }).pipe(
-            map(() => ({ success: true })), // Transform empty response to a success object
-            catchError(this.handleError)
-        );
-    }
 
     cadastrarCliente(data: any): Observable<any> {
         return this.httpClient.post<any>(`${this.apiUrl}/usuario/cliente`, data, {
@@ -289,14 +267,6 @@ export class VibeService {
         );
     }
 
-    buscarClientePorId(clienteId: string): Observable<any> {
-        return this.httpClient.get<any>(`${this.apiUrl}/usuario/cliente/${clienteId}`, {
-            headers: this.getHeaders()
-        }).pipe(
-            catchError(this.handleError)
-        );
-    }
-
     buscarUsuarioPorId(usuarioId: string): Observable<any> {
         return this.httpClient.get<any>(`${this.apiUrl}/usuario/public/tecnico/${usuarioId}`, {
             headers: this.getHeaders()
@@ -323,11 +293,14 @@ export class VibeService {
 
     enviarFormularioServico(ordemServicoId: string, formData: FormData): Observable<any> {
         const url = `${this.apiUrl}/tarefa/ordem-servico/${ordemServicoId}/assinatura`;
+        const token = localStorage.getItem('token');
 
-        // Using new HttpHeaders without Content-Type for FormData
+        // Usando new HttpHeaders sem Content-Type para FormData
         const headers = new HttpHeaders({
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
         });
+
+        console.log('Enviando formulário de serviço com token:', token ? 'Token presente' : 'Token ausente');
 
         return this.httpClient.put<any>(url, formData, { headers }).pipe(
             tap(response => console.log('Formulário enviado com sucesso:', response)),
@@ -337,5 +310,4 @@ export class VibeService {
             })
         );
     }
-
 }

@@ -8,14 +8,14 @@
       <div class="linha"></div>
     </div>
     <div class="card-body">
-
       <div *ngIf="mensagem != ''" class="alert-container">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-circle-fill me-2"></i> <!-- Ícone de erro, se desejar -->
-            <strong>{{ mensagem }}</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div [ngClass]="{'alert-success': isSuccess, 'alert-danger': !isSuccess}" class="alert alert-dismissible fade show" role="alert">
+          <i class="bi bi-exclamation-circle-fill me-2" *ngIf="!isSuccess"></i>
+          <i class="bi bi-check-circle-fill me-2" *ngIf="isSuccess"></i>
+          <strong>{{ mensagem }}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    </div>
+      </div>
 
       <form [formGroup]="formulario" enctype="multipart/form-data" (ngSubmit)="onSubmit()">
         <div class="row">
@@ -44,20 +44,11 @@
             </div>
           </div>
 
-          <!-- Adicione após o campo CPF e antes do email -->
-          <div class="col-md-3">
-            <label for="matricula" class="form-label">Matrícula:</label>
-            <input id="matricula" type="text" class="form-control" formControlName="matricula" />
-            <div class="text-danger" *ngIf="f['matricula'].touched && f['matricula'].invalid">
-              Por favor, informe a matrícula do usuário.
-            </div>
-          </div>
-
           <div class="col-md-4">
             <label for="empresa" class="form-label">Empresa:</label>
             <select id="empresa" class="form-select" formControlName="empresa">
-              <option value="">Selecione uma empresa</option>
-              <option *ngFor="let empresa of empresas" [value]="empresa.empresaId">
+              <option [ngValue]="null">Selecione uma empresa</option>
+              <option *ngFor="let empresa of empresas" [ngValue]="empresa">
                 {{ empresa.nomeDaEmpresa }}
               </option>
             </select>            

@@ -20,6 +20,8 @@ export class AutenticarComponent {
   coordenadas: string = '';
   idUsuario: string = '';
   private locationUpdateSubscription: Subscription | undefined;
+  carregando: boolean = false;
+  localizacaoDisponivel: boolean = true;
 
   constructor(
     private controllAppService: ControllAppService,
@@ -30,13 +32,21 @@ export class AutenticarComponent {
 
   formulario = new FormGroup({
     userName: new FormControl('', [Validators.required, Validators.minLength(3)]),
-
     senha: new FormControl('', [Validators.required, Validators.minLength(5)]),
   });
 
   ngOnInit(): void {
-    // Limpa dados antigos do localStorage para evitar coordenadas incorretas
     localStorage.removeItem('usuario');
+    
+    // Verifica se a localização está disponível
+    this.servicoLocalizacao.verificarDisponibilidadeLocalizacao()
+      .then(disponivel => {
+        this.localizacaoDisponivel = disponivel;
+        if (!disponivel) {
+          console.warn('Localização não está disponível. Por favor, habilite as permissões de localização.');
+          this.mensagem = 'Recomendado: Habilite a localização para melhor funcionamento.';
+        }
+      });
   }
 
   autenticarUsuario() {
@@ -45,10 +55,22 @@ export class AutenticarComponent {
       return;
     }
 
+    this.carregando = true;
+    this.mensagem = 'Autenticando e obtendo sua localização...';
+
     const userName = this.formulario.get('userName')?.value ?? '';
     const senha = this.formulario.get('senha')?.value ?? '';
 
+    // Usa o serviço de autenticação que já captura a localização
     this.authService.login(userName, senha);
+    
+    // Define um timeout para atualizar a mensagem caso demore muito
+    setTimeout(() => {
+      if (this.carregando) {
+        this.carregando = false;
+        this.mensagem = 'A autenticação está demorando mais que o esperado. Por favor, verifique sua conexão.';
+      }
+    }, 15000); // 15 segundos
   }
 
   logout() {

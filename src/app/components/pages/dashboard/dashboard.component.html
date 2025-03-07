@@ -74,59 +74,72 @@
     </div>
   </div>
 
-  <!-- Tabela de Desempenho Detalhado -->
-  <div class="table-container">
-    <h5>
-      <i class="fas fa-chart-line me-2"></i>
-      Desempenho Detalhado
-    </h5>
-    <table class="table">
-      <thead>
-        <tr>
-          <th class="col-empresa">Empresa</th>
-          <th>Colaborador</th>
-          <th class="col-metrics">Atrib.</th>
-          <th class="col-metrics">Real.</th>
-          <th class="col-metrics">Pend.</th>
-          <th class="col-metrics">T. Médio</th>
-          <th>Eficiência</th>
-          <th>Jornada</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let colaborador of colaboradoresDesempenho">
-          <td>
-            <span class="fw-medium">{{ colaborador.empresa }}</span>
-          </td>
-          <td>
-            <a [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]" 
-               class="d-flex flex-column align-items-center">
-              <i class="fas fa-user-circle mb-1 fs-4"></i>
-              <span>{{ colaborador.nome }}</span>
-            </a>
-          </td>
-          <td class="text-center col-metrics">{{ colaborador.osAtribuidas }}</td>
-          <td class="text-center col-metrics text-success">{{ colaborador.osRealizadas }}</td>
-          <td class="text-center col-metrics text-warning">{{ colaborador.osPendentes }}</td>
-          <td class="text-center col-metrics">{{ colaborador.tempoMedio }}</td>
-          <td>
-            <div class="progress">
-              <div class="progress-bar" 
-                   [ngClass]="{
-                     'bg-success': colaborador.eficiencia >= 70,
-                     'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
-                     'bg-danger': colaborador.eficiencia < 50
-                   }" 
-                   [style.width.%]="colaborador.eficiencia"
-                   [attr.title]="colaborador.eficiencia + '%'">
-              </div>
+<!-- Tabela de Desempenho Detalhado -->
+<div class="table-container">
+  <h5>
+    <i class="fas fa-chart-line me-2"></i>
+    Desempenho Detalhado
+  </h5>
+  <table class="table">
+    <thead>
+      <tr>
+        <th class="col-empresa">Empresa</th>
+        <th>Colaborador</th>
+        <th class="col-metrics">Atrib.</th>
+        <th class="col-metrics">Real.</th>
+        <th class="col-metrics">Pend.</th>
+        <th class="col-metrics">T. Médio</th>
+        <th>Eficiência</th>
+        <th>Jornada</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr *ngFor="let colaborador of colaboradoresOnline">
+        <td>
+          <span class="fw-medium">{{ colaborador.empresa }}</span>
+        </td>
+        <td>
+          <a [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]" 
+             class="d-flex flex-column align-items-center">
+            <img [src]="colaborador.fotoUrl" class="tecnico-foto mb-1" alt="{{ colaborador.nome }}">
+            <span>{{ colaborador.nome }}</span>
+          </a>
+        </td>
+        <td class="text-center col-metrics">{{ colaborador.osAtribuidas }}</td>
+        <td class="text-center col-metrics text-success">{{ colaborador.osRealizadas }}</td>
+        <td class="text-center col-metrics text-warning">{{ colaborador.osPendentes }}</td>
+        <td class="text-center col-metrics">{{ colaborador.tempoMedio }}</td>
+        <td>
+          <div class="custom-progress-container">
+            <div class="custom-progress-bar" 
+                 [ngClass]="{
+                   'bg-success': colaborador.eficiencia >= 70,
+                   'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
+                   'bg-danger': colaborador.eficiencia < 50
+                 }" 
+                 [style.width.%]="colaborador.eficiencia"
+                 [attr.title]="colaborador.eficiencia + '%'">
+              <span class="custom-progress-text">{{ colaborador.eficiencia }}%</span>
             </div>
-            <small class="d-block text-center mt-1">{{ colaborador.eficiencia }}%</small>
-          </td>
-          <td class="text-center">{{ colaborador.jornada }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  
+          </div>
+        </td>
+        <td class="text-center">
+          <div class="custom-progress-container">
+            <div class="custom-progress-bar" 
+                 [ngClass]="{
+                   'progress-0-30': parseJornada(colaborador.jornada) <= 30,
+                   'progress-31-60': parseJornada(colaborador.jornada) > 30 && parseJornada(colaborador.jornada) <= 60,
+                   'progress-61-100': parseJornada(colaborador.jornada) > 60 && parseJornada(colaborador.jornada) <= 100,
+                   'progress-over-100': parseJornada(colaborador.jornada) > 100
+                 }" 
+                 [style.width.%]="getProgressWidth(colaborador.jornada)">
+              <span class="custom-progress-text">{{ colaborador.jornada }}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 </div>

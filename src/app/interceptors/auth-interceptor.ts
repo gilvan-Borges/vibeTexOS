@@ -4,6 +4,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 const endpoints = [
   'http://localhost:5141/api/usuario',
   'http://localhost:5141/api/ponto',
+  'http://localhost:5030/api/usuario'
   // Adicione mais endpoints conforme necessário
 ];
 

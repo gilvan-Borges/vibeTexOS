@@ -518,9 +518,8 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     this.modalObsVisible = false;
   }
   onLogout(): void {
-    this.authService.logout().then(() => {
-      console.log('Usuário desconectado com sucesso.');
-    });
+    this.authService.logout();
+    console.log('Usuário desconectado com sucesso.');
   }
 
   private async verificarRegistroDoDia(): Promise<void> {

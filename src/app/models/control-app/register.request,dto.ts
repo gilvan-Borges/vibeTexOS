@@ -5,6 +5,7 @@ export interface RegisterRequestDto {
     email?: string;
     senha?: string;
     cpf?: string;
+    empresaId?: string;
     role: string; 
     horaEntrada?: string;
     horaSaida?: string;

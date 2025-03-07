@@ -4,13 +4,12 @@ import { Observable, forkJoin, Subscription, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment.development';
 import { RegistrarPontoInicioResponseDto } from '../models/control-app/registrar.ponto.inicio.response.dto';
-import { Usuario } from '../models/control-app/usuario.model'; // Updated import path
+import { Usuario } from '../models/control-app/usuario.model';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { ControllAppService } from './controllApp.service';
 import { ServicoFormatacao } from './formatacao.service';
 import { ServicoLocalizacao } from './localizacao.service';
-
 
 @Injectable({
     providedIn: 'root'
@@ -29,10 +28,8 @@ export class UsuarioService {
     obterColaboradoresEmServico(): Observable<any[]> {
         const dataAtualServidor = new Date().toISOString().split('T')[0];
         
-        // Primeiro, buscar todos os usuários
         return this.usuarioGetAll({}).pipe(
             switchMap(usuarios => {
-                // Filtrar apenas colaboradores
                 const colaboradores = usuarios.filter(u => 
                     u.role?.toLowerCase() === 'colaborador'
                 );
@@ -41,7 +38,6 @@ export class UsuarioService {
                     return of([]);
                 }
 
-                // Para cada colaborador, verificar se tem registro de ponto hoje
                 const verificacoesPonto = colaboradores.map(usuario => 
                     this.verificarInicioExpediente(usuario.usuarioId, dataAtualServidor).pipe(
                         map(ponto => ({
@@ -51,12 +47,10 @@ export class UsuarioService {
                     )
                 );
 
-                // Combinar os resultados
                 return forkJoin(verificacoesPonto).pipe(
                     map(resultados => {
-                        // Filtrar apenas registros do dia e que não tenham fim de expediente
                         return resultados
-                            .filter(r => r.ponto && !r.ponto.fimExpediente) // Adicionado filtro para remover registros com fim de expediente
+                            .filter(r => r.ponto && !r.ponto.fimExpediente)
                             .map(r => ({
                                 usuarioId: r.usuario.usuarioId,
                                 nome: r.usuario.nome || 'Sem nome',
@@ -110,45 +104,62 @@ export class UsuarioService {
     }
 
     carregarTodosColaboradores(): Observable<any[]> {
-        return this.httpClient.get<any[]>(`${environment.controllApp}/usuario/tecnicos`)
-            .pipe(
-                map(response => {
-                    if (!Array.isArray(response)) {
-                        console.warn('Resposta da API não é um array:', response);
-                        return [];
-                    }
+        return this.httpClient.get<any[]>(`${environment.vibeservice}/usuario/public/tecnico`).pipe(
+            map(response => {
+                if (!Array.isArray(response)) {
+                    console.warn('Resposta da API não é um array:', response);
+                    return [];
+                }
 
-                    return response
-                        .filter(usuario => usuario.role?.toLowerCase() === 'colaborador')
-                        .map(usuario => {
-                            let fotoUrl = 'https://via.placeholder.com/40x40';
-                            
-                            if (usuario.fotoUrl) {
-                                try {
-                                    // Remove qualquer caminho duplicado e pega apenas o nome do arquivo
-                                    const nomeArquivo = usuario.fotoUrl.split('/').pop();
-                                    if (nomeArquivo && nomeArquivo !== 'string' && nomeArquivo !== 'null') {
-                                        fotoUrl = `${environment.mediaUrl}/${nomeArquivo}`;
-                                    }
-                                } catch (erro) {
-                                    console.warn('Erro ao processar URL da foto:', erro);
+                return response
+                    .filter(usuario => usuario.role?.toLowerCase() === 'colaborador')
+                    .map(usuario => {
+                        let fotoUrl = 'https://via.placeholder.com/40x40';
+                        
+                        if (usuario.fotoUrl) {
+                            try {
+                                const nomeArquivo = usuario.fotoUrl.split('/').pop();
+                                if (nomeArquivo && nomeArquivo !== 'string' && nomeArquivo !== 'null') {
+                                    fotoUrl = `${environment.mediaUrl}/${nomeArquivo}`;
                                 }
+                            } catch (erro) {
+                                console.warn('Erro ao processar URL da foto:', erro);
                             }
+                        }
 
-                            return {
-                                id: usuario.usuarioId,
-                                usuarioId: usuario.usuarioId, // Mantém ambos os IDs para compatibilidade
-                                nome: usuario.nome || 'Sem nome',
-                                email: usuario.email || '-',
-                                cpf: usuario.cpf || '-',
-                                fotoUrl: fotoUrl,
-                                jornada: this.formatarJornada(usuario.horaEntrada, usuario.horaSaida),
-                                status: usuario.isOnline ? 'Online' : 'Offline',
-                                isOnline: usuario.isOnline || false
-                            };
-                        });
-                })
-            );
+                        return {
+                            id: usuario.usuarioId,
+                            usuarioId: usuario.usuarioId,
+                            nome: usuario.nome || 'Sem nome',
+                            email: usuario.email || '-',
+                            cpf: usuario.cpf || '-',
+                            empresaId: usuario.empresaId || null,
+                            matricula: usuario.numeroMatricula || '-',
+                            fotoUrl: fotoUrl,
+                            jornada: this.formatarJornada(usuario.horaEntrada, usuario.horaSaida),
+                            isOnline: usuario.isOnline || false
+                        };
+                    });
+            }),
+            switchMap(colaboradores => {
+                // Criar um array de observables para buscar o nome da empresa para cada colaborador
+                const empresaRequests = colaboradores.map(colaborador => 
+                    this.buscarNomeEmpresa(colaborador.empresaId).pipe(
+                        map(empresa => ({
+                            ...colaborador,
+                            empresaNome: empresa.nomeDaEmpresa || 'N/A'
+                        })),
+                        catchError(() => of({
+                            ...colaborador,
+                            empresaNome: 'N/A'
+                        }))
+                    )
+                );
+
+                // Executar todas as requisições em paralelo
+                return forkJoin(empresaRequests);
+            })
+        );
     }
 
     private formatarJornada(entrada?: string, saida?: string): string {
@@ -168,7 +179,6 @@ export class UsuarioService {
             map(pontos => {
                 if (!Array.isArray(pontos)) return null;
                 
-                // Encontrar o ponto do dia atual
                 return pontos.find(ponto => {
                     try {
                         if (!ponto.inicioExpediente) return false;
@@ -212,7 +222,7 @@ export class UsuarioService {
                         'almoco-fim': '',
                         fim: ''
                     },
-                    disabled: [false, true, true, true] // Estado inicial dos botões
+                    disabled: [false, true, true, true]
                 };
             }
     
@@ -235,7 +245,7 @@ export class UsuarioService {
                         'almoco-fim': '',
                         fim: ''
                     },
-                    disabled: [false, true, true, true] // Estado inicial dos botões
+                    disabled: [false, true, true, true]
                 };
             }
     
@@ -251,23 +261,21 @@ export class UsuarioService {
                 fim: ultimoRegistro.fimExpediente ? this.servicoFormatacao.formatarHora(ultimoRegistro.fimExpediente) : '',
             };
 
-            // Lógica atualizada para controle dos botões
-            const disabled = [true, true, true, true]; // Começa com todos desabilitados
+            const disabled = [true, true, true, true];
 
             if (!timestamps.inicio) {
-                disabled[0] = false; // Habilita apenas o início se não tiver registro
+                disabled[0] = false;
             } else if (!timestamps['almoco-inicio']) {
-                disabled[1] = false; // Habilita almoço início se tiver início mas não tiver almoço início
+                disabled[1] = false;
             } else if (!timestamps['almoco-fim']) {
-                disabled[2] = false; // Habilita almoço fim se tiver almoço início mas não tiver almoço fim
+                disabled[2] = false;
             } else if (!timestamps.fim) {
-                disabled[3] = false; // Habilita fim se tiver almoço fim mas não tiver fim
+                disabled[3] = false;
             }
 
             console.log("🔒 Estado dos botões:", disabled);
             console.log("⏰ Timestamps:", timestamps);
     
-            // Salva os IDs no localStorage
             if (ultimoRegistro.pontoIdExpediente) {
                 localStorage.setItem('pontoIdExpediente', ultimoRegistro.pontoIdExpediente);
             }
@@ -293,7 +301,7 @@ export class UsuarioService {
                     'almoco-fim': '',
                     fim: ''
                 },
-                disabled: [false, true, true, true] // Estado inicial dos botões em caso de erro
+                disabled: [false, true, true, true]
             };
         }
     }
@@ -301,7 +309,7 @@ export class UsuarioService {
     encerrarSessao(idUsuario: string, limparDados: boolean = true): void {
         this.controllAppService.atualizarStatusUsuario(idUsuario, false).subscribe({
             next: () => {
-                this.controllAppService.autenticar('cpf-logout', 'username-logout', 'senha-logout').subscribe({
+                this.controllAppService.autenticar('username-logout', 'senha-logout').subscribe({
                     next: () => {
                         if (limparDados) {
                             this.authService.logout();
@@ -344,7 +352,7 @@ export class UsuarioService {
                 const dataPonto = new Date(ponto.inicioExpediente);
                 return !isNaN(dataPonto.getTime()) && 
                        dataPonto.toISOString().split('T')[0] === hoje &&
-                       !ponto.fimExpediente; // Verifica se o expediente não foi finalizado
+                       !ponto.fimExpediente;
             });
 
             return registrosHoje.length > 0;
@@ -354,4 +362,10 @@ export class UsuarioService {
         }
     }
 
+    buscarNomeEmpresa(empresaId: string): Observable<any> {
+        if (!empresaId) return of({ nomeDaEmpresa: 'N/A' });
+        return this.httpClient.get<any>(`${environment.controllApp}/usuario/empresa/${empresaId}`).pipe(
+            catchError(() => of({ nomeDaEmpresa: 'N/A' }))
+        );
+    }
 }

@@ -7,6 +7,12 @@ import { environment } from "../../../../environments/environment.development";
 import { Observable } from "rxjs";
 import { VibeService } from "../../../services/vibe.service";
 
+// Add this interface at the top of your file, before the @Component decorator
+interface Empresa {
+  empresaId: string;
+  nomeDaEmpresa: string;
+}
+
 @Component({
   selector: 'app-cadastrar-usuario',
   imports: [
@@ -23,19 +29,19 @@ export class CadastrarUsuarioComponent implements OnInit {
   fotoUrl: File | null = null;
   fotoPreview: string | ArrayBuffer | null = null;
   tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg'];
-  empresas: any[] = [];
+  empresas: Empresa[] = [];
+  isSuccess = false; // Flag para controlar mensagens de sucesso/erro
 
   constructor(
     private controllAppService: ControllAppService,
-    private vibeService : VibeService
-  ) { }
+    private vibeService: VibeService
+  ) {}
 
   formulario = new FormGroup({
     nome: new FormControl('', [Validators.required, Validators.minLength(8)]),
     userName: new FormControl('', [Validators.required, Validators.minLength(5)]),
     cpf: new FormControl('', [Validators.required, Validators.pattern(/^\d{11}$/)]),
-    matricula: new FormControl('', [Validators.required]),
-    empresa: new FormControl('', [Validators.required]),
+    empresa: new FormControl<Empresa | null>(null, [Validators.required]), // Valor inicial como null para objeto
     email: new FormControl('', [Validators.required, Validators.email]),
     senha: new FormControl('', [Validators.required, Validators.pattern(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@#$%^&+=!])(?=\S+$).{8,}$/)]),
     senhaConfirmacao: new FormControl('', [Validators.required]),
@@ -48,6 +54,10 @@ export class CadastrarUsuarioComponent implements OnInit {
   }, { validators: this.senhaConfirmacaoValidator });
 
   ngOnInit(): void {
+    this.carregarEmpresas();
+  }
+
+  private carregarEmpresas(): void {
     this.buscarEmpresas().subscribe({
       next: (response) => {
         this.empresas = response;
@@ -56,15 +66,16 @@ export class CadastrarUsuarioComponent implements OnInit {
       error: (err) => {
         console.error('❌ Erro ao carregar empresas:', err);
         this.mensagem = 'Erro ao carregar lista de empresas.';
+        this.isSuccess = false;
       }
     });
   }
 
-  buscarEmpresas(): Observable<any> {
-    return this.vibeService.buscarEmpresas();
+  private buscarEmpresas(): Observable<any> {
+    return this.controllAppService.buscarEmpresas();
   }
 
-  senhaConfirmacaoValidator(abstractControl: AbstractControl) {
+  private senhaConfirmacaoValidator(abstractControl: AbstractControl) {
     const senha = abstractControl.get('senha')?.value;
     const senhaConfirmacao = abstractControl.get('senhaConfirmacao')?.value;
 
@@ -101,26 +112,26 @@ export class CadastrarUsuarioComponent implements OnInit {
     });
   }
 
-  onFileChange(event: any) {
+  onFileChange(event: any): void {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validação do tipo de arquivo
     if (!this.tiposPermitidos.includes(file.type)) {
       this.mensagem = 'Tipo de arquivo não permitido. Use apenas JPG, JPEG ou PNG.';
+      this.isSuccess = false;
       return;
     }
 
-    // Validação do tamanho (2MB)
     if (file.size > 2000000) {
-      this.mensagem = "O arquivo é muito grande. Escolha uma imagem menor que 2MB.";
+      this.mensagem = 'O arquivo é muito grande. Escolha uma imagem menor que 2MB.';
+      this.isSuccess = false;
       return;
     }
 
-    // Obtém a extensão do arquivo
     const extensao = file.name.split('.').pop()?.toLowerCase();
     if (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao)) {
       this.mensagem = 'Formato de arquivo inválido. Use apenas JPG, JPEG ou PNG.';
+      this.isSuccess = false;
       return;
     }
 
@@ -128,117 +139,150 @@ export class CadastrarUsuarioComponent implements OnInit {
     this.processarImagem(file)
       .then(({ blob, base64 }) => {
         this.fotoPreview = base64;
-        // Criando um novo Blob com o tipo MIME correto
         this.fotoUrl = new File([blob], `foto.${extensao}`, { type: file.type }) as any;
         console.log('✅ Preview da foto carregado com sucesso');
+        this.mensagem = ''; // Limpa mensagem após sucesso
       })
       .catch((error) => {
         console.error('❌ Erro ao processar a imagem:', error);
         this.mensagem = 'Erro ao processar a imagem. Tente novamente.';
+        this.isSuccess = false;
       });
   }
 
-  onSubmit() {
+  onSubmit(): void {
     if (this.formulario.invalid) {
       this.mensagem = 'Por favor, preencha todos os campos corretamente.';
+      this.isSuccess = false;
       return;
     }
-
-    if (!this.fotoUrl) {
+  
+    if (!this.fotoUrl && this.formulario.get('role')?.value !== 'Roteirizador') {
       this.mensagem = 'Por favor, selecione uma foto de perfil.';
+      this.isSuccess = false;
       return;
     }
-
-    console.log("📌 Tentando cadastrar usuário...");
-
+  
+    console.log('📌 Tentando cadastrar usuário...');
+  
     const formData = new FormData();
-    Object.keys(this.formulario.controls)
-      .filter(key => key !== 'empresa' && key !== 'matricula')
-      .forEach(key => {
+  
+    // Log all form values for debugging
+    console.log('Form values:', this.formulario.value);
+  
+    const empresaValue = this.formulario.get('empresa')?.value as Empresa | null;
+    if (!empresaValue) {
+      this.mensagem = 'Por favor, selecione uma empresa.';
+      this.isSuccess = false;
+      return;
+    }
+  
+    // Processamento genérico para todos os campos (exceto senhaConfirmacao)
+    Object.keys(this.formulario.controls).forEach((key) => {
+      if (key === 'empresa') {
+        formData.append('empresaId', empresaValue.empresaId);
+        formData.append('empresa', empresaValue.nomeDaEmpresa);
+        formData.append('nomeDaEmpresa', empresaValue.nomeDaEmpresa);
+        console.log('Empresa values:', {
+          id: empresaValue.empresaId,
+          nome: empresaValue.nomeDaEmpresa
+        });
+      } else if (key === 'horaInicio') {
+        const value = this.formulario.get(key)?.value;
+        if (value) formData.append('horaEntrada', value);
+      } else if (key === 'horaFim') {
+        const value = this.formulario.get(key)?.value;
+        if (value) formData.append('horaSaida', value);
+      } else if (key !== 'senhaConfirmacao') {
         const value = this.formulario.get(key)?.value;
         if (value) formData.append(key, value);
-      });
-
+      }
+    });
+  
     formData.append('IsOnline', 'false');
-
-    const extensao = this.fotoUrl?.name.split('.').pop();
-    if (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao.toLowerCase())) {
+  
+    const extensao = this.fotoUrl?.name.split('.').pop()?.toLowerCase();
+    if (this.fotoUrl && (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao))) {
       this.mensagem = 'Erro: Arquivo inválido ou sem extensão.';
+      this.isSuccess = false;
       return;
     }
-
-    this.processarImagem(this.fotoUrl).then(({ blob, base64 }) => {
-      const nomeArquivo = `foto.${extensao.toLowerCase()}`;
+  
+    const processarImagem = this.fotoUrl
+      ? this.processarImagem(this.fotoUrl)
+      : Promise.resolve({ blob: null, base64: null });
+  
+    processarImagem.then(({ blob }) => {
+      if (blob) {
+        const nomeArquivo = `foto.${extensao}`;
+        formData.append('FotoFile', blob, nomeArquivo);
+        formData.append('FotoUrl', `/images/${nomeArquivo}`);
+      }
+  
+      // Verifica o valor de 'role' e ajusta o FormData para Roteirizador
+      const role = this.formulario.get('role')?.value;
+      if (role === 'Roteirizador') {
+        // Validação extra para garantir que os campos obrigatórios não estejam vazios
+        const nome = this.formulario.get('nome')?.value?.trim();
+        const userName = this.formulario.get('userName')?.value?.trim();
+        const senha = this.formulario.get('senha')?.value?.trim();
       
-      formData.append('FotoFile', blob, nomeArquivo);
-      formData.append('FotoUrl', `/images/${nomeArquivo}`);
-
-      // Primeiro: Cadastrar na ControllApp
-      this.controllAppService.register(formData).subscribe({
-        next: (response) => {
-          console.log('✅ Usuário cadastrado com sucesso na ControllApp:', response);
-          
-          const empresaId = this.formulario.get('empresa')?.value;
-          const matricula = this.formulario.get('matricula')?.value;
-          const usuarioId = response.usuarioId;
-
-          // Salvar usuarioId no localStorage
-          localStorage.setItem('tempUsuarioId', usuarioId);
-
-          if (!empresaId || !matricula || !usuarioId) {
-            console.error('❌ Dados inválidos:', { empresaId, matricula, usuarioId });
-            this.mensagem = 'Erro: Dados técnicos inválidos.';
-            return;
-          }
-
-          const empresaSelecionada = this.empresas.find(emp => emp.empresaId === empresaId);
-          if (!empresaSelecionada) {
-            console.error('❌ Empresa não encontrada');
-            this.mensagem = 'Erro: Empresa selecionada não encontrada';
-            return;
-          }
-
-          const dadosTecnicos = {
-            NumeroMatricula: matricula,
-            Empresa: empresaSelecionada.nomeDaEmpresa,
-          };
-
-          console.log('⏳ Aguardando para atualizar dados técnicos...');
-
-          // Adicionar delay de 2 segundos antes de fazer o PUT
-          setTimeout(() => {
-            console.log('📤 Atualizando dados técnicos:', dadosTecnicos);
-            
-            this.vibeService.atualizarUsuarioTecnico(
-              empresaId,
-              usuarioId,
-              dadosTecnicos
-            ).subscribe({
-              next: (tecResponse) => {
-                console.log('✅ Informações técnicas atualizadas:', tecResponse);
-                this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
-                // Limpar usuarioId do localStorage após sucesso
-                localStorage.removeItem('tempUsuarioId');
-                this.formulario.reset();
-                this.fotoPreview = null;
-                this.fotoUrl = null;
-                setTimeout(() => this.mensagem = '', 5000);
-              },
-              error: (err) => {
-                console.error('❌ Erro ao atualizar informações técnicas:', err);
-                this.mensagem = `Erro ao vincular empresa/matrícula: ${err.error || err.message || 'Erro desconhecido'}`;
-              }
-            });
-          }, 2000); // Delay de 2 segundos
-        },
-        error: (err) => {
-          console.error('❌ Erro ao cadastrar usuário:', err);
-          this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
+        if (!nome || !userName || !senha) {
+          this.mensagem = 'Nome, userName e senha são obrigatórios para Roteirizador.';
+          this.isSuccess = false;
+          return;
         }
-      });
+      
+        // Enviar como JSON
+        const data = {
+          nome: nome,
+          userName: userName,
+          senha: senha
+        };
+      
+        console.log('Enviando para Roteirizador (JSON):', data);
+      
+        // Chama o endpoint específico para Roteirizador com JSON
+        this.vibeService.cadastrarRoteirizadorJson(data).subscribe({
+          next: (response) => {
+            console.log(`✅ Usuário ${role} cadastrado com sucesso:`, response);
+            this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
+            this.isSuccess = true;
+            localStorage.removeItem('tempUsuarioId');
+            this.formulario.reset();
+            this.fotoPreview = null;
+            this.fotoUrl = null;
+            setTimeout(() => this.mensagem = '', 5000);
+          },
+          error: (err) => {
+            console.error(`❌ Erro ao cadastrar ${role}:`, err);
+            this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
+            this.isSuccess = false;
+          }
+        });
+      } else {
+        // Para outros perfis (ex.: Colaborador), usa o FormData original
+        const cadastroObservable = this.controllAppService.register(formData);
+        cadastroObservable.subscribe({
+          next: (response) => {
+            console.log(`✅ Usuário ${role} cadastrado com sucesso:`, response);
+            this.mensagem = `Usuário ${this.formulario.get('nome')?.value} cadastrado com sucesso!`;
+            this.isSuccess = true;
+            localStorage.removeItem('tempUsuarioId');
+            this.formulario.reset();
+            this.fotoPreview = null;
+            this.fotoUrl = null;
+            setTimeout(() => this.mensagem = '', 5000);
+          },
+          error: (err) => {
+            console.error(`❌ Erro ao cadastrar ${role}:`, err);
+            this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
+            this.isSuccess = false;
+          }
+        });
+      }
     });
   }
-
   getImageUrl(relativePath: string): string {
     return `${environment.controllApp}${relativePath}`;
   }

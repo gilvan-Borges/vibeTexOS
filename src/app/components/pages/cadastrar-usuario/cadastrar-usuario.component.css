@@ -1,113 +1,112 @@
 /* Container Principal */
 .container-fluid {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height:auto;
-    padding: 30px;
-    margin: 0 auto;
-
-    }
-  
-  /* Card */
-  .card {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 40px 0;
-    max-width: 800px;
-    width: 100%;
-    
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .conteudo {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-
-  }
-
-  .linha{
-    width: 90%;
-    height: 2PX;
-    background-color: #333;
-    margin-bottom: 5px;
-    box-shadow: 0 4px 12px rgba(89, 87, 87, 0.82);
-  }
-  /* Título do Formulário */
-  .card h4 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 15px;
-  }
-  
-  /* Descrição */
-  .card p {
-    font-size: 1rem;
-    color: #888;
-    font-style: italic;
-  }
-  .card-body{
-    margin: 0 auto;
-    width: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: auto;
+  padding: 30px;
+  margin: 0 auto;
 }
-  
-  /* Input de Formulário */
-  .card-body .form-control,
-  .card-body .form-select {
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    padding: 15px;
-    font-size: 1rem;
-    width: 100%;
-    margin-bottom: 20px;
-    background-color: #f9f9f9;
-    transition: border 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  /* Efeito de Foco nos Inputs */
-  .card-body .form-control:focus,
-  .card-body .form-select:focus {
-    border-color: #4e73df;
-    background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2);
-  }
-  
-  /* Mensagem de Erro */
-  .text-danger {
-    font-size: 0.875rem;
-    color: #e74c3c;
-    margin-top: 5px;
-  }
-  
-  /* Botão de Submissão */
-  .btn {
-    background-color: #4e73df;
-    color: #fff;
-    border: none;
-    padding: 12px 30px;
-    font-size: 1.1rem;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-  }
-  
-  .btn:hover {
-    background-color: #2c5d9f;
-  }
-  
-  /* Desabilitado */
-  .btn:disabled {
-    background-color: #b0bec5;
-    cursor: not-allowed;
-  }
-  
-  /* Alerta de Sucesso ou Erro */
+
+/* Card */
+.card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px 0;
+  max-width: 800px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.linha {
+  width: 90%;
+  height: 2px;
+  background-color: #333;
+  margin-bottom: 5px;
+  box-shadow: 0 4px 12px rgba(89, 87, 87, 0.82);
+}
+
+/* Título do Formulário */
+.card h4 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Descrição */
+.card p {
+  font-size: 1rem;
+  color: #888;
+  font-style: italic;
+}
+
+.card-body {
+  margin: 0 auto;
+  width: 90%;
+}
+
+/* Input de Formulário */
+.card-body .form-control,
+.card-body .form-select {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 15px;
+  font-size: 1rem;
+  width: 100%;
+  margin-bottom: 20px;
+  background-color: #f9f9f9;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Efeito de Foco nos Inputs */
+.card-body .form-control:focus,
+.card-body .form-select:focus {
+  border-color: #4e73df;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2);
+}
+
+/* Mensagem de Erro */
+.text-danger {
+  font-size: 0.875rem;
+  color: #e74c3c;
+  margin-top: 5px;
+}
+
+/* Botão de Submissão */
+.btn {
+  background-color: #4e73df;
+  color: #fff;
+  border: none;
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.btn:hover {
+  background-color: #2c5d9f;
+}
+
+/* Desabilitado */
+.btn:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
 /* Alerta de Sucesso ou Erro */
 .alert {
   background-color: #d1f7d1;
@@ -118,16 +117,16 @@
   margin-bottom: 20px;
   border-radius: 8px;
   display: flex;
-  justify-content: center; /* Centraliza horizontalmente */
-  align-items: center; /* Centraliza verticalmente */
-  text-align: center; /* Garante que o texto dentro esteja centralizado */
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 /* Estilo para mensagens de erro em vermelho */
 .alert-danger {
-  background-color: #f8d7da; /* Fundo vermelho claro */
-  border-color: #f5c6cb; /* Borda vermelho mais escuro */
-  color: #721c24; /* Texto vermelho escuro */
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
   padding: 15px;
   font-size: 1rem;
   border-radius: 8px;
@@ -139,65 +138,115 @@
 
 .alert-danger .bi-check-circle-fill {
   margin-right: 10px;
-  color: #721c24; /* Ícone em vermelho */
+  color: #721c24;
 }
 
 .alert-danger .btn-close {
   margin-left: 10px;
   background-color: transparent;
   border: none;
-  color: #721c24; /* Botão de fechar em vermelho */
+  color: #721c24;
+  font-size: 1.2rem;
+}
+
+/* Estilo para mensagens de sucesso em verde */
+.alert-success {
+  background-color: #d1f7d1;
+  border-color: #66bb6a;
+  color: #388e3c;
+  padding: 15px;
+  font-size: 1rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.alert-success .bi-check-circle-fill {
+  margin-right: 10px;
+  color: #388e3c;
+}
+
+.alert-success .btn-close {
+  margin-left: 10px;
+  background-color: transparent;
+  border: none;
+  color: #388e3c;
   font-size: 1.2rem;
 }
 
 /* Responsividade para telas menores */
 @media (max-width: 768px) {
-  .alert {
+  .alert,
+  .alert-danger,
+  .alert-success {
     padding: 10px;
     font-size: 0.9rem;
   }
 
-  .alert .bi-check-circle-fill {
+  .alert .bi-check-circle-fill,
+  .alert-danger .bi-check-circle-fill,
+  .alert-success .bi-check-circle-fill {
     margin-right: 5px;
   }
 
-  .alert .btn-close {
+  .alert .btn-close,
+  .alert-danger .btn-close,
+  .alert-success .btn-close {
     margin-left: 5px;
     font-size: 1rem;
   }
+
+  .card {
+    padding: 20px;
+    width: 100%;
+  }
+
+  .container-fluid {
+    height: calc(100vh + 80px);
+  }
+
+  .card h4 {
+    font-size: 1.5rem;
+  }
+
+  .card p {
+    font-size: 0.9rem;
+  }
+
+  .form-control,
+  .form-select,
+  .btn {
+    font-size: 0.95rem;
+  }
 }
-  
-  /* Responsividade */
-  @media (max-width: 768px) {
-    .card {
-      padding: 20px;
-      width: 100%;
-    }
-    .container{
-        height: calc(100vh + 80px);
-    }
-  
-    .card h4 {
-      font-size: 1.5rem;
-    }
-  
-    .card p {
-      font-size: 0.9rem;
-    }
-  
-    .form-control,
-    .form-select,
-    .btn {
-      font-size: 0.95rem;
-    }
+
+@media (max-width: 480px) {
+  .card h4 {
+    font-size: 1.2rem;
   }
-  .img-thumbnail {
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    padding: 5px;
-    background-color: #f9f9f9;
+
+  .form-control,
+  .form-select {
+    padding: 8px;
+    font-size: 0.9rem;
   }
-  /* Foto de Perfil */
+
+  .btn {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+}
+
+.img-thumbnail {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 5px;
+  background-color: #f9f9f9;
+}
+
+/* Foto de Perfil */
 #fotoPerfil {
   margin-top: 10px;
 }
@@ -211,53 +260,3 @@
   border: none;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
-
-/* Responsividade */
-@media (max-width: 768px) {
-  .container {
-    height: auto;
-      padding: 10px;
-      max-width: 600px;
-      width: 80%;
-  }
-
-  .card {
-      padding: 20px;
-  }
-
-  .card h4 {
-      font-size: 1.5rem;
-  }
-
-  .card-body {
-      width: 100%;
-  }
-
-  .form-control,
-  .form-select,
-  .btn {
-      font-size: 0.95rem;
-  }
-
-  .btn {
-      padding: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .card h4 {
-      font-size: 1.2rem;
-  }
-
-  .form-control,
-  .form-select {
-      padding: 8px;
-      font-size: 0.9rem;
-  }
-
-  .btn {
-      font-size: 0.9rem;
-      padding: 8px;
-  }
-}
-

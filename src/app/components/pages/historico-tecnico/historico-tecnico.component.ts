@@ -15,6 +15,7 @@ interface UserData {
   latitudeAtual: string | null | undefined;
   longitudeAtual: string | null | undefined;
   dataHoraUltimaAutenticacao: string;
+  nomeDaEmpresa: string;
 }
 
 // Interface para tipar os dados de trajeto e execução
@@ -52,6 +53,7 @@ interface Trajeto {
   estadoCliente?: string;
   fotoInicio?: string;
   fotoFim?: string;
+  observacoes?: string;
 }
 
 @Component({
@@ -72,7 +74,7 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
   horaFimExpediente: string | null = null;
   dataHoraAutenticacao: string = '';
   fotoPerfilUrl: string = '';
-
+  nomeDaEmpresa: string = '';
   userLocation: { latitude: string; longitude: string } = {
     latitude: '',
     longitude: '',
@@ -134,6 +136,7 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
         this.isOnline = usuario.isOnline;
         this.fotoPerfilUrl = usuario.fotoUrl;
         this.dataHoraAutenticacao = usuario.dataHoraUltimaAutenticacao;
+        this.nomeDaEmpresa = usuario.nomeDaEmpresa;
 
         this.userLocation = {
           latitude: usuario.latitudeAtual ?? '',
@@ -303,36 +306,6 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
             fotoFim
           };
         });
-
-        console.log('Trajetos carregados:', this.trajetos.map(t => ({
-          ordemServico: t.ordemServico,
-          inicio: t.inicio,
-          dataFormatada: new Date(t.inicio).toISOString().split('T')[0],
-          nomeCliente: t.nomeCliente,
-          cpfCliente: t.cpfCliente,
-          telefoneCliente: t.telefoneCliente,
-          cepCliente: t.cepCliente,
-          logradouroCliente: t.logradouroCliente,
-          numeroCliente: t.numeroCliente,
-          complementoCliente: t.complementoCliente,
-          bairroCliente: t.bairroCliente,
-          cidadeCliente: t.cidadeCliente,
-          estadoCliente: t.estadoCliente,
-          latitudeInicio: t.latitudeInicio,
-          longitudeInicio: t.longitudeInicio,
-          latitudeFim: t.latitudeFim,
-          longitudeFim: t.longitudeFim,
-          latitudeInicioExecucaoServico: t.latitudeInicioExecucaoServico,
-          longitudeInicioExecucaoServico: t.longitudeInicioExecucaoServico,
-          latitudeFimExecucaoServico: t.latitudeFimExecucaoServico,
-          longitudeFimExecucaoServico: t.longitudeFimExecucaoServico,
-          hasTrajetoCoordenadas: t.hasTrajetoCoordenadas,
-          hasExecucaoCoordenadas: t.hasExecucaoCoordenadas,
-          assinaturaCliente: t.assinaturaCliente,
-          fotoInicio: t.fotoInicio,
-          fotoFim: t.fotoFim
-        })));
-
         this.filtrarPorData();
       },
       error: (error) => console.error('Erro ao carregar ordens de serviço:', error),
@@ -436,9 +409,19 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
 
     const statusText = this.isOnline ? 'Localização Atual' : 'Última Localização';
     const horaText = this.isOnline ? 'Hora de Login' : 'Horário de Encerramento';
+    
+    // Criar ícone colorido baseado na empresa
+    const iconColor = this.determinarCorIcone(this.nomeDaEmpresa);
+    const customIcon = L.icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${iconColor}.png`,
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34]
+    });
 
     if (this.mapUserLocation) {
-      L.marker([lat, lng])
+      L.marker([lat, lng], { icon: customIcon })
         .addTo(this.mapUserLocation)
         .bindPopup(
           `${statusText}<br>
@@ -461,13 +444,23 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
     }).addTo(this.mapShiftLocation);
 
     const markers: L.Marker[] = [];
+    
+    // Criar ícone colorido baseado na empresa
+    const iconColor = this.determinarCorIcone(this.nomeDaEmpresa);
+    const customIcon = L.icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${iconColor}.png`,
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34]
+    });
 
     this.trajetosFiltrados.forEach((trajeto, index) => {
       const lat = parseFloat(trajeto.latitudeInicioExecucaoServico);
       const lng = parseFloat(trajeto.longitudeInicioExecucaoServico);
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        const marker = L.marker([lat, lng])
+        const marker = L.marker([lat, lng], { icon: customIcon })
           .addTo(this.mapShiftLocation as L.Map)
           .bindPopup(
             `Início da Execução (${index + 1})<br>
@@ -487,7 +480,7 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
         });
       }
     } else {
-      L.marker([-23.0, -43.0])
+      L.marker([-23.0, -43.0], { icon: customIcon })
         .addTo(this.mapShiftLocation as L.Map)
         .bindPopup('Nenhum ponto de início de execução disponível para o dia selecionado.')
         .openPopup();
@@ -563,13 +556,23 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       attribution: '© OpenStreetMap',
     }).addTo(this.mapUserLocation);
 
+    // Criar ícone colorido baseado na empresa
+    const iconColor = this.determinarCorIcone(this.nomeDaEmpresa);
+    const customIcon = L.icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${iconColor}.png`,
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34]
+    });
+
     if (this.mapUserLocation) {
-      L.marker([inicioLat, inicioLng])
+      L.marker([inicioLat, inicioLng], { icon: customIcon })
         .addTo(this.mapUserLocation)
         .bindPopup(popupInicio)
         .openPopup();
 
-      L.marker([fimLat, fimLng])
+      L.marker([fimLat, fimLng], { icon: customIcon })
         .addTo(this.mapUserLocation)
         .bindPopup(popupFim);
 
@@ -663,8 +666,18 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       </div>
     `;
 
+    // Criar ícone colorido baseado na empresa
+    const iconColor = this.determinarCorIcone(this.nomeDaEmpresa);
+    const customIcon = L.icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${iconColor}.png`,
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34]
+    });
+
     if (this.mapUserLocation) {
-      L.marker([lat, lng])
+      L.marker([lat, lng], { icon: customIcon })
         .addTo(this.mapUserLocation)
         .bindPopup(popupContent)
         .openPopup();
@@ -722,29 +735,40 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
   private async inicializarFormulario(trajeto: Trajeto): Promise<void> {
     try {
       const dados = {
-        codigoOS: this.formatarCodigoOS(trajeto.ordemServico) || '',
-        nomeColaborador: this.nomeUsuario || '',
-        empresaColaborador: 'VIBETEX',
-        nomeCliente: trajeto.nomeCliente || '',
-        cpf: trajeto.cpfCliente || '',
-        telefone: trajeto.telefoneCliente || '',
-        cep: trajeto.cepCliente || '',
-        // Use o endereço completo aqui para o formulário
-        logradouro: trajeto.logradouroCliente || '', 
-        numero: trajeto.numeroCliente || '',
+        codigoOS: this.formatarCodigoOS(trajeto.ordemServico) || 'N/A',
+        nomeColaborador: this.nomeUsuario || 'Não informado',
+        empresaColaborador: this.nomeDaEmpresa || 'VIBETEX', // Usando a empresa do colaborador
+        nomeCliente: trajeto.nomeCliente || 'Não informado',
+        cpf: trajeto.cpfCliente || 'Não informado',
+        telefone: trajeto.telefoneCliente || 'Não informado',
+        cep: trajeto.cepCliente || 'Não informado',
+        logradouro: trajeto.logradouroCliente || 'Não informado',
+        numero: trajeto.numeroCliente || 'Não informado',
         complemento: trajeto.complementoCliente || '',
-        bairro: trajeto.bairroCliente || '',
-        cidade: trajeto.cidadeCliente || '',
-        estado: trajeto.estadoCliente || '',
-        observacoes: '',
+        bairro: trajeto.bairroCliente || 'Não informado',
+        cidade: trajeto.cidadeCliente || 'Não informado',
+        estado: trajeto.estadoCliente || 'Não informado',
+        observacoes: trajeto.observacoes || 'N/A',
         fotoInicio: trajeto.fotoInicio || '',
         fotoFim: trajeto.fotoFim || '',
         assinatura: trajeto.assinaturaCliente || ''
       };
-
+  
       console.log('Dados do formulário antes de preencher:', dados);
       this.formularioServico.patchValue(dados);
       console.log('Formulário após preenchimento:', this.formularioServico.value);
+  
+      // Forçar a validação do formulário
+      this.formularioServico.markAllAsTouched();
+      if (!this.formularioServico.valid) {
+        console.warn('Formulário inválido após preenchimento:', this.formularioServico.errors);
+        Object.keys(this.formularioServico.controls).forEach(key => {
+          const control = this.formularioServico.get(key);
+          if (control?.invalid) {
+            console.warn(`Campo ${key} está inválido:`, control.errors);
+          }
+        });
+      }
     } catch (error) {
       console.error('Erro ao inicializar formulário:', error);
       alert('Erro ao carregar o formulário.');
@@ -757,15 +781,48 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const formData = this.formularioServico.value;
-    console.log('Dados enviados para gerarPDF:', formData);
-    
-    const assinaturaBase64 = formData.assinatura || '';
-    this.formularioService.gerarPDF(formData, assinaturaBase64);
+    try {
+      const formData = this.formularioServico.value;
+      console.log('Dados enviados para gerarPDF:', formData);
+      
+      const assinaturaBase64 = formData.assinatura || '';
+      
+      // Mostrar indicador de carregamento
+      alert('Gerando PDF, por favor aguarde...');
+      
+      this.formularioService.gerarPDF(formData, assinaturaBase64)
+        .catch(error => {
+          console.error('Erro ao gerar PDF:', error);
+          alert('Ocorreu um erro ao gerar o PDF, mas um PDF parcial pode ter sido criado.');
+        });
+    } catch (error) {
+      console.error('Erro ao preparar dados para o PDF:', error);
+      alert('Erro ao gerar PDF. Verifique o console para mais informações.');
+    }
   }
 
   ngOnDestroy(): void {
     if (this.mapUserLocation) this.mapUserLocation.remove();
     if (this.mapShiftLocation) this.mapShiftLocation.remove();
+  }
+
+  // Método auxiliar para determinar a cor do ícone baseado na empresa
+  private determinarCorIcone(empresa: string): string {
+    if (!empresa) return 'blue';
+    
+    const empresaNormalizada = empresa.toLowerCase().trim();
+    
+    if (empresaNormalizada.includes('flamengo')) {
+      return 'red';
+    } else if (empresaNormalizada.includes('figth') || 
+              empresaNormalizada.includes('fight')) {
+      return 'blue';
+    } else if (empresaNormalizada.includes('vibetex')) {
+      return 'green';
+    } else if (empresaNormalizada.includes('nexus')) {
+      return 'orange';
+    }
+    
+    return 'blue'; // cor padrão
   }
 }

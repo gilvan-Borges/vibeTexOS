@@ -223,3 +223,109 @@ h1 {
   font-size: 1.1rem;
   color: #6c757d;
 }
+
+/* Estilos para o modal de detalhes */
+.modal-content {
+  border-radius: 10px;
+  border: none;
+}
+
+.modal-header {
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-footer {
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+  border-radius: 0 0 10px 10px;
+}
+
+.modal-body .card {
+  box-shadow: none;
+  border: 1px solid #e9ecef;
+}
+
+.modal-body h6 {
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.modal-body p {
+  margin-bottom: 0;
+  padding-left: 26px;
+}
+
+.modal-title {
+  color: #343a40;
+  font-weight: 600;
+}
+
+/* Estilos para o formulário no modal */
+.formulario-container {
+  padding: 10px;
+}
+
+.form-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 8px;
+}
+
+.form-label {
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.form-value {
+  font-size: 1rem;
+  padding: 8px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  margin-bottom: 0;
+}
+
+.foto-container, .assinatura-container {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.foto-container img, .assinatura-container img {
+  max-height: 200px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Responsividade para o modal */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+  }
+  
+  .form-value {
+    font-size: 0.9rem;
+  }
+}

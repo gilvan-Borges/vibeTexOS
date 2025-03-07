@@ -23,6 +23,12 @@ export class ServicoLocalizacao {
 
   capturarCoordenadas(): Promise<Coordenadas> {
     return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        console.error('Geolocalização não suportada neste navegador.');
+        reject('Geolocalização não suportada neste navegador.');
+        return;
+      }
+  
       navigator.geolocation.getCurrentPosition(
         (position) => {
           console.log('Coordenadas brutas do GPS:', {
@@ -30,7 +36,7 @@ export class ServicoLocalizacao {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy // Precisão em metros
           });
-
+  
           const coordenadas = {
             latitude: position.coords.latitude.toFixed(7),
             longitude: position.coords.longitude.toFixed(7)
@@ -41,7 +47,21 @@ export class ServicoLocalizacao {
         },
         (error) => {
           console.error('❌ Erro ao obter localização:', error);
-          reject('Erro ao capturar localização. Verifique as permissões de localização.');
+          let mensagemErro = 'Erro ao capturar localização.';
+  
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              mensagemErro = 'Permissão de localização negada. Por favor, habilite as permissões de localização.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              mensagemErro = 'Informação de localização não disponível.';
+              break;
+            case error.TIMEOUT:
+              mensagemErro = 'Tempo excedido para obter localização.';
+              break;
+          }
+  
+          reject(mensagemErro);
         },
         {
           enableHighAccuracy: true,
@@ -61,8 +81,8 @@ export class ServicoLocalizacao {
     const Δλ = (lon2 - lon1) * Math.PI / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // Distância em metros
@@ -70,40 +90,18 @@ export class ServicoLocalizacao {
 
   iniciarAtualizacaoAutomatica(idUsuario: string): Subscription {
     this.pararAtualizacaoAutomatica();
-
+  
     this.atualizacaoSubscription = interval(30000).subscribe(() => {
       this.capturarCoordenadas()
         .then(coordenadas => {
           console.log('📍 Coordenadas capturadas e prontas para enviar à API:', coordenadas);
-
-          // Obtém as coordenadas atuais do localStorage para comparar
-          const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
-          let coordenadasAntigas: Coordenadas = {
-            latitude: usuarioData.latitudeAtual || '-23.0013040', // Valor padrão
-            longitude: usuarioData.longitudeAtual || '-43.3958987' // Valor padrão
-          };
-
-          // Converte strings para números para calcular a distância
-          const latAtual = parseFloat(coordenadas.latitude);
-          const lonAtual = parseFloat(coordenadas.longitude);
-          const latAntiga = parseFloat(coordenadasAntigas.latitude);
-          const lonAntiga = parseFloat(coordenadasAntigas.longitude);
-
-          // Calcula a distância entre as coordenadas novas e antigas (em metros)
-          const distancia = this.calcularDistancia(latAtual, lonAtual, latAntiga, lonAntiga);
-          console.log('Distância entre as coordenadas novas e antigas:', distancia, 'metros');
-
-          // Atualiza apenas se a distância for significativa (por exemplo, maior que 10 metros)
-          const LIMITE_DISTANCIA = 10; // 10 metros como limite
-          if (distancia > LIMITE_DISTANCIA || !usuarioData.latitudeAtual || !usuarioData.longitudeAtual) {
-            this.atualizarCoordenadas(idUsuario, coordenadas.latitude, coordenadas.longitude);
-          } else {
-            console.log('Mudança de coordenadas insignificante (menos de 10 metros), ignorando atualização.');
-          }
+  
+          // Remove a verificação de distância e atualiza diretamente
+          this.atualizarCoordenadas(idUsuario, coordenadas.latitude, coordenadas.longitude);
         })
         .catch(error => console.error('❌ Erro na atualização automática:', error));
     });
-
+  
     return this.atualizacaoSubscription;
   }
 
@@ -139,8 +137,7 @@ export class ServicoLocalizacao {
 
   atualizarCoordenadas(idUsuario: string, latitude: string, longitude: string): void {
     console.log('📤 Coordenadas enviadas para a API:', { idUsuario, latitude, longitude });
-
-    // Atualiza as coordenadas no localStorage antes de enviá-las para a API
+  
     const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
     if (usuarioData && usuarioData.usuarioId === idUsuario) {
       usuarioData.latitudeAtual = latitude;
@@ -148,7 +145,7 @@ export class ServicoLocalizacao {
       console.log('Coordenadas atualizadas no localStorage:', { latitude, longitude });
       localStorage.setItem('usuario', JSON.stringify(usuarioData));
     }
-
+  
     this.controllAppService.atualizarCoordenadasUsuario(idUsuario, latitude, longitude)
       .subscribe({
         next: () => console.log('✅ Coordenadas atualizadas com sucesso na API.'),

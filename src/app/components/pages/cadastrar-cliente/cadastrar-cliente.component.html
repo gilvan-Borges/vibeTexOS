@@ -9,11 +9,11 @@
     <div class="card-body">
       <div *ngIf="mensagem != ''" class="alert-container">
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-circle-fill me-2"></i> <!-- Ícone de erro, se desejar -->
-            <strong>{{ mensagem }}</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          <strong>{{ mensagem }}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    </div>
+      </div>
 
       <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
         <div class="row g-3">
@@ -82,7 +82,6 @@
               Por favor, informe a UF.
             </div>
           </div>
-       
         </div>
 
         <div class="mt-4">
@@ -92,7 +91,7 @@
         </div>
       </form>
 
-      <!-- Tabela de Clientes com Paginação -->
+      <!-- Tabela de Clientes com Filtro e Paginação -->
       <div class="table-container mt-5 w-100">
         <div class="table-header">
           <h5 class="table-title">Clientes Cadastrados</h5>
@@ -106,11 +105,26 @@
           </div>
         </div>
 
+        <!-- Filtro -->
+        <div class="filter-container mb-3">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="filtroNome" class="form-label">Filtrar por Nome:</label>
+              <input id="filtroNome" type="text" class="form-control" [(ngModel)]="filtroNome" (input)="filtrarClientes()" placeholder="Digite o nome..." />
+            </div>
+            <div class="col-md-6">
+              <label for="filtroCpf" class="form-label">Filtrar por CPF:</label>
+              <input id="filtroCpf" type="text" class="form-control" [(ngModel)]="filtroCpf" (input)="filtrarClientes()" placeholder="Digite o CPF..." mask="000.000.000-00" />
+            </div>
+          </div>
+        </div>
+
         <div class="table-wrapper">
           <table class="table table-striped table-hover table-bordered w-100">
             <thead>
               <tr>
                 <th scope="col" class="col-nome">Nome</th>
+                <th scope="col" class="col-cpf">CPF</th>
                 <th scope="col" class="col-endereco">Endereço</th>
                 <th scope="col" class="col-acoes">Ações</th>
               </tr>
@@ -118,6 +132,7 @@
             <tbody>
               <tr *ngFor="let cliente of paginatedClientes">
                 <td class="text-center">{{ cliente.nomeCliente }}</td>
+                <td class="text-center">{{ cliente.cpfCliente }}</td>
                 <td class="text-center">{{ cliente.endereco?.logradouro }}, {{ cliente.endereco?.numero }}, {{ cliente.endereco?.bairro }}, {{ cliente.endereco?.cidade }} - {{ cliente.endereco?.uf }}</td>
                 <td class="text-center">
                   <div class="btn-group">
@@ -131,7 +146,7 @@
                 </td>
               </tr>
               <tr *ngIf="paginatedClientes.length === 0">
-                <td colspan="3" class="text-center">Nenhum cliente cadastrado.</td>
+                <td colspan="4" class="text-center">Nenhum cliente cadastrado.</td>
               </tr>
             </tbody>
           </table>

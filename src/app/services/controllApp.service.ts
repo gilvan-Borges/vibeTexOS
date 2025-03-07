@@ -29,12 +29,12 @@ export class ControllAppService {
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
     if (!token) {
-        console.error('Token não encontrado');
-        return new HttpHeaders();
+      console.error('Token não encontrado');
+      return new HttpHeaders();
     }
     return new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     });
   }
 
@@ -62,19 +62,19 @@ export class ControllAppService {
     );
   }
 
-  autenticar(userName: string, cpf: string, senha: string): Observable<any> {
+  autenticar(userName: string,  senha: string): Observable<any> {
     // Primeira requisição para o endpoint 1
     const request1 = this.httpClient.post<AutenticarResponseDto>(
       environment.controllApp + '/usuario/authenticate',
-      { userName, cpf, senha }
+      { userName, senha }
     );
-  
+
     // Segunda requisição para o endpoint 2
     const request2 = this.httpClient.post<AutenticarResponseDto>(
       environment.vibeservice + '/usuario/authenticate',
-      { userName, cpf, senha }
+      { userName, senha }
     );
-  
+
     // Executa ambas as requisições simultaneamente usando forkJoin
     return forkJoin([request1, request2]);
   }
@@ -82,9 +82,9 @@ export class ControllAppService {
   usuarioGetAll(request: RegisterRequestDto): Observable<UsuarioResponseDto[]> {
     return this.httpClient.get<UsuarioResponseDto[]>(
       `${environment.controllApp}/usuario/tecnicos`,
-      { 
+      {
         headers: this.getHeaders(),
-        params: request as any 
+        params: request as any
       }
     ).pipe(
       map(usuarios => usuarios.map(usuario => ({
@@ -98,32 +98,32 @@ export class ControllAppService {
   pontoRegistrarInicioExpediente(idUsuario: string, formData: FormData): Observable<RegistrarPontoInicioResponseDto> {
     const token = localStorage.getItem('token');
     if (!token) {
-        return throwError(() => new Error('Token não encontrado'));
+      return throwError(() => new Error('Token não encontrado'));
     }
 
     // For FormData, only include Authorization header
     const headers = {
-        'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`
     };
 
     console.log('📤 Dados do FormData:');
     formData.forEach((value, key) => {
-        console.log(`${key}:`, value);
+      console.log(`${key}:`, value);
     });
 
     return this.httpClient.post<RegistrarPontoInicioResponseDto>(
-        `${environment.controllApp}/ponto/${idUsuario}/registrarinicioexpediente/`,
-        formData,
-        { headers }
+      `${environment.controllApp}/ponto/${idUsuario}/registrarinicioexpediente/`,
+      formData,
+      { headers }
     ).pipe(
-        tap(response => console.log('📨 Resposta da API:', response)),
-        catchError(error => {
-            console.error('❌ Erro na requisição:', error);
-            if (error.status === 401) {
-                console.error('Token inválido ou expirado');
-            }
-            return throwError(() => error);
-        })
+      tap(response => console.log('📨 Resposta da API:', response)),
+      catchError(error => {
+        console.error('❌ Erro na requisição:', error);
+        if (error.status === 401) {
+          console.error('Token inválido ou expirado');
+        }
+        return throwError(() => error);
+      })
     );
   }
 
@@ -270,21 +270,64 @@ export class ControllAppService {
   PontoGetByUsuarioId(usuarioId: string): Observable<any[]> {
     // Ensure usuarioId is properly formatted and URL doesn't have double slashes
     const url = `${this.apiUrl}/ponto/${usuarioId}/pontos-combinados`.replace(/([^:]\/)\/+/g, "$1");
-    
+
     return this.httpClient.get<any[]>(url, { headers: this.getHeaders() }).pipe(
-        tap(response => console.log('📌 Resposta da API pontos-combinados:', response)),
-        catchError(error => {
-            console.error('❌ Erro ao buscar pontos:', error);
-            return throwError(() => error);
-        })
+      tap(response => console.log('📌 Resposta da API pontos-combinados:', response)),
+      catchError(error => {
+        console.error('❌ Erro ao buscar pontos:', error);
+        return throwError(() => error);
+      })
     );
   }
 
   deleteById(id: string): Observable<any> {
-    return this.httpClient.delete(`${this.apiUrl}/usuario/delete/${id}`).pipe(
+    return this.httpClient.delete(`${this.apiUrl}/usuario/delete/${id}`,{
+      headers: this.getHeaders()
+    }).pipe(
       catchError(this.handleError)
     );
   }
 
-  
+  atualizarEmpresa(empresaId: string, data: any): Observable<any> {
+    return this.httpClient.put<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, data, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+  cadastrarEmpresa(data: any): Observable<any> {
+    return this.httpClient.post<any>(`${this.apiUrl}/usuario/empresa`, data, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  buscarEmpresasPorId(empresaId: string): Observable<any> {
+    return this.httpClient.get<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+
+  buscarEmpresas(): Observable<any> {
+    return this.httpClient.get<any>(`${this.apiUrl}/usuario/empresa`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  deletarEmpresa(empresaId: string): Observable<any> {
+    return this.httpClient.delete<any>(`${this.apiUrl}/usuario/empresa/${empresaId}`, {
+      headers: this.getHeaders(),
+      responseType: 'text' as 'json' // Add this line to handle empty responses
+    }).pipe(
+      map(() => ({ success: true })), // Transform empty response to a success object
+      catchError(this.handleError)
+    );
+  }
+
 }

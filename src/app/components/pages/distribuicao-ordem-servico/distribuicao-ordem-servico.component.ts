@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { UsuarioService } from '../../../services/usuario.service';
@@ -59,7 +59,8 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   constructor(
     private fb: FormBuilder, 
     private usuarioService: UsuarioService,
-    private vibeService: VibeService
+    private vibeService: VibeService,
+    private cdr: ChangeDetectorRef // Adiciona ChangeDetectorRef
   ) {
     // Inicializa formulário
     this.serviceForm = this.fb.group({
@@ -71,8 +72,6 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
       endereco: [{ value: '', disabled: true }, Validators.required],
       hora: ['', Validators.required]
     });
-
-    
 
     // Quando o cliente muda, atualiza o campo "endereco"
     this.serviceForm.get('cliente')?.valueChanges.subscribe(clienteId => {
@@ -146,89 +145,100 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
   }
 
   // Carrega ordens de serviço e filtra apenas as que têm "ativo = true"
-  carregarOrdensServico() {
-    try {
-      this.isLoading = true;
-      this.vibeService.buscarOrdemServico().subscribe({
-        next: (response: any[]) => {
-          // Filtra somente as ordens ativas
-          const ordensAtivas = response;
-  
-          // Mapeia para o seu formato interno
-          this.ordensServico = ordensAtivas.map(ordem => {
-            let colaboradorNome = 'Não atribuído';
-            if (ordem.usuarioId && this.colaboradores.length > 0) {
-              const colaborador = this.colaboradores.find(c => c.id === ordem.usuarioId);
-              colaboradorNome = colaborador ? colaborador.nome : 'Não atribuído';
+// Dentro do método carregarOrdensServico
+carregarOrdensServico() {
+  try {
+    this.isLoading = true;
+    this.vibeService.buscarOrdemServico().subscribe({
+      next: (response: any[]) => {
+        // Filtra somente as ordens ativas
+        const ordensAtivas = response;
+
+        // Mapeia para o seu formato interno
+        this.ordensServico = ordensAtivas.map(ordem => {
+          let colaboradorNome = 'Não atribuído';
+          if (ordem.usuarioId && this.colaboradores.length > 0) {
+            const colaborador = this.colaboradores.find(c => c.id === ordem.usuarioId);
+            colaboradorNome = colaborador ? colaborador.nome : 'Não atribuído';
+          } else {
+            colaboradorNome = 'Não atribuído';
+          }
+
+          // Valida e formata dataHoraCadastro
+          let dataHoraCadastroFormatada: string = '';
+          if (ordem.dataHoraCadastro) {
+            const dataHora = new Date(ordem.dataHoraCadastro);
+            if (!isNaN(dataHora.getTime())) {
+              dataHoraCadastroFormatada = dataHora.toISOString();
             }
-  
-            // Valida e formata dataHoraCadastro
-            let dataHoraCadastroFormatada: string = ''; // Default to empty string
-            if (ordem.dataHoraCadastro) {
-              const dataHora = new Date(ordem.dataHoraCadastro);
-              if (!isNaN(dataHora.getTime())) {
-                dataHoraCadastroFormatada = dataHora.toISOString();
-              }
-            }
-  
-            return {
-              id: ordem.id || undefined,
-              ordemDeServicoId: ordem.ordemDeServicoId,
-              numeroOrdemDeServico: ordem.numeroOrdemDeServico,
-              codigoOS: ordem.numeroOrdemDeServico,
-              cliente: ordem.cliente?.nomeCliente || 'Cliente não identificado',
-              clienteId: ordem.clienteId,
-              tipoServico: ordem.tipoServico,
-              dataHoraCadastro: dataHoraCadastroFormatada,
-              status: ordem.statusOrdem,
-              endereco: ordem.cliente?.endereco 
-                ? `${ordem.cliente.endereco.logradouro}, ${ordem.cliente.endereco.bairro}`
-                : 'Endereço não disponível',
-              usuarioId: ordem.usuarioId,
-              colaborador: colaboradorNome,
-              atribuida: ordem.atribuida === true || !!ordem.usuarioId
-            };
-          });
-  
-          // Filtra ordens com data válida
-          this.ordensServico = this.ordensServico.filter(ordem => ordem.dataHoraCadastro);
-  
-          // Filtra ordens do dia e agendadas
-          const hojeStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-  
-          // Ordens de hoje
-          this.ordensDoDia = this.ordensServico.filter(ordem => {
-            if (!ordem.dataHoraCadastro) return false;
-            const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
-            return dataOrdemStr === hojeStr;
-          });
-  
-          // Ordens agendadas (futuras)
-          this.ordensAgendadas = this.ordensServico.filter(ordem => {
-            if (!ordem.dataHoraCadastro) return false;
-            const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
-            return dataOrdemStr > hojeStr;
-          });
-  
-          console.log('Ordens do dia:', this.ordensDoDia);
-          console.log('Ordens agendadas:', this.ordensAgendadas);
-  
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Erro ao carregar ordens:', error);
-          this.ordensServico = [];
-          this.ordensDoDia = [];
-          this.ordensAgendadas = [];
-          this.isLoading = false;
-        }
-      });
-    } catch (error) {
-      console.error('Erro ao carregar ordens:', error);
-    } finally {
-      this.isLoading = false;
-    }
+          }
+
+          return {
+            id: ordem.id || undefined,
+            ordemDeServicoId: ordem.ordemDeServicoId,
+            numeroOrdemDeServico: ordem.numeroOrdemDeServico,
+            codigoOS: ordem.numeroOrdemDeServico,
+            cliente: ordem.cliente?.nomeCliente || 'Cliente não identificado',
+            clienteId: ordem.clienteId,
+            tipoServico: ordem.tipoServico,
+            dataHoraCadastro: dataHoraCadastroFormatada,
+            status: ordem.statusOrdem,
+            endereco: ordem.cliente?.endereco 
+              ? `${ordem.cliente.endereco.logradouro}, ${ordem.cliente.endereco.bairro}`
+              : 'Endereço não disponível',
+            usuarioId: ordem.usuarioId,
+            colaborador: colaboradorNome, // Pode ser null ou o nome do colaborador
+            atribuida: ordem.atribuida === true || !!ordem.usuarioId
+          };
+        });
+
+        // Filtra ordens com data válida
+        this.ordensServico = this.ordensServico.filter(ordem => ordem.dataHoraCadastro);
+
+        // Filtra ordens do dia e agendadas
+        const hojeStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+        // Ordens de hoje
+        this.ordensDoDia = this.ordensServico.filter(ordem => {
+          if (!ordem.dataHoraCadastro) return false;
+          const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
+          return dataOrdemStr === hojeStr;
+        });
+
+        // Ordens agendadas (futuras)
+        this.ordensAgendadas = this.ordensServico.filter(ordem => {
+          if (!ordem.dataHoraCadastro) return false;
+          const dataOrdemStr = new Date(ordem.dataHoraCadastro).toISOString().slice(0, 10);
+          return dataOrdemStr > hojeStr;
+        });
+
+        // Depuração para verificar o valor de colaborador
+        this.ordensDoDia.forEach(ordem => {
+          console.log(`Ordem ${ordem.codigoOS}: colaborador = ${ordem.colaborador}, !colaborador = ${!ordem.colaborador}`);
+        });
+
+        console.log('Ordens do dia:', this.ordensDoDia);
+        console.log('Ordens agendadas:', this.ordensAgendadas);
+
+        // Força a detecção de mudanças
+        this.cdr.detectChanges();
+
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar ordens:', error);
+        this.ordensServico = [];
+        this.ordensDoDia = [];
+        this.ordensAgendadas = [];
+        this.isLoading = false;
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao carregar ordens:', error);
+  } finally {
+    this.isLoading = false;
   }
+}
   
   onSubmit() {
     if (this.serviceForm.invalid) {
@@ -311,6 +321,14 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     console.log('Dados salvos no localStorage:', despachoData);
   }
   
+  normalizeStatus(status: string): string {
+    const normalized = status
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+    return normalized;
+  }
 
   // Cancelar (resetar) o form
   onCancel() {
@@ -412,7 +430,6 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   
-
   // Cancelar ordem localmente (mudar status para 'cancelado') -- apenas exemplo
   cancelarOrdem(ordem: OrdemServico) {
     if (confirm('Tem certeza que deseja cancelar esta ordem de serviço?')) {

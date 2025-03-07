@@ -2,6 +2,9 @@ export interface RegisterResponseDto {
 
       usuarioId: string;
       nome: string;
+      empresaId: string;
+      empresa: string;
+      numeroMatricula: string;
       userName: string;
       email: string;
       senha: string;
@@ -13,6 +16,7 @@ export interface RegisterResponseDto {
       horaAlmocoFim: string;
       fotoUrl: string;
       isOnline: boolean;
-
+      RoteirizadorId: string;
+      username: string;
   }
   

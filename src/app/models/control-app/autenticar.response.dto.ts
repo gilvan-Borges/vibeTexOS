@@ -8,4 +8,6 @@ export interface AutenticarResponseDto {
   dataHoraAutenticacao: string; // Changed from Date to string
   isOnline: boolean;
   tipoUsuario: string;
+  latitudeAtual: string;
+  longitudeAtual: string;
 }

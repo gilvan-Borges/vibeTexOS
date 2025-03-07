@@ -13,7 +13,7 @@
       <!-- Área do usuário na navbar -->
       <div class="navbar-nav ms-auto d-flex align-items-center">
         <span class="nav-link nav-link-navbar text-white">
-          <strong>{{ nomeUsuario }}</strong> ({{ role }})
+          <strong>{{ nomeUsuario || userName }}</strong> ({{ role }})
         </span>
         <!-- Botão de Logout -->
         <button (click)="logout()" class="btn-sair-navbar btn btn-outline-danger btn-sm ms-2">
@@ -25,7 +25,11 @@
 
   <!-- SIDEBAR -->
   <div class="sidebar" [class.closed]="isSidebarClosed">
-    <div class="sidebar-content">
+    <div class="sidebar-content" #sidebarContent
+         (mousedown)="onMouseDown($event)"
+         (mousemove)="onMouseMove($event)"
+         (mouseup)="onMouseUp()"
+         (mouseleave)="onMouseLeave()">
       <!-- Informações do usuário (visíveis no desktop) -->
       <div class="usuario">
         <strong>{{ nomeUsuario }}</strong> ({{ role }})
@@ -99,7 +103,6 @@
         </div>
       </div>
 
-
       <!-- Menu para Colaborador -->
       <a *ngIf="role === 'Colaborador'" [routerLink]="['/pages/horas-colaborador', usuarioId]" class="nav-link"
         (click)="fecharSidebarSeMobile()">
@@ -117,8 +120,8 @@
         </a>
 
         <!-- O.S. em Andamento (se houver O.S. iniciada) -->
-        <a *ngIf="osEmAndamento" [routerLink]="['/pages/ordem-servico-exec', usuarioId]" class="nav-link"
-          (click)="fecharSidebarSeMobile()">
+        <a *ngIf="osEmAndamento" class="nav-link"
+          (click)="continuarOsEmAndamento(); fecharSidebarSeMobile()">
           <i class="fa-solid fa-tools"></i>
           <span>O.S. em Andamento</span>
         </a>

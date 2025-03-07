@@ -38,6 +38,7 @@
         <option value="Pendente">Pendente</option>
         <option value="Concluído">Concluído</option>
         <option value="Cancelado">Cancelado</option>
+        <option value="Agendada">Agendada</option>
       </select>
     </div>
 
@@ -90,8 +91,20 @@
           </td>
           <td>{{ os.numeroOrdemDeServico || 'N/A' }}</td>
           <td>{{ os.dataHoraCadastro ? (os.dataHoraCadastro | date:'dd/MM/yyyy':'GMT') : 'N/A' }}</td>
-          <td>{{ os.empresa?.nome || 'N/A' }}</td>
-          <td>{{ os.statusOrdem || 'N/A' }}</td>
+          <td>{{ getEmpresaNome(os.usuarioId) }}</td>
+          <td>
+            <span
+              class="status"
+              [ngClass]="{
+                'bg-green-soft': normalizeStatus(os.statusOrdem) === 'concluido',
+                'bg-orange-soft': normalizeStatus(os.statusOrdem) === 'pendente',
+                'bg-red-soft': normalizeStatus(os.statusOrdem) === 'cancelado',
+                'bg-blue-soft': normalizeStatus(os.statusOrdem) === 'agendada'
+              }"
+            >
+              {{ os.statusOrdem || 'N/A' }}
+            </span>
+          </td>
           <td>{{ os.observacoesReparo || 'Sem descrição' }}</td>
         </tr>
         <tr *ngIf="ordensServicoFiltradas.length === 0">

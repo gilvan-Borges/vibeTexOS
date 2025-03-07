@@ -7,8 +7,6 @@ import { VibeService } from '../../../services/vibe.service';
 import { ClienteResponseDto } from '../../../models/vibe-service/clienteResponseDto';
 import { CriarClienteRequestDto } from '../../../models/vibe-service/criarClienteRequestDto';
 
-
-
 interface ViaCepResponse {
   cep: string;
   logradouro: string;
@@ -36,10 +34,15 @@ export class CadastrarClienteComponent implements OnInit {
   editando: boolean = false;
   clienteEditando: ClienteResponseDto | null = null;
   clientes: ClienteResponseDto[] = [];
+  filteredClientes: ClienteResponseDto[] = []; // Lista filtrada de clientes
+
+  // Variáveis de filtro
+  filtroNome: string = '';
+  filtroCpf: string = '';
 
   // Paginação
   currentPage: number = 1;
-  itemsPerPage: number = 5; // Padrão: 5 itens por página
+  itemsPerPage: number = 5;
   totalItems: number = 0;
 
   private viaCepUrl = 'https://viacep.com.br/ws/';
@@ -72,7 +75,7 @@ export class CadastrarClienteComponent implements OnInit {
   }
 
   private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
+    const token = localStorage.getItem('token');
     return new HttpHeaders().set('Authorization', `Bearer ${token}`);
   }
 
@@ -80,7 +83,8 @@ export class CadastrarClienteComponent implements OnInit {
     this.vibeService.buscarClientes().subscribe({
       next: (response) => {
         this.clientes = response;
-        this.totalItems = this.clientes.length;
+        this.filteredClientes = [...this.clientes]; // Inicializa a lista filtrada com todos os clientes
+        this.totalItems = this.filteredClientes.length;
         this.updatePaginatedClientes();
       },
       error: (error) => {
@@ -93,11 +97,11 @@ export class CadastrarClienteComponent implements OnInit {
   buscarCep() {
     const cep = this.formulario.get('cep')?.value;
     if (cep && this.formulario.get('cep')?.valid) {
-      const cepLimpo = cep.replace('-', ''); // Remove o hífen para a API
+      const cepLimpo = cep.replace('-', '');
       this.http.get<ViaCepResponse>(`${this.viaCepUrl}${cepLimpo}/json/`).subscribe({
         next: (response) => {
           if (!response.erro) {
-            const numero = this.formulario.get('numero')?.value || ''; // Mantém o valor atual do número, se houver
+            const numero = this.formulario.get('numero')?.value || '';
             const endereco = `${response.logradouro || ''}, ${numero ? numero + ', ' : ''}${response.complemento || ''}, ${response.bairro || ''}, ${response.localidade || ''}, ${response.uf || ''}`.trim();
             this.formulario.patchValue({
               logradouro: response.logradouro || '',
@@ -105,7 +109,7 @@ export class CadastrarClienteComponent implements OnInit {
               bairro: response.bairro || '',
               uf: response.uf || '',
               estado: response.localidade || '',
-              endereco: endereco // Preenche o campo endereco como uma string concatenada
+              endereco: endereco
             });
             this.mensagem = 'Endereço preenchido com sucesso!';
           } else {
@@ -119,13 +123,13 @@ export class CadastrarClienteComponent implements OnInit {
               numero: '',
               endereco: ''
             });
-            this.formulario.get('cep')?.setErrors({ 'invalidCep': true }); // Marca o CEP como inválido se não encontrado
+            this.formulario.get('cep')?.setErrors({ 'invalidCep': true });
           }
           setTimeout(() => this.mensagem = '', 5000);
         },
         error: (err) => {
           this.mensagem = 'Erro ao consultar o CEP. Tente novamente.';
-          this.formulario.get('cep')?.setErrors({ 'invalidCep': true }); // Marca o CEP como inválido em caso de erro
+          this.formulario.get('cep')?.setErrors({ 'invalidCep': true });
           console.error('Erro ao buscar CEP:', err);
           setTimeout(() => this.mensagem = '', 5000);
         }
@@ -179,7 +183,6 @@ export class CadastrarClienteComponent implements OnInit {
     });
   }
 
-
   atualizarCliente() {
     if (this.clienteEditando?.clienteId) {
       const requestDto: CriarClienteRequestDto = {
@@ -232,7 +235,6 @@ export class CadastrarClienteComponent implements OnInit {
     this.editando = true;
     this.clienteEditando = cliente;
     
-    // Preenche o formulário com os dados do cliente
     this.formulario.patchValue({
       nomeCliente: cliente.nomeCliente,
       cpfCliente: cliente.cpfCliente,
@@ -252,16 +254,32 @@ export class CadastrarClienteComponent implements OnInit {
     this.formulario.reset();
   }
 
+  // Método de Filtro
+  filtrarClientes(): void {
+    this.filteredClientes = this.clientes.filter(cliente => {
+      const nomeMatch = this.filtroNome
+        ? cliente.nomeCliente?.toLowerCase().includes(this.filtroNome.toLowerCase()) ?? false
+        : true;
+      const cpfMatch = this.filtroCpf
+        ? cliente.cpfCliente?.replace(/[^\d]/g, '').includes(this.filtroCpf.replace(/[^\d]/g, ''))
+        : true;
+      return nomeMatch && cpfMatch;
+    });
+    this.totalItems = this.filteredClientes.length;
+    this.currentPage = 1; // Reseta para a primeira página ao filtrar
+    this.updatePaginatedClientes();
+  }
+
   // Lógica de Paginação
   get paginatedClientes(): ClienteResponseDto[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    return this.clientes.slice(startIndex, endIndex);
+    return this.filteredClientes.slice(startIndex, endIndex);
   }
 
   onItemsPerPageChange(): void {
-    this.currentPage = 1; // Reset para primeira página quando mudar itens por página
-    this.totalItems = this.clientes.length;
+    this.currentPage = 1;
+    this.totalItems = this.filteredClientes.length;
   }
 
   get totalPages(): number {
@@ -289,11 +307,10 @@ export class CadastrarClienteComponent implements OnInit {
   }
 
   updatePaginatedClientes(): void {
-    this.totalItems = this.clientes.length;
+    this.totalItems = this.filteredClientes.length;
   }
 
-  // Método para rolar a página para o topo
   rolarParaTopo(): void {
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Rolagem suave para o topo
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }

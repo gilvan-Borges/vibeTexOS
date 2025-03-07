@@ -69,7 +69,7 @@ export class EditarColaboradorComponent implements OnInit {
   }
 
   buscarEmpresas(): void {
-    this.vibeService.buscarEmpresas().subscribe({
+    this.controllAppService.buscarEmpresas().subscribe({
       next: (response) => {
         this.empresas = response;
         console.log('✅ Empresas carregadas:', this.empresas);

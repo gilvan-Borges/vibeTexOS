@@ -1,15 +1,18 @@
 export interface CriarOrdemDeServicoResponseDto {
     ordemDeServicoId: string;
-    usuarioId: string;
-    clienteId: string;
-    dataEHoraInicioServico: string | null;
-    dataEHoraFimServico: string | null;
-    tipoServico: string;
-    dataHoraCadastro: string;
-    observacoesReparo: string | null;
-    numeroOrdemDeServico: string;
-    statusOrdem: string;
-    assinaturaCliente: string | null;
-    atribuida: boolean;
-    despachoId?: string; // Adicionado como opcional, já que nem toda ordem terá um despacho inicialmente
-  }
+    usuarioId?: string;
+    clienteId?: string;
+    tipoServico?: string;
+    statusOrdem?: string;
+    numeroOrdemDeServico?: string;
+    atribuida?: boolean;
+    observacoesReparo?: string;
+    dataEHoraInicioServico?: string | null;
+    dataEHoraFimServico?: string | null;
+    dataHoraCadastro?: string;
+    despachoId?: string;
+    codigoOS?: string; // Adicionado para resolver o erro
+    cliente?: string;  // Adicionado para compatibilidade
+    endereco?: string; // Adicionado para compatibilidade
+    colaborador?: string; // Adicionado para compatibilidade
+}

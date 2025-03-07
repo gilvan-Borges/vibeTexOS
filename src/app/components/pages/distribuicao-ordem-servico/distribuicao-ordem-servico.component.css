@@ -67,29 +67,39 @@
   transition: background-color 0.2s ease;
 }
 
-.modern-table tr:hover:not(.bg-yellow-soft):not(.bg-red-soft) {
-  background-color: #f8f9fa; /* Aplica hover apenas se não for pendente ou cancelado */
+.modern-table tr:hover:not(.bg-yellow-soft):not(.bg-red-soft):not(.bg-green-soft):not(.bg-orange-soft) {
+  background-color: #f8f9fa; /* Aplica hover apenas se não for pendente, concluído, cancelado ou outros */
 }
 
 .bg-yellow-soft {
-  background-color: #fff3cd !important; /* Tom amarelo suave, com !important para garantir prioridade */
+  background-color: #fff3cd !important;
+  transition: background-color 0.3s ease;
+}
+
+.bg-orange-soft {
+  background-color: #f4941f !important;
+  transition: background-color 0.3s ease;
+}
+
+.bg-green-soft {
+  background-color: #28a745 !important; /* Verde forte para "Concluído" */
   transition: background-color 0.3s ease;
 }
 
 .bg-red-soft {
-  background-color: #f8d7da !important; /* Tom vermelho suave, com !important para garantir prioridade */
+  background-color: #f8d7da !important;
   transition: background-color 0.3s ease;
 }
 
 .blink-yellow {
   animation: blinkYellow 1.5s infinite;
+  background-color: #ff9800 !important; /* Cor laranja forte como alerta */
+  color: #fff; /* Texto branco para contraste */
+  padding: 5px 10px; /* Ajuste de padding para melhor visibilidade */
+  border-radius: 5px; /* Bordas arredondadas sutis */
+  display: inline-block; /* Garante que o span se comporte como bloco inline */
 }
 
-@keyframes blinkYellow {
-  0% { background-color: #ffedb6; }
-  50% { background-color: #eec950; } /* Tom amarelo suave */
-  100% { background-color: #ffedb6; }
-}
 
 .card-body {
   padding: 1.5rem;
@@ -154,6 +164,14 @@
   font-size: 0.9rem;
   padding: 0.5rem 1rem;
   border-radius: 20px;
+}
+
+.status {
+  font-size: 0.9rem;
+  padding: 5px !important;
+  border-radius: 20px;
+  display: inline-block; /* Garante que o span se comporte como bloco inline */
+  color: #fff; /* Garante que o texto seja visível contra o fundo colorido */
 }
 
 .rounded-pill {

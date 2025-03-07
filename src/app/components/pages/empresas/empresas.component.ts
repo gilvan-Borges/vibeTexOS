@@ -5,9 +5,10 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgxMaskDirective } from 'ngx-mask';
 import { VibeService } from '../../../services/vibe.service';
 import { AuthService } from '../../../services/auth.service';
+import { ControllAppService } from '../../../services/controllApp.service';
 
 interface Empresa {
-  empresaId: string; // Alterado de 'id: number' para 'empresaId: string' para corresponder ao backend
+  empresaId: string;
   nome: string;
   cep: string;
   logradouro: string;
@@ -17,7 +18,7 @@ interface Empresa {
   uf: string;
   estado: string;
   endereco: string;
-  ativo: boolean; // Adicionado para corresponder ao EmpresaResponseDto
+  ativo: boolean;
 }
 
 interface EnderecoDto {
@@ -41,8 +42,9 @@ export class EmpresasComponent implements OnInit {
   formulario: FormGroup;
   empresas: Empresa[] = [];
   editando = false;
-  empresaEditandoId: string | null = null; // Alterado de 'number | null' para 'string | null'
+  empresaEditandoId: string | null = null;
   mensagem = '';
+  isError = false; // Nova variável para controlar o tipo de alerta
 
   // Pagination
   currentPage = 1;
@@ -53,7 +55,8 @@ export class EmpresasComponent implements OnInit {
 
   constructor(
     private formBuilder: FormBuilder,
-    private vibeService: VibeService,
+    private controllAppService: ControllAppService,
+  
     private authService: AuthService
   ) {
     this.formulario = this.formBuilder.group({
@@ -86,6 +89,8 @@ export class EmpresasComponent implements OnInit {
 
       if (data.erro) {
         this.f['cep'].setErrors({ invalidCep: true });
+        this.mensagem = 'CEP não encontrado. Verifique o CEP informado.';
+        this.isError = true;
         return;
       }
 
@@ -95,8 +100,11 @@ export class EmpresasComponent implements OnInit {
         uf: data.uf,
         estado: this.getEstadoPorUF(data.uf)
       });
-    } catch (error) {
-      this.mensagem = 'Erro ao buscar CEP';
+      this.mensagem = 'CEP encontrado com sucesso!';
+      this.isError = false;
+    } catch (error: any) {
+      this.mensagem = 'Erro ao buscar o CEP. Verifique sua conexão ou tente novamente mais tarde.';
+      this.isError = true;
     }
   }
 
@@ -114,7 +122,7 @@ export class EmpresasComponent implements OnInit {
   }
 
   onSubmit() {
-    console.log('Editando:', this.editando, 'Empresa ID:', this.empresaEditandoId); // Log para depuração
+    console.log('Editando:', this.editando, 'Empresa ID:', this.empresaEditandoId);
     if (this.formulario.valid) {
       const formData = this.formulario.value;
       const endereco = `${formData.logradouro}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''}, ${formData.bairro}, ${formData.estado} - ${formData.uf}`;
@@ -126,6 +134,9 @@ export class EmpresasComponent implements OnInit {
         console.log('Chamando cadastrarEmpresa');
         this.cadastrarEmpresa(formData);
       }
+    } else {
+      this.mensagem = 'Por favor, preencha todos os campos corretamente.';
+      this.isError = true;
     }
   }
 
@@ -143,11 +154,11 @@ export class EmpresasComponent implements OnInit {
       }
     };
 
-    this.vibeService.cadastrarEmpresa(empresaData).subscribe({
+    this.controllAppService.cadastrarEmpresa(empresaData).subscribe({
       next: (response) => {
         const novaEmpresa: Empresa = {
-          empresaId: response.empresaId, // Alterado de 'id' para 'empresaId'
-          ativo: response.ativo || true, // Adicionado para corresponder ao EmpresaResponseDto
+          empresaId: response.empresaId,
+          ativo: response.ativo || true,
           ...formData,
           endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''}, ${formData.bairro}, ${formData.estado} - ${formData.uf}`
         };
@@ -155,9 +166,11 @@ export class EmpresasComponent implements OnInit {
         this.resetForm();
         this.updatePagination();
         this.mensagem = 'Empresa cadastrada com sucesso!';
+        this.isError = false;
       },
-      error: (error) => {
-        this.mensagem = 'Erro ao cadastrar empresa: ' + error.message;
+      error: (error: any) => {
+        this.mensagem = 'Erro ao cadastrar empresa. ' + (error.message || 'Tente novamente mais tarde.');
+        this.isError = true;
       }
     });
   }
@@ -166,6 +179,7 @@ export class EmpresasComponent implements OnInit {
     if (!this.empresaEditandoId) {
       console.error('Erro: empresaEditandoId é undefined. Não é possível atualizar.');
       this.mensagem = 'Erro: Não foi possível identificar a empresa para atualização.';
+      this.isError = true;
       return;
     }
 
@@ -182,42 +196,44 @@ export class EmpresasComponent implements OnInit {
       }
     };
 
-    console.log('Enviando requisição de atualização para ID:', this.empresaEditandoId); // Log the ID being sent
-    this.vibeService.atualizarEmpresa(this.empresaEditandoId, empresaData).subscribe({ // Alterado para aceitar string diretamente
+    console.log('Enviando requisição de atualização para ID:', this.empresaEditandoId);
+    this.controllAppService.atualizarEmpresa(this.empresaEditandoId, empresaData).subscribe({
       next: (response) => {
         console.log('Resposta da atualização:', response);
         const index = this.empresas.findIndex(e => e.empresaId === this.empresaEditandoId);
         if (index !== -1) {
           this.empresas[index] = {
             ...formData,
-            empresaId: this.empresaEditandoId!, // Alterado de 'id' para 'empresaId'
-            ativo: response.ativo || true, // Mantém o estado ativo, se retornado
+            empresaId: this.empresaEditandoId!,
+            ativo: response.ativo || true,
             endereco
           };
           this.updatePagination();
           this.mensagem = 'Empresa atualizada com sucesso!';
+          this.isError = false;
           this.resetForm();
         }
       },
-      error: (error) => {
-        this.mensagem = 'Erro ao atualizar empresa: ' + error.message;
+      error: (error: any) => {
+        this.mensagem = 'Erro ao atualizar empresa. ' + (error.message || 'Tente novamente mais tarde.');
+        this.isError = true;
       }
     });
   }
 
   editarEmpresa(empresa: Empresa) {
-    if (!empresa || !empresa.empresaId) { // Alterado de 'id' para 'empresaId'
+    if (!empresa || !empresa.empresaId) {
       console.error('Erro: Empresa ou ID da empresa indefinido');
       this.mensagem = 'Erro: Não foi possível identificar a empresa';
+      this.isError = true;
       return;
     }
 
     this.editando = true;
-    this.empresaEditandoId = empresa.empresaId; // Alterado de 'id' para 'empresaId'
+    this.empresaEditandoId = empresa.empresaId;
     
     console.log('Buscando empresa com ID:', this.empresaEditandoId);
     
-    // Preencher o formulário com os dados existentes primeiro (dos dados locais)
     this.formulario.patchValue({
       nome: empresa.nome,
       cep: empresa.cep,
@@ -229,11 +245,11 @@ export class EmpresasComponent implements OnInit {
       estado: empresa.estado
     });
 
-    // Buscar dados atualizados da API usando empresaId
-    this.vibeService.buscarEmpresasPorId(this.empresaEditandoId).subscribe({
+    this.controllAppService.buscarEmpresasPorId(this.empresaEditandoId).subscribe({
       next: (response) => {
         if (!response) {
           this.mensagem = 'Erro: Empresa não encontrada';
+          this.isError = true;
           return;
         }
         
@@ -252,35 +268,35 @@ export class EmpresasComponent implements OnInit {
 
         console.log('Formulário atualizado:', this.formulario.value);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Erro ao buscar empresa:', error);
-        this.mensagem = 'Erro ao carregar dados da empresa: ' + error.message;
+        this.mensagem = 'Erro ao carregar dados da empresa. ' + (error.message || 'Tente novamente mais tarde.');
+        this.isError = true;
       }
     });
 
-    // Rolagem para o topo após clicar em "Editar"
     this.rolarParaTopo();
   }
 
   excluirEmpresa(empresaId: string) {
     if (confirm('Tem certeza que deseja excluir esta empresa?')) {
-      this.vibeService.deletarEmpresa(empresaId).subscribe({
+      this.controllAppService.deletarEmpresa(empresaId).subscribe({
         next: () => {
-          // Success case - don't try to use the response
           this.empresas = this.empresas.filter(e => e.empresaId !== empresaId);
           this.updatePagination();
           this.mensagem = 'Empresa excluída com sucesso!';
+          this.isError = false;
         },
-        error: (error) => {
-          // Only show error if it's not a parsing error with status 200
+        error: (error: any) => {
           if (error.status !== 200) {
             console.error('Erro ao excluir empresa:', error);
-            this.mensagem = 'Erro ao excluir empresa: ' + error;
+            this.mensagem = 'Erro ao excluir empresa. ' + (error.message || 'Tente novamente mais tarde.');
+            this.isError = true;
           } else {
-            // If status is 200, consider it a success even with parsing error
             this.empresas = this.empresas.filter(e => e.empresaId !== empresaId);
             this.updatePagination();
             this.mensagem = 'Empresa excluída com sucesso!';
+            this.isError = false;
           }
         }
       });
@@ -292,6 +308,7 @@ export class EmpresasComponent implements OnInit {
     this.editando = false;
     this.empresaEditandoId = null;
     this.mensagem = '';
+    this.isError = false;
   }
 
   // Pagination methods
@@ -336,12 +353,12 @@ export class EmpresasComponent implements OnInit {
   }
 
   private loadEmpresas() {
-    this.vibeService.buscarEmpresas().subscribe({
+    this.controllAppService.buscarEmpresas().subscribe({
       next: (response) => {
         console.log('Response from buscarEmpresas:', response);
         this.empresas = response.map((empresa: any) => ({
-          empresaId: empresa.empresaId, // Alterado de 'id' para 'empresaId'
-          ativo: empresa.ativo || true, // Adicionado para corresponder ao EmpresaResponseDto
+          empresaId: empresa.empresaId,
+          ativo: empresa.ativo || true,
           nome: empresa.nomeDaEmpresa || '',
           cep: empresa.endereco?.cep || '',
           logradouro: empresa.endereco?.logradouro || '',
@@ -354,8 +371,9 @@ export class EmpresasComponent implements OnInit {
         }));
         this.updatePagination();
       },
-      error: (error) => {
-        this.mensagem = 'Erro ao carregar empresas: ' + error.message;
+      error: (error: any) => {
+        this.mensagem = 'Erro ao carregar a lista de empresas. ' + (error.message || 'Verifique sua conexão e tente novamente.');
+        this.isError = true;
       }
     });
   }

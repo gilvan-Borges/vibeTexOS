@@ -10,15 +10,9 @@
           <!-- Código O.S -->
           <div class="col-md-6">
             <label for="codigoOS" class="form-label fw-bold">Código O.S</label>
-            <input
-              type="text"
-              id="codigoOS"
-              class="form-control"
-              formControlName="codigoOS"
+            <input type="text" id="codigoOS" class="form-control" formControlName="codigoOS"
               [class.is-invalid]="serviceForm.get('codigoOS')?.touched && serviceForm.get('codigoOS')?.invalid"
-              [attr.readonly]="!editandoOrdemId ? 'readonly' : null"
-              aria-describedby="codigoOSFeedback"
-            />
+              [attr.readonly]="!editandoOrdemId ? 'readonly' : null" aria-describedby="codigoOSFeedback" />
             <div id="codigoOSFeedback" class="invalid-feedback">
               {{ getErrorMessage('codigoOS') }}
             </div>
@@ -27,13 +21,9 @@
           <!-- Cliente -->
           <div class="col-md-6">
             <label for="cliente" class="form-label fw-bold">Cliente</label>
-            <select
-              id="cliente"
-              class="form-select"
-              formControlName="cliente"
+            <select id="cliente" class="form-select" formControlName="cliente"
               [class.is-invalid]="serviceForm.get('cliente')?.touched && serviceForm.get('cliente')?.invalid"
-              aria-describedby="clienteFeedback"
-            >
+              aria-describedby="clienteFeedback">
               <option value="" disabled>Selecione um cliente</option>
               <option *ngFor="let cliente of clientes" [value]="cliente.id">{{ cliente.nome }}</option>
             </select>
@@ -45,13 +35,9 @@
           <!-- Tipo de Serviço -->
           <div class="col-md-6">
             <label for="tipoServico" class="form-label fw-bold">Tipo de Serviço</label>
-            <select
-              id="tipoServico"
-              class="form-select"
-              formControlName="tipoServico"
+            <select id="tipoServico" class="form-select" formControlName="tipoServico"
               [class.is-invalid]="serviceForm.get('tipoServico')?.touched && serviceForm.get('tipoServico')?.invalid"
-              aria-describedby="tipoServicoFeedback"
-            >
+              aria-describedby="tipoServicoFeedback">
               <option value="" disabled>Selecione o tipo de serviço</option>
               <option *ngFor="let tipo of tipoServico" [value]="tipo">{{ tipo }}</option>
             </select>
@@ -63,13 +49,9 @@
           <!-- Colaborador -->
           <div class="col-md-6">
             <label for="colaborador" class="form-label fw-bold">Colaborador (Opcional)</label>
-            <select
-              id="colaborador"
-              class="form-select"
-              formControlName="colaborador"
+            <select id="colaborador" class="form-select" formControlName="colaborador"
               [class.is-invalid]="serviceForm.get('colaborador')?.touched && serviceForm.get('colaborador')?.invalid"
-              aria-describedby="colaboradorFeedback"
-            >
+              aria-describedby="colaboradorFeedback">
               <option value="">Não atribuído</option>
               <option *ngFor="let colab of colaboradores" [value]="colab.id">{{ colab.nome }}</option>
             </select>
@@ -81,15 +63,9 @@
           <!-- Endereço -->
           <div class="col-12">
             <label for="endereco" class="form-label fw-bold">Endereço</label>
-            <input
-              type="text"
-              id="endereco"
-              class="form-control"
-              formControlName="endereco"
-              readonly
+            <input type="text" id="endereco" class="form-control" formControlName="endereco" readonly
               [class.is-invalid]="serviceForm.get('endereco')?.touched && serviceForm.get('endereco')?.invalid"
-              aria-describedby="enderecoFeedback"
-            />
+              aria-describedby="enderecoFeedback" />
             <div id="enderecoFeedback" class="invalid-feedback">
               {{ getErrorMessage('endereco') }}
             </div>
@@ -100,31 +76,22 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label for="data" class="form-label fw-bold">Data</label>
-                <input
-                  type="date"
-                  id="data"
-                  class="form-control"
-                  formControlName="data"
-                  [min]="minDate"
+                <input type="date" id="data" class="form-control" formControlName="data" [min]="minDate"
                   [class.is-invalid]="serviceForm.get('data')?.touched && serviceForm.get('data')?.invalid"
-                  aria-describedby="dataFeedback"
-                />
+                  aria-describedby="dataFeedback" />
                 <div id="dataFeedback" class="invalid-feedback">
                   <span *ngIf="serviceForm.get('data')?.hasError('required')">Campo obrigatório</span>
-                  <span *ngIf="serviceForm.get('data')?.hasError('dataAnterior')">A data não pode ser anterior ao dia atual</span>
-                  <span *ngIf="serviceForm.get('data')?.hasError('dataInvalida')">Data inválida. Por favor, selecione uma data válida.</span>
+                  <span *ngIf="serviceForm.get('data')?.hasError('dataAnterior')">A data não pode ser anterior ao dia
+                    atual</span>
+                  <span *ngIf="serviceForm.get('data')?.hasError('dataInvalida')">Data inválida. Por favor, selecione
+                    uma data válida.</span>
                 </div>
               </div>
               <div class="col-md-6">
                 <label for="hora" class="form-label fw-bold">Hora</label>
-                <input
-                  type="time"
-                  id="hora"
-                  class="form-control"
-                  formControlName="hora"
+                <input type="time" id="hora" class="form-control" formControlName="hora"
                   [class.is-invalid]="serviceForm.get('hora')?.touched && serviceForm.get('hora')?.invalid"
-                  aria-describedby="horaFeedback"
-                />
+                  aria-describedby="horaFeedback" />
                 <div id="horaFeedback" class="invalid-feedback">
                   <span *ngIf="serviceForm.get('hora')?.hasError('required')">Campo obrigatório</span>
                 </div>
@@ -135,21 +102,12 @@
 
         <!-- Botões -->
         <div class="d-flex justify-content-end gap-3 mt-4">
-          <button
-            type="button"
-            class="btn btn-outline-secondary px-4"
-            (click)="onCancel()"
-            [disabled]="isLoading"
-            aria-label="Cancelar a criação ou edição da ordem de serviço"
-          >
+          <button type="button" class="btn btn-outline-secondary px-4" (click)="onCancel()" [disabled]="isLoading"
+            aria-label="Cancelar a criação ou edição da ordem de serviço">
             Cancelar
           </button>
-          <button
-            type="submit"
-            class="btn btn-primary px-4"
-            [disabled]="isLoading || serviceForm.invalid"
-            aria-label="Atribuir ou atualizar a ordem de serviço"
-          >
+          <button type="submit" class="btn btn-primary px-4" [disabled]="isLoading || serviceForm.invalid"
+            aria-label="Atribuir ou atualizar a ordem de serviço">
             Atribuir
           </button>
         </div>
@@ -161,11 +119,8 @@
   <section class="orders-section mb-5">
     <h3 class="mb-4 fw-bold text-dark section-title">Ordens de Serviço Atribuídas (Hoje)</h3>
     <div class="table-responsive">
-      <table
-        class="table modern-table shadow-lg rounded-3"
-        *ngIf="ordensDoDia.length > 0; else noOrders"
-        aria-label="Tabela de ordens de serviço atribuídas para hoje"
-      >
+      <table class="table modern-table shadow-lg rounded-3" *ngIf="ordensDoDia.length > 0; else noOrders"
+        aria-label="Tabela de ordens de serviço atribuídas para hoje">
         <thead class="bg-gradient-blue text-white">
           <tr>
             <th scope="col" class="py-3">Código O.S.</th>
@@ -183,38 +138,34 @@
             <td class="py-3">{{ ordem.codigoOS }}</td>
             <td class="py-3">{{ ordem.cliente }}</td>
             <td class="py-3">{{ ordem.endereco }}</td>
-            <td class="py-3" [ngClass]="{'blink-yellow': !ordem.colaborador}">
-              {{ ordem.colaborador || 'Não atribuído' }}
+            <td class="py-3">
+              <span [ngClass]="{'blink-yellow': !ordem.colaborador}">
+                {{ ordem.colaborador || 'Não atribuído' }}
+              </span>
             </td>
             <td class="py-3">{{ ordem.tipoServico }}</td>
             <td class="py-3">{{ ordem.dataHoraCadastro | date:'dd/MM/yyyy' }}</td>
             <td class="py-3">
-              <span class="badge bg-light text-dark rounded-pill">{{ ordem.status }}</span>
+              <span class="status" [ngClass]="{
+                'bg-green-soft': normalizeStatus(ordem.status) === 'concluido',
+                'bg-orange-soft': normalizeStatus(ordem.status) === 'pendente',
+                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado'
+              }">
+                {{ ordem.status }}
+              </span>
             </td>
             <td class="py-3 text-center">
               <div class="d-flex justify-content-center gap-2">
-                <button
-                  class="btn btn-sm btn-primary rounded-pill"
-                  (click)="editarOrdem(ordem)"
-                  title="Editar ordem de serviço"
-                  aria-label="Editar ordem de serviço"
-                >
+                <button class="btn btn-sm btn-primary rounded-pill" (click)="editarOrdem(ordem)"
+                  title="Editar ordem de serviço" aria-label="Editar ordem de serviço">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button
-                  class="btn btn-sm btn-warning rounded-pill"
-                  (click)="cancelarOrdem(ordem)"
-                  title="Cancelar ordem de serviço"
-                  aria-label="Cancelar ordem de serviço"
-                >
+                <button class="btn btn-sm btn-warning rounded-pill" (click)="cancelarOrdem(ordem)"
+                  title="Cancelar ordem de serviço" aria-label="Cancelar ordem de serviço">
                   <i class="bi bi-x-circle"></i>
                 </button>
-                <button
-                  class="btn btn-sm btn-danger rounded-pill"
-                  (click)="excluirOrdem(ordem)"
-                  title="Excluir ordem de serviço"
-                  aria-label="Excluir ordem de serviço"
-                >
+                <button class="btn btn-sm btn-danger rounded-pill" (click)="excluirOrdem(ordem)"
+                  title="Excluir ordem de serviço" aria-label="Excluir ordem de serviço">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -234,10 +185,7 @@
   <section class="orders-scheduled-section" *ngIf="ordensAgendadas.length > 0">
     <h3 class="mb-4 fw-bold text-dark section-title section-title-green">Ordens de Serviço Agendadas</h3>
     <div class="table-responsive">
-      <table
-        class="table modern-table shadow-lg rounded-3"
-        aria-label="Tabela de ordens de serviço agendadas"
-      >
+      <table class="table modern-table shadow-lg rounded-3" aria-label="Tabela de ordens de serviço agendadas">
         <thead class="bg-gradient-green text-white">
           <tr>
             <th scope="col" class="py-3">Código O.S.</th>
@@ -251,49 +199,41 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let ordem of ordensAgendadas; let i = index"
-            class="align-middle"
-            [ngClass]="{
-              'bg-green-soft': ordem.status === 'Pendente',
-              'bg-red-soft': ordem.status === 'Cancelado'
-            }"
-          >
+          <tr *ngFor="let ordem of ordensAgendadas; let i = index" class="align-middle" [ngClass]="{
+            'bg-green-soft': ordem.status.trim().toLowerCase() === 'pendente',
+            'bg-red-soft': ordem.status.trim().toLowerCase() === 'cancelado'
+          }">
             <td class="py-3">{{ ordem.codigoOS }}</td>
             <td class="py-3">{{ ordem.cliente }}</td>
             <td class="py-3">{{ ordem.endereco }}</td>
-            <td class="py-3" [ngClass]="{'blink-yellow': !ordem.colaborador}">
-              {{ ordem.colaborador || 'Não atribuído' }}
+            <td class="py-3">
+              <span [ngClass]="{'blink-yellow': !ordem.colaborador}">
+                {{ ordem.colaborador || 'Não atribuído' }}
+              </span>
             </td>
             <td class="py-3">{{ ordem.tipoServico }}</td>
             <td class="py-3">{{ ordem.dataHoraCadastro | date:'dd/MM/yyyy' }}</td>
             <td class="py-3">
-              <span class="badge bg-light text-dark rounded-pill">{{ ordem.status }}</span>
+              <span class="status" [ngClass]="{
+                'bg-green-soft': normalizeStatus(ordem.status) === 'concluido',
+                'bg-orange-soft': normalizeStatus(ordem.status) === 'pendente',
+                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado'
+              }">
+                {{ ordem.status }}
+              </span>
             </td>
             <td class="py-3 text-center">
               <div class="d-flex justify-content-center gap-2">
-                <button
-                  class="btn btn-sm btn-primary rounded-pill"
-                  (click)="editarOrdem(ordem)"
-                  title="Editar ordem de serviço"
-                  aria-label="Editar ordem de serviço"
-                >
+                <button class="btn btn-sm btn-primary rounded-pill" (click)="editarOrdem(ordem)"
+                  title="Editar ordem de serviço" aria-label="Editar ordem de serviço">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button
-                  class="btn btn-sm btn-warning rounded-pill"
-                  (click)="cancelarOrdem(ordem)"
-                  title="Cancelar ordem de serviço"
-                  aria-label="Cancelar ordem de serviço"
-                >
+                <button class="btn btn-sm btn-warning rounded-pill" (click)="cancelarOrdem(ordem)"
+                  title="Cancelar ordem de serviço" aria-label="Cancelar ordem de serviço">
                   <i class="bi bi-x-circle"></i>
                 </button>
-                <button
-                  class="btn btn-sm btn-danger rounded-pill"
-                  (click)="excluirOrdem(ordem)"
-                  title="Excluir ordem de serviço"
-                  aria-label="Excluir ordem de serviço"
-                >
+                <button class="btn btn-sm btn-danger rounded-pill" (click)="excluirOrdem(ordem)"
+                  title="Excluir ordem de serviço" aria-label="Excluir ordem de serviço">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>

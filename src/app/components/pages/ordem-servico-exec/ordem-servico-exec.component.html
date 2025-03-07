@@ -1,4 +1,18 @@
 <div class="container py-5">
+  <!-- Notificação -->
+  <div *ngIf="notificationVisible" class="notification-container">
+    <div class="notification" [ngClass]="'notification-' + notificationType">
+      <div class="notification-content">
+        <i *ngIf="notificationType === 'success'" class="notification-icon success">✓</i>
+        <i *ngIf="notificationType === 'error'" class="notification-icon error">✕</i>
+        <i *ngIf="notificationType === 'info'" class="notification-icon info">ℹ</i>
+        <i *ngIf="notificationType === 'warning'" class="notification-icon warning">⚠</i>
+        <span class="notification-message">{{ notificationMessage }}</span>
+      </div>
+      <button class="notification-close" (click)="hideNotification()">✕</button>
+    </div>
+  </div>
+  
   <!-- Cabeçalho e Botões -->
   <div class="servico text-center mt-3">
     <h1 class="titulo mb-4">Execução da Ordem de Serviço</h1>
@@ -41,7 +55,7 @@
         <button type="button" class="btn-close" (click)="fecharModal()"></button>
       </div>
       <div class="modal-body text-center">
-        <div class="webcam-container border rounded">
+        <div class="webcam-container">
           <webcam [trigger]="triggerObservable" (imageCapture)="handleImage($event)" [allowCameraSwitch]="true"
             [videoOptions]="{ facingMode: 'environment' }" (initError)="errors = [$event]">
           </webcam>
@@ -86,28 +100,59 @@
 <!-- Formulário -->
 <div *ngIf="mostrarFormulario" class="formulario-container mt-4">
   <form [formGroup]="formularioServico" (ngSubmit)="onSubmit()">
-    <!-- Seção: Dados da O.S. -->
-    <div class="form-section">
-      <h3 class="section-title">Dados da O.S.</h3>
-      <div class="row mb-3">
-        <div class="col-md-12">
-          <label for="codigoOS" class="form-label">Código O.S.</label>
-          <input type="text" id="codigoOS" class="form-control" formControlName="codigoOS" readonly>
+    <div class="row">
+      <!-- Coluna da esquerda -->
+      <div class="col-md-6">
+        <!-- Seção: Dados da O.S. -->
+        <div class="form-section">
+          <h3 class="section-title">Dados da O.S.</h3>
+          <div class="form-group mb-3">
+            <label for="codigoOS" class="form-label">Código O.S.</label>
+            <input type="text" id="codigoOS" class="form-control" formControlName="codigoOS" readonly>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <!-- Seção: Dados do Colaborador -->
+        <div class="form-section">
+          <h3 class="section-title">Dados do Colaborador</h3>
+          <div class="form-group mb-3">
+            <label for="nomeColaborador" class="form-label">Nome do Colaborador</label>
+            <input type="text" id="nomeColaborador" class="form-control" formControlName="nomeColaborador" readonly>
+          </div>
+          <div class="form-group mb-3">
+            <label for="empresaColaborador" class="form-label">Empresa</label>
+            <input type="text" id="empresaColaborador" class="form-control" formControlName="empresaColaborador"
+              readonly>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Seção: Dados do Colaborador -->
-    <div class="form-section">
-      <h3 class="section-title">Dados do Colaborador</h3>
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="nomeColaborador" class="form-label">Nome do Colaborador</label>
-          <input type="text" id="nomeColaborador" class="form-control" formControlName="nomeColaborador" readonly>
-        </div>
-        <div class="col-md-6">
-          <label for="empresaColaborador" class="form-label">Empresa</label>
-          <input type="text" id="empresaColaborador" class="form-control" formControlName="empresaColaborador" readonly>
+    <div class="row">
+      <!-- Coluna da direita -->
+      <div class="col-md-12">
+        <!-- Seção: Fotos -->
+        <div class="form-section">
+          <h3 class="section-title">Fotos</h3>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Foto de Início</label>
+              <div class="foto-container">
+                <img *ngIf="formularioServico.get('fotoInicio')?.value"
+                  [src]="formularioServico.get('fotoInicio')?.value" class="img-fluid rounded" alt="Foto Início">
+                <p *ngIf="!formularioServico.get('fotoInicio')?.value" class="text-muted">Aguardando foto</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Foto de Fim</label>
+              <div class="foto-container">
+                <img *ngIf="formularioServico.get('fotoFim')?.value" [src]="formularioServico.get('fotoFim')?.value"
+                  class="img-fluid rounded" alt="Foto Fim">
+                <p *ngIf="!formularioServico.get('fotoFim')?.value" class="text-muted">Aguardando foto</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -115,54 +160,61 @@
     <!-- Seção: Dados do Cliente -->
     <div class="form-section">
       <h3 class="section-title">Dados do Cliente</h3>
-      <div class="row mb-3">
-        <div class="col-md-6">
+      <div class="row">
+        <div class="col-md-12 mb-3">
           <label for="nomeCliente" class="form-label">Nome do Cliente</label>
           <input type="text" id="nomeCliente" class="form-control" formControlName="nomeCliente" required>
         </div>
-        <div class="col-md-6">
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
           <label for="cpf" class="form-label">CPF</label>
           <input type="text" id="cpf" class="form-control" formControlName="cpf" mask="000.000.000-00" required>
         </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-6 mb-3">
           <label for="telefone" class="form-label">Telefone</label>
           <input type="text" id="telefone" class="form-control" formControlName="telefone" mask="(00) 00000-0000"
             required>
         </div>
-        <div class="col-md-6">
+      </div>
+      <div class="row">
+        <div class="col-md-8 mb-3">
           <label for="cep" class="form-label">CEP</label>
           <input type="text" id="cep" class="form-control" formControlName="cep" mask="00000-000"
             (blur)="buscarCepHandler()" required>
         </div>
+        <div class="col-md-4 mb-3">
+          <button type="button" class="btn btn-primary mt-4 w-100" (click)="buscarCepHandler()">Buscar CEP</button>
+        </div>
       </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+      <div class="row">
+        <div class="col-md-8 mb-3">
           <label for="logradouro" class="form-label">Logradouro</label>
           <input type="text" id="logradouro" class="form-control" formControlName="logradouro" required>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4 mb-3">
           <label for="numero" class="form-label">Número</label>
           <input type="text" id="numero" class="form-control" formControlName="numero" required>
         </div>
-        <div class="col-md-3">
-          <label for="complemento" class="form-label">Complemento</label>
-          <input type="text" id="complemento" class="form-control" formControlName="complemento">
-        </div>
       </div>
-      <div class="row mb-3">
-        <div class="col-md-4">
+      <div class="row">
+        <div class="col-md-4 mb-3">
           <label for="bairro" class="form-label">Bairro</label>
           <input type="text" id="bairro" class="form-control" formControlName="bairro" required>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 mb-3">
           <label for="cidade" class="form-label">Cidade</label>
           <input type="text" id="cidade" class="form-control" formControlName="cidade" required>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 mb-3">
           <label for="estado" class="form-label">Estado</label>
           <input type="text" id="estado" class="form-control" formControlName="estado" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <label for="complemento" class="form-label">Complemento</label>
+          <input type="text" id="complemento" class="form-control" formControlName="complemento">
         </div>
       </div>
     </div>
@@ -170,61 +222,34 @@
     <!-- Seção: Observações -->
     <div class="form-section">
       <h3 class="section-title">Observações</h3>
-      <div class="row mb-3">
-        <div class="col-md-12">
-          <label for="observacoes" class="form-label">Observações</label>
-          <textarea id="observacoes" class="form-control" formControlName="observacoes" rows="3"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- Seção: Fotos -->
-    <div class="form-section">
-      <h3 class="section-title">Fotos</h3>
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Foto de Início</label>
-          <div class="foto-container">
-            {{ formularioServico.get('fotoInicio')?.value | json }} <!-- Adicionar log para depuração -->
-            <img *ngIf="formularioServico.get('fotoInicio')?.value" [src]="formularioServico.get('fotoInicio')?.value"
-              class="img-fluid rounded" alt="Foto Início">
-            <p *ngIf="!formularioServico.get('fotoInicio')?.value" class="text-muted">Nenhuma foto disponível</p>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Foto de Fim</label>
-          <div class="foto-container">
-            {{ formularioServico.get('fotoFim')?.value | json }} <!-- Adicionar log para depuração -->
-            <img *ngIf="formularioServico.get('fotoFim')?.value" [src]="formularioServico.get('fotoFim')?.value"
-              class="img-fluid rounded" alt="Foto Fim">
-            <p *ngIf="!formularioServico.get('fotoFim')?.value" class="text-muted">Nenhuma foto disponível</p>
-          </div>
-        </div>
+      <div class="form-group mb-3">
+        <label for="observacoes" class="form-label">Observações</label>
+        <textarea id="observacoes" class="form-control" formControlName="observacoes" rows="3"></textarea>
       </div>
     </div>
 
     <!-- Seção: Assinatura -->
-    <div class="form-section signature-container">
+    <div class="form-section signature-container mt-4">
       <h3 class="section-title">Assinatura do Cliente</h3>
       <canvas #signaturePadCanvas class="signature-pad"></canvas>
-      <div class="signature-actions mt-2">
-        <button type="button" class="btn btn-secondary" (click)="limparAssinatura()">
+      <div class="signature-actions mt-3 text-center">
+        <button type="button" class="btn btn-primary" (click)="limparAssinatura()">
           Limpar Assinatura
         </button>
       </div>
     </div>
 
-    <!-- Botões -->
-    <div class="form-section">
-      <div class="row d-flex justify-content-center">
-        <div class="col-md-6 d-flex justify-content-center gap-2">
+    <!-- Botões na parte inferior do formulário: Apenas Gerar PDF e Enviar Formulário -->
+    <div class="form-buttons mt-4 text-center">
+      <div class="row">
+        <div class="col-md-6 mx-auto d-flex justify-content-center gap-3">
           <button type="button" class="btn btn-primary w-100"
             (click)="formularioService.gerarPDF(formularioServico.value, signaturePad?.toDataURL() || '')">
             Gerar PDF
           </button>
           <button type="submit" class="btn btn-success w-100"
             [disabled]="!formularioServico.valid || (signaturePad && signaturePad.isEmpty())">
-            Enviar
+            Enviar Formulário
           </button>
         </div>
       </div>

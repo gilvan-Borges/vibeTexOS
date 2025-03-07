@@ -1,15 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, NgZone, OnInit } from '@angular/core';
+import { AfterViewInit, Component, NgModule, NgZone, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
-import { Observable } from 'rxjs';
 import { ServicoLocalizacao } from '../../../services/localizacao.service';
 import { VibeService } from '../../../services/vibe.service';
 import { UsuarioService } from '../../../services/usuario.service';
-import { environment } from '../../../../environments/environment.development';
 import { ControllAppService } from '../../../services/controllApp.service';
-import { RegisterRequestDto } from '../../../models/control-app/register.request,dto';
+import { Pipe, PipeTransform } from '@angular/core';
 
 export interface OrdemServico {
   ordemDeServicoId: string;
@@ -23,7 +21,7 @@ export interface OrdemServico {
 }
 
 export interface DesempenhoColaborador {
-  usuarioId: string; // Add this line
+  usuarioId: string;
   empresa: string;
   nome: string;
   osAtribuidas: number;
@@ -32,6 +30,8 @@ export interface DesempenhoColaborador {
   tempoMedio: string;
   eficiencia: number;
   jornada: string;
+  fotoUrl?: string;
+  isOnline?: boolean; // adicionado
 }
 
 export interface Colaborador {
@@ -40,15 +40,38 @@ export interface Colaborador {
   empresa: string;
   horaEntrada: string;
   horaSaida: string;
-  latitudeAtual?: string; // Opcional, usado no mapa
-  longitudeAtual?: string; // Opcional, usado no mapa
-  dataHoraUltimaAutenticacao?: Date; // Opcional, usado no mapa
+  latitudeAtual?: string;
+  longitudeAtual?: string;
+  dataHoraUltimaAutenticacao?: Date;
+  fotoUrl?: string;
+  isOnline?: boolean;
+}
+
+
+
+@Pipe({
+  name: 'filter'
+})
+export class FilterPipe implements PipeTransform {
+  transform(items: any[], filter: any): any[] {
+    if (!items || !filter) {
+      return items;
+    }
+    return items.filter(item => {
+      for (let key in filter) {
+        if (item[key] !== filter[key]) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, FilterPipe],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
@@ -66,6 +89,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   efficiencyGeneral: number = 0;
   colaboradoresDesempenho: DesempenhoColaborador[] = [];
   colaboradores: Colaborador[] = [];
+  
+  // Propriedade para armazenar apenas colaboradores online
+  get colaboradoresOnline(): DesempenhoColaborador[] {
+    return this.colaboradoresDesempenho.filter(c => c.isOnline === true);
+  }
 
   constructor(
     private ngZone: NgZone,
@@ -73,10 +101,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     private vibeService: VibeService,
     private usuarioService: UsuarioService,
     private controllAppService: ControllAppService
-  ) {}
+  ) { }
 
   ngOnInit() {
-    this.initMap();
     this.carregarDados();
     setInterval(() => {
       this.carregarDados();
@@ -93,6 +120,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private initMap(): void {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+      console.error('Elemento com id="map" não encontrado no DOM.');
+      return;
+    }
+
     if (this.map) return;
 
     this.map = L.map('map', {
@@ -112,21 +145,25 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private carregarColaboradoresOnlineNoMapa(): void {
-    this.controllAppService.usuarioGetAll({} as RegisterRequestDto).subscribe({
+    this.vibeService.buscarUsuario().subscribe({
       next: (response: any[]) => {
         const colaboradores = response.map(colab => ({
           usuarioId: colab.usuarioId,
-          nome: colab.nome,
-          empresa: colab.empresa || 'N/A',
+          nome: colab.nome || 'Sem Nome',
+          empresa: colab.nomeDaEmpresa || colab.empresa || 'N/A',
           horaEntrada: colab.horaEntrada || '00:00',
           horaSaida: colab.horaSaida || '00:00',
           latitudeAtual: colab.latitudeAtual,
           longitudeAtual: colab.longitudeAtual,
-          dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined
+          dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined,
+          fotoUrl: colab.fotoUrl || '/assets/default-profile.png',
+          isOnline: colab.isOnline === true  // Garantir que isOnline seja um booleano
         } as Colaborador));
-        const colaboradoresOnline = colaboradores.filter(u =>
-          u.latitudeAtual && u.longitudeAtual
+        
+        const colaboradoresOnline = colaboradores.filter(u => 
+          u.latitudeAtual && u.longitudeAtual && u.isOnline === true
         );
+        
         this.processarColaboradoresOnline(colaboradoresOnline);
       },
       error: (error) => {
@@ -147,8 +184,26 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       const lng = parseFloat(colaborador.longitudeAtual!);
 
       if (!isNaN(lat) && !isNaN(lng)) {
+        // Determinar a cor do ícone com base na empresa
+        let iconColor = 'blue'; 
+        
+        if (colaborador.empresa) {
+          const empresaNormalizada = colaborador.empresa.toLowerCase().trim();
+          
+          if (empresaNormalizada.includes('flamengo')) {
+            iconColor = 'red';
+          } else if (empresaNormalizada.includes('figth') || 
+                    empresaNormalizada.includes('fight')) {
+            iconColor = 'blue';
+          } else if (empresaNormalizada.includes('vibetex')) {
+            iconColor = 'green';
+          } else if (empresaNormalizada.includes('nexus')) {
+            iconColor = 'orange';
+          }
+        }
+
         const customIcon = L.icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+          iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${iconColor}.png`,
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
           iconSize: [25, 41],
           iconAnchor: [12, 41],
@@ -168,13 +223,13 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           .bindPopup(
             `<strong>Colaborador</strong><br>
             Nome: ${colaborador.nome}<br>
+            Empresa: ${colaborador.empresa}<br>
             Último login: ${dataLogin}`
           );
       }
     });
 
     if (colaboradoresOnline.length > 0) {
-      // Garantir que o array passado para L.latLngBounds seja um array de LatLngTuple ([number, number][])
       const boundsCoordinates: [number, number][] = colaboradoresOnline
         .map(c => {
           const lat = parseFloat(c.latitudeAtual!);
@@ -192,7 +247,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   private carregarDados() {
     this.carregarMetricasPorPeriodo();
-    this.carregarColaboradoresAtivos(); // Nova função separada
+    this.carregarColaboradoresAtivos();
   }
 
   private carregarMetricasPorPeriodo() {
@@ -215,42 +270,43 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private carregarColaboradoresAtivos() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-
-    this.usuarioService.usuarioGetAll({ role: 'Colaborador' }).subscribe({
+  
+    this.vibeService.buscarUsuario().subscribe({
       next: (colaboradores: any[]) => {
         if (!colaboradores || colaboradores.length === 0) {
           this.colaboradoresDesempenho = [];
           this.colaboradores = [];
           return;
         }
-
-        // Filtra apenas colaboradores online e ativos hoje
+  
+        // Usar a propriedade isOnline diretamente da API
         this.colaboradores = colaboradores
-          .filter(colab => 
-            colab.role === 'Colaborador' && 
-            colab.isOnline === true
-          )
+          .filter(colab => colab.role === 'Colaborador')
           .map(colab => ({
             usuarioId: colab.usuarioId,
             nome: colab.nome,
-            empresa: colab.empresa || 'VibeTex Soluções',
+            empresa: colab.nomeDaEmpresa || colab.empresa || 'VibeTex Soluções',
             horaEntrada: colab.horaEntrada || '08:00',
             horaSaida: colab.horaSaida || '18:00',
             latitudeAtual: colab.latitudeAtual || '',
             longitudeAtual: colab.longitudeAtual || '',
-            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? 
-              new Date(colab.dataHoraUltimaAutenticacao) : undefined
+            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ?
+              new Date(colab.dataHoraUltimaAutenticacao) : undefined,
+            fotoUrl: colab.fotoUrl || '/assets/default-profile.png',
+            isOnline: colab.isOnline === true // Usar isOnline direto da API
           }));
-
-        // Busca as ordens de serviço apenas do dia atual
+  
         this.vibeService.buscarOrdemServico().subscribe({
           next: (ordens: OrdemServico[]) => {
             const ordensHoje = ordens.filter(ordem => {
               const dataOrdem = new Date(ordem.dataHoraCadastro);
               return dataOrdem >= hoje;
             });
-
-            this.atualizarDesempenhoColaboradores(this.colaboradores, ordensHoje);
+  
+            // Filtrar apenas colaboradores que estão online
+            const colaboradoresOnline = this.colaboradores.filter(colab => colab.isOnline === true);
+            console.log('Colaboradores online:', colaboradoresOnline.length);
+            this.atualizarDesempenhoColaboradores(colaboradoresOnline, ordensHoje);
           },
           error: (err) => console.error('Erro ao carregar ordens do dia:', err)
         });
@@ -262,12 +318,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private atualizarDesempenhoColaboradores(colaboradores: Colaborador[], ordens: OrdemServico[]) {
     this.colaboradoresDesempenho = colaboradores.map(colaborador => {
       const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
-      const ordensFinalizadas = ordensDoColaborador.filter(o => 
+      const ordensFinalizadas = ordensDoColaborador.filter(o =>
         ['concluído', 'concluida', 'concluido', 'finalizada', 'finalizado']
           .includes(o.statusOrdem?.toLowerCase().trim() || '')
       );
 
-      return {
+      const desempenho: DesempenhoColaborador = {
         usuarioId: colaborador.usuarioId,
         empresa: colaborador.empresa,
         nome: colaborador.nome,
@@ -275,10 +331,51 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         osRealizadas: ordensFinalizadas.length,
         osPendentes: ordensDoColaborador.length - ordensFinalizadas.length,
         tempoMedio: this.calcularTempoMedio(ordensFinalizadas),
-        eficiencia: ordensDoColaborador.length ? 
+        eficiencia: ordensDoColaborador.length ?
           Math.round((ordensFinalizadas.length / ordensDoColaborador.length) * 100) : 0,
-        jornada: `${this.calcularPercentualJornada()}%`
+        jornada: '0%', // Valor inicial
+        fotoUrl: colaborador.fotoUrl,
+        isOnline: true // adicionado, pois somente colaboradores online chegam aqui
       };
+
+      return desempenho;
+    });
+
+    // Atualiza a jornada para cada colaborador
+    this.colaboradoresDesempenho.forEach(cd => {
+      // Encontra o colaborador na lista original
+      const colaborador = this.colaboradores.find(c => c.usuarioId === cd.usuarioId);
+      
+      if (colaborador) {
+        // Obtém horaEntrada e horaSaida do colaborador
+        const horaEntradaStr = colaborador.horaEntrada || '08:00'; // Padrão: 08:00
+        const horaSaidaStr = colaborador.horaSaida || '17:00'; // Padrão: 17:00
+
+        // Cria a data de início e fim do expediente no dia atual
+        const agora = new Date();
+        const dataInicioExpediente = new Date(agora);
+        const [horaEntrada, minutoEntrada] = horaEntradaStr.split(':').map(Number);
+        dataInicioExpediente.setHours(horaEntrada, minutoEntrada, 0, 0);
+
+        const dataFimExpediente = new Date(agora);
+        const [horaSaida, minutoSaida] = horaSaidaStr.split(':').map(Number);
+        dataFimExpediente.setHours(horaSaida, minutoSaida, 0, 0);
+
+        // Calcula o progresso da jornada
+        if (agora < dataInicioExpediente) {
+          cd.jornada = '0%';
+        } else if (agora > dataFimExpediente) {
+          cd.jornada = '100%';
+        } else {
+          const totalJornadaMs = dataFimExpediente.getTime() - dataInicioExpediente.getTime();
+          const decorridoMs = agora.getTime() - dataInicioExpediente.getTime();
+          const percentualJornada = Math.round((decorridoMs / totalJornadaMs) * 100);
+          cd.jornada = `${percentualJornada}%`;
+        }
+      } else {
+        console.warn(`Colaborador com ID ${cd.usuarioId} não encontrado na lista.`);
+        cd.jornada = '0%';
+      }
     });
   }
 
@@ -292,27 +389,25 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   private atualizarMetricasGerais(ordens: OrdemServico[]) {
     this.totalOS = ordens.length;
-    
-    // Realizadas: check for all possible concluded status variations
+
     this.osRealizadas = ordens.filter(o => {
       const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return ['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada']
-        .includes(status);
+      return ['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada'].includes(status);
     }).length;
-    
-    // Não Atribuídas: contar apenas ordens onde atribuida === false
-    this.osNaoAtribuidas = ordens.filter(o => o.atribuida === false).length;
-    
-    // Não Realizadas: check for all possible canceled status variations
+
+    this.osNaoAtribuidas = ordens.filter(o => {
+      const status = o.statusOrdem?.toLowerCase().trim() || '';
+      return o.atribuida === false && !['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada'].includes(status);
+    }).length;
+
     this.osNaoRealizadas = ordens.filter(o => {
       const status = o.statusOrdem?.toLowerCase().trim() || '';
       return ['cancelado', 'cancelada'].includes(status);
     }).length;
-    
-    this.efficiencyGeneral = this.totalOS > 0 ? 
+
+    this.efficiencyGeneral = this.totalOS > 0 ?
       Math.round((this.osRealizadas / this.totalOS) * 100) : 0;
 
-    // Debug logging
     console.log('📊 Métricas atualizadas:', {
       total: this.totalOS,
       naoAtribuidas: this.osNaoAtribuidas,
@@ -323,7 +418,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private buscarDadosColaboradores(ordens: OrdemServico[]) {
-    this.usuarioService.usuarioGetAll({ role: 'Colaborador' }).subscribe({
+    this.vibeService.buscarUsuario().subscribe({
       next: (colaboradores: any[]) => {
         if (!colaboradores || colaboradores.length === 0) {
           console.warn('Nenhum colaborador encontrado');
@@ -332,22 +427,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           return;
         }
 
-        this.colaboradores = colaboradores
-          .filter(colab => colab.role === 'Colaborador')
-          .map(colab => ({
-            usuarioId: colab.usuarioId,
-            nome: colab.nome,
-            empresa: colab.empresa || 'VibeTex Soluções',
-            horaEntrada: colab.horaEntrada || '08:00',
-            horaSaida: colab.horaSaida || '18:00',
-            latitudeAtual: colab.latitudeAtual || '',
-            longitudeAtual: colab.longitudeAtual || '',
-            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined
-          }));
+        this.colaboradores = colaboradores.map(colab => ({
+          usuarioId: colab.usuarioId,
+          nome: colab.nome,
+          empresa: colab.nomeDaEmpresa || colab.empresa || 'N/A',
+          horaEntrada: colab.horaEntrada || '08:00',
+          horaSaida: colab.horaSaida || '18:00',
+          latitudeAtual: colab.latitudeAtual || '',
+          longitudeAtual: colab.longitudeAtual || '',
+          dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined,
+          fotoUrl: colab.fotoUrl || '/assets/default-profile.png'
+        }));
 
         this.colaboradoresDesempenho = this.colaboradores.map(colaborador => {
           const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
-          const ordensFinalizadas = ordensDoColaborador.filter(o => 
+          const ordensFinalizadas = ordensDoColaborador.filter(o =>
             ['concluída', 'concluida', 'Concluído', 'finalizada', 'finalizado']
               .includes(o.statusOrdem?.toLowerCase().trim() || '')
           );
@@ -357,10 +451,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           const osRealizadas = ordensFinalizadas.length;
           const osPendentes = osAtribuidas - osRealizadas;
           const eficiencia = osAtribuidas ? Math.round((osRealizadas / osAtribuidas) * 100) : 0;
-          const jornada = this.calcularPercentualJornada();
 
           return {
-            usuarioId: colaborador.usuarioId, // Add this line
+            usuarioId: colaborador.usuarioId,
             empresa: colaborador.empresa,
             nome: colaborador.nome,
             osAtribuidas,
@@ -368,7 +461,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             osPendentes,
             tempoMedio,
             eficiencia,
-            jornada: `${jornada}%`
+            jornada: '0%', // placeholder
+            fotoUrl: colaborador.fotoUrl
           };
         });
 
@@ -392,23 +486,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     const minutos = Math.floor((tempoMedioMs % (1000 * 60 * 60)) / (1000 * 60));
 
     return `${horas}h ${minutos}m`;
-  }
-
-  private calcularPercentualJornada(): number {
-    const horaInicio = new Date();
-    horaInicio.setHours(8, 0, 0, 0); // Início do expediente comercial: 08:00
-    const horaFim = new Date();
-    horaFim.setHours(18, 0, 0, 0); // Fim do expediente comercial: 18:00
-
-    const agora = new Date();
-    if (agora < horaInicio) return 0;
-    if (agora > horaFim) return 100;
-
-    const totalExpedienteMs = horaFim.getTime() - horaInicio.getTime();
-    const tempoDecorridoMs = agora.getTime() - horaInicio.getTime();
-    const percentual = (tempoDecorridoMs / totalExpedienteMs) * 100;
-
-    return Math.round(percentual);
   }
 
   private filtrarOrdensPorPeriodo(ordens: OrdemServico[]): OrdemServico[] {
@@ -460,5 +537,14 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   atualizarDados() {
     console.log('Atualizando dados para período:', this.periodoSelecionado);
     this.carregarDados();
+  }
+
+  parseJornada(jornada: string): number {
+    const valor = parseFloat(jornada.replace('%', '')) || 0;
+    return Math.min(valor, 100);
+  }
+
+  getProgressWidth(jornada: string): number {
+    return Math.min(this.parseJornada(jornada), 100);
   }
 }

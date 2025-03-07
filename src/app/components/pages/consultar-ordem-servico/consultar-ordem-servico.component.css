@@ -15,15 +15,15 @@
 }
 
 .table-responsive {
-    max-height: 600px;
-    overflow-y: auto;
+  max-height: 600px;
+  overflow-y: auto;
 }
 
 .table th {
-    background-color: #f8f9fa;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+  background-color: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 table {
@@ -46,4 +46,30 @@ table {
 
 td {
   vertical-align: middle;
+}
+
+/* Estilo para a classe status */
+.status {
+  font-size: 0.9rem;
+  padding: 5px 10px !important;
+  border-radius: 20px;
+  display: inline-block;
+  color: #fff; /* Texto branco para contraste */
+}
+
+/* Classes de fundo para os status */
+.bg-green-soft {
+  background-color: #28a745 !important; /* Verde para "Concluído" */
+}
+
+.bg-orange-soft {
+  background-color: #f4941f !important; /* Laranja para "Pendente" */
+}
+
+.bg-red-soft {
+  background-color: #f8d7da !important; /* Vermelho para "Cancelado" */
+}
+
+.bg-blue-soft {
+  background-color: #007bff !important; /* Azul para "Agendada" */
 }

@@ -407,6 +407,23 @@ h3 {
     opacity: 0;
   }
 }
+.user-status-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-status-container .info-value {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Espaçamento entre nome e empresa */
+}
+
+.user-status-container .info-value span.company {
+  font-weight: 400;
+  color: #666;
+  font-style: italic; /* Opcional, para diferenciar a empresa */
+}
 
 .btn-form {
   background-color: #6c757d;

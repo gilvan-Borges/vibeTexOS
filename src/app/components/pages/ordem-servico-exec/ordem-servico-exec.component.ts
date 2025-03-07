@@ -107,6 +107,11 @@ export class OrdemServicoExecComponent implements OnInit {
 
   private readonly BASE_URL: string = 'http://localhost:5030';
 
+  // Adicionar propriedades para o sistema de notificações
+  notificationVisible: boolean = false;
+  notificationMessage: string = '';
+  notificationType: 'success' | 'error' | 'info' | 'warning' = 'info';
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -601,7 +606,6 @@ export class OrdemServicoExecComponent implements OnInit {
       console.log('Foto de início armazenada (base64 para exibição local):', fotoInicioStored);
 
       this.disabled = [true, false, false];
-      alert('Ordem de serviço iniciada com sucesso!');
       this.fecharModal();
     } catch (error) {
       console.error('Erro ao iniciar execução:', error);
@@ -667,7 +671,6 @@ export class OrdemServicoExecComponent implements OnInit {
 
       this.disabled = [false, true, true];
       this.mostrarFormulario = true;
-      alert('Ordem de serviço finalizada com sucesso!');
       this.fecharModal();
       await this.inicializarFormulario();
     } catch (error) {
@@ -756,7 +759,7 @@ export class OrdemServicoExecComponent implements OnInit {
 
   async onSubmit(): Promise<void> {
     if (!this.formularioServico.valid || !this.signaturePad || this.signaturePad.isEmpty()) {
-      alert('Por favor, preencha todos os campos obrigatórios e forneça uma assinatura.');
+      this.showNotification('Por favor, preencha todos os campos obrigatórios e forneça uma assinatura.', 'error');
       return;
     }
 
@@ -773,7 +776,7 @@ export class OrdemServicoExecComponent implements OnInit {
     const ordemDeServicoId = localStorage.getItem('ordemServicoId') || '';
 
     if (!execucaoData || !usuarioId || !ordemDeServicoId) {
-      alert('Execução, usuário ou ordem de serviço não encontrados.');
+      this.showNotification('Execução, usuário ou ordem de serviço não encontrados.', 'error');
       return;
     }
 
@@ -788,7 +791,7 @@ export class OrdemServicoExecComponent implements OnInit {
       console.log('Resposta da API:', response);
       await this.atualizarStatusOrdemConcluida(formData.observacoes);
 
-      alert('Formulário enviado com sucesso!');
+      this.showNotification('Formulário enviado com sucesso! Obrigado por utilizar nosso sistema.', 'success');
       this.limparLocalStorageAposConclusao();
       this.formularioServico.reset();
       this.limparAssinatura();
@@ -796,6 +799,7 @@ export class OrdemServicoExecComponent implements OnInit {
       this.router.navigate(['/']);
     } catch (error) {
       console.error('Erro ao enviar formulário:', error);
+      this.showNotification('Erro ao enviar formulário. Por favor, tente novamente.', 'error');
     }
   }
 
@@ -986,5 +990,21 @@ export class OrdemServicoExecComponent implements OnInit {
     }
     alert(mensagem);
     return throwError(() => error);
+  }
+
+  // Método para exibir notificações
+  showNotification(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): void {
+    this.notificationMessage = message;
+    this.notificationType = type;
+    this.notificationVisible = true;
+    
+    // Auto-esconder após 5 segundos
+    setTimeout(() => {
+      this.hideNotification();
+    }, 5000);
+  }
+  
+  hideNotification(): void {
+    this.notificationVisible = false;
   }
 }

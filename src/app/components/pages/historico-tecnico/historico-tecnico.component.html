@@ -1,11 +1,12 @@
 <!-- Informações do Usuário -->
+<!-- Informações do Usuário -->
 <div class="user-info-container">
   <div class="user-info-card">
     <div class="info-section">
       <div class="info-item">
         <span class="info-label">👤 Colaborador:</span>
         <div class="user-status-container">
-          <span class="info-value">{{ nomeUsuario }}</span>
+          <span class="info-value">{{ nomeUsuario }} - {{ nomeDaEmpresa}}</span>
           <span
             class="status-indicator"
             [ngClass]="{'online': isOnline, 'offline': !isOnline}"

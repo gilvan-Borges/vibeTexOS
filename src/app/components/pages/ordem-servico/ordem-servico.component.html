@@ -1,88 +1,172 @@
 <div class="container-fluid">
-  <!-- Contador de Ordens de Serviço -->
-  <div class="contador-os text-center mb-3">
-    <span 
-      class="badge" 
-      [ngClass]="{
-        'bg-primary': statusOrdem === 'Pendente',
-        'bg-success': statusOrdem === 'CONCLUIDA'
-      }">
-      {{ ordensFiltradas.length }} 
-      {{ statusOrdem === 'Pendente' ? 'Ordem(ns) Pendente(s)' : 'Ordem(ns) Realizada(s)' }}
-    </span>
-  </div>
+  <!-- Seção de Ordens em Andamento (sempre visível) -->
+  <div *ngIf="ordensAndamento.length > 0" class="mb-5">
+    <div class="contador-os text-center mb-3">
+      <span class="badge bg-warning">
+        {{ ordensAndamento.length }} Ordem(ns) em Andamento
+      </span>
+    </div>
 
-  <!-- Título da Seção -->
-  <h1 class="text-center mb-4">
-    {{ statusOrdem === 'Pendente' ? 'Ordens de Serviço Pendentes' : 'Ordens de Serviço Realizadas' }}
-  </h1>
+    <h1 class="text-center mb-4">Ordens de Serviço em Andamento</h1>
 
-  <!-- Grade de Ordens de Serviço -->
-  <div class="d-flex justify-content-center">
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 justify-content-center">
-      <div class="col" *ngFor="let os of ordensFiltradas">
-        <div class="card h-100 ordem-servico-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <strong class="codigo">{{ os.numeroOrdemDeServico }}</strong>
-          </div>
-          <div class="card-body">
-            <!-- Informações do Cliente -->
-            <p class="card-text cliente mb-2">
-              <i class="fas fa-user me-2"></i>
-              {{ os.clienteData?.nomeCliente || 'Carregando...' }}
-            </p>
+    <!-- Grade de Ordens em Andamento -->
+    <div class="d-flex justify-content-center">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 justify-content-center">
+        <div class="col" *ngFor="let os of ordensAndamento">
+          <div class="card h-100 ordem-servico-card andamento-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong class="codigo">{{ os.numeroOrdemDeServico }}</strong>
+              <span class="badge bg-warning">Em Andamento</span>
+            </div>
+            <div class="card-body">
+              <!-- Informações do Cliente -->
+              <p class="card-text cliente mb-2">
+                <i class="fas fa-user me-2"></i>
+                {{ os.clienteData?.nomeCliente || os.cliente || 'Carregando...' }}
+              </p>
 
-            <!-- Endereço -->
-            <p class="card-text endereco mb-2">
-              <i class="fas fa-map-marker-alt me-2"></i>
-              {{ formatarEndereco(os.clienteData?.endereco) || 'Carregando endereço...' }}
-            </p>
+              <!-- Endereço -->
+              <p class="card-text endereco mb-2">
+                <i class="fas fa-map-marker-alt me-2"></i>
+                {{ formatarEndereco(os.clienteData?.endereco) || os.endereco || 'Carregando endereço...' }}
+              </p>
 
-            <!-- Botão para Abrir Rota no Maps -->
-            <button 
-              class="btn btn-outline-secondary btn-sm mb-2 w-100" 
-              (click)="abrirRota(formatarEnderecoParaMaps(os.clienteData?.endereco))"
-              [disabled]="!os.clienteData?.endereco">
-              <i class="fas fa-route me-2"></i>
-              Abrir Rota no Maps
-            </button>
+              <!-- Botão para Abrir Rota no Maps -->
+              <button 
+                class="btn btn-outline-secondary btn-sm mb-2 w-100" 
+                (click)="abrirRota(formatarEnderecoParaMaps(os.clienteData?.endereco) || os.endereco)"
+                [disabled]="!os.clienteData?.endereco && !os.endereco">
+                <i class="fas fa-route me-2"></i>
+                Abrir Rota no Maps
+              </button>
 
-            <!-- Tipo de Serviço -->
-            <p class="card-text tipo mb-2">
-              <i class="fas fa-tools me-2"></i>
-              {{ os.tipoServico }}
-            </p>
+              <!-- Tipo de Serviço -->
+              <p class="card-text tipo mb-2">
+                <i class="fas fa-tools me-2"></i>
+                {{ os.tipoServico }}
+              </p>
 
-            <!-- Observações (se existirem) -->
-            <p class="card-text" *ngIf="os.observacoesReparo">
-              <i class="fas fa-comment me-2"></i>
-              {{ os.observacoesReparo }}
-            </p>
-          </div>
+              <!-- Observações (se existirem) -->
+              <p class="card-text" *ngIf="os.observacoesReparo">
+                <i class="fas fa-comment me-2"></i>
+                {{ os.observacoesReparo }}
+              </p>
+            </div>
 
-          <!-- Rodapé do Card (Ações ou Status) -->
-          <div class="card-footer text-center">
-            <button 
-              *ngIf="statusOrdem === 'Pendente'"
-              class="btn btn-primary w-100"
-              [disabled]="pausaAtiva || !os.ordemDeServicoId"
-              (click)="iniciarOrdemServico(os)">
-              Iniciar
-              <small *ngIf="pausaAtiva" class="d-block pausa-msg">
-                (Finalize a pausa primeiro)
-              </small>
-            </button>
-            <span *ngIf="statusOrdem === 'CONCLUIDA'" class="badge bg-success">
-              Concluída
-            </span>
+            <!-- Rodapé do Card (Continuar) -->
+            <div class="card-footer text-center">
+              <button 
+                class="btn btn-warning w-100"
+                [disabled]="pausaAtiva"
+                (click)="continuarOrdemServico(os)">
+                Continuar O.S.
+                <small *ngIf="pausaAtiva" class="d-block pausa-msg">
+                  (Finalize a pausa primeiro)
+                </small>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Mensagem de Nenhum Resultado -->
-  <div *ngIf="ordensFiltradas.length === 0" class="alert alert-info text-center mt-4">
-    Nenhuma ordem de serviço {{ statusOrdem === 'Pendente' ? 'Pendente' : 'realizada' }} encontrada.
+  <!-- Seção de Ordens Pendentes ou Realizadas -->
+  <div *ngIf="statusOrdem !== 'EmAndamento' || ordensFiltradas.length > 0">
+    <!-- Contador de Ordens de Serviço -->
+    <div class="contador-os text-center mb-3">
+      <span 
+        class="badge" 
+        [ngClass]="{
+          'bg-danger': statusOrdem === 'Pendente',
+          'bg-success': statusOrdem === 'Concluida'
+        }">
+        {{ ordensFiltradas.length }} 
+        {{ statusOrdem === 'Pendente' ? 'Ordem(ns) Pendente(s)' : 'Ordem(ns) Realizada(s)' }}
+      </span>
+    </div>
+
+    <!-- Título da Seção -->
+    <h1 class="text-center mb-4">
+      {{ statusOrdem === 'Pendente' ? 'Ordens de Serviço Pendentes' : 'Ordens de Serviço Realizadas' }}
+    </h1>
+
+    <!-- Grade de Ordens de Serviço -->
+    <div class="d-flex justify-content-center">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 justify-content-center">
+        <div class="col" *ngFor="let os of ordensFiltradas">
+          <div class="card h-100 ordem-servico-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong class="codigo">{{ os.numeroOrdemDeServico }}</strong>
+              <span class="badge" [ngClass]="{
+                'bg-danger': statusOrdem === 'Pendente',
+                'bg-success': statusOrdem === 'Concluida'
+              }">
+                {{ statusOrdem === 'Pendente' ? 'Pendente' : 'Concluído' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <!-- Informações do Cliente -->
+              <p class="card-text cliente mb-2">
+                <i class="fas fa-user me-2"></i>
+                {{ os.clienteData?.nomeCliente || os.cliente || 'Carregando...' }}
+              </p>
+
+              <!-- Endereço -->
+              <p class="card-text endereco mb-2">
+                <i class="fas fa-map-marker-alt me-2"></i>
+                {{ formatarEndereco(os.clienteData?.endereco) || os.endereco || 'Carregando endereço...' }}
+              </p>
+
+              <!-- Botão para Abrir Rota no Maps -->
+              <button 
+                class="btn btn-outline-secondary btn-sm mb-2 w-100" 
+                (click)="abrirRota(formatarEnderecoParaMaps(os.clienteData?.endereco) || os.endereco)"
+                [disabled]="!os.clienteData?.endereco && !os.endereco">
+                <i class="fas fa-route me-2"></i>
+                Abrir Rota no Maps
+              </button>
+
+              <!-- Tipo de Serviço -->
+              <p class="card-text tipo mb-2">
+                <i class="fas fa-tools me-2"></i>
+                {{ os.tipoServico }}
+              </p>
+
+              <!-- Observações (se existirem) -->
+              <p class="card-text" *ngIf="os.observacoesReparo">
+                <i class="fas fa-comment me-2"></i>
+                {{ os.observacoesReparo }}
+              </p>
+            </div>
+
+            <!-- Rodapé do Card (Iniciar ou Ver Detalhes) -->
+            <div class="card-footer text-center">
+              <button 
+                *ngIf="statusOrdem === 'Pendente'"
+                class="btn btn-primary w-100"
+                [disabled]="pausaAtiva || verificarOrdemEmAndamento()"
+                (click)="iniciarOrdemServico(os)">
+                {{ verificarOrdemEmAndamento() ? 'Finalize a O.S. em andamento' : 'Iniciar O.S.' }}
+                <small *ngIf="pausaAtiva" class="d-block pausa-msg">
+                  (Finalize a pausa primeiro)
+                </small>
+              </button>
+              <button 
+                *ngIf="statusOrdem === 'Concluida'"
+                class="btn btn-info w-100"
+                (click)="verDetalhesOrdem(os)">
+                Ver Detalhes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mensagem quando não há ordens -->
+    <div *ngIf="ordensFiltradas.length === 0" class="text-center no-data">
+      <p>Nenhuma ordem de serviço {{ statusOrdem === 'Pendente' ? 'pendente' : 'realizada' }} encontrada.</p>
+    </div>
   </div>
 </div>
