@@ -99,23 +99,27 @@ export class AutenticarComponent {
       return;
     }
     console.log('Redirecionando o usuário com ID:', usuario.usuarioId);
-
+  
     // Salva o usuário no localStorage
     localStorage.setItem('usuario', JSON.stringify(response));
-
-    // Inicia a atualização de localização imediatamente
+  
+    // Inicia a atualização de localização
     this.idUsuario = usuario.usuarioId;
     this.iniciarAtualizacaoLocalizacao();
-
-    // Redireciona baseado no role do usuário (sem reload)
-    if (usuario.role?.toLowerCase() === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`]);
-    } else if (usuario.role?.toLowerCase() === 'administrador') {
-       usuario.role?.toLowerCase() === 'administrador' ||
-        usuario.role?.toLowerCase() === 'roteirizador'
+  
+    // Redireciona baseado no role do usuário
+    const role = usuario.role?.toLowerCase();
+    if (role === 'colaborador') {
+      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`], { replaceUrl: true }).then(() => {
+        window.location.reload();
+      });
+    } else if (role === 'administrador' || role === 'roteirizador') {
+      this.router.navigate(['/pages/dashboard'], { replaceUrl: true }).then(() => {
+        window.location.reload();
+      });
     }
-
-    // Atualiza o status do usuário e verifica o expediente e O.S.
+  
+    // Atualiza o status do usuário
     this.controllAppService.atualizarStatusUsuario(usuario.usuarioId, true).subscribe({
       next: () => {
         console.log('Status atualizado com sucesso.');

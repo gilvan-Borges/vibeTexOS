@@ -28,13 +28,19 @@ export class RegistrarPontoService {
   ): Observable<any> {
     return this.controllAppService.pontoRegistarInicioPausa(userId, request);
   }
+  registrarFimPausa(usuarioId: string, pontoId: string, request: RegistrarFimPausaRequestDto) {
+    const headers = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`  // Recupere o token do localStorage ou onde você salvou
+      }
+    };
 
-  registrarFimPausa(
-    userId: string,
-    pausaId: string,
-    request: RegistrarFimPausaRequestDto
-  ): Observable<any> {
-    return this.controllAppService.pontoRegistarFimPausa(userId, pausaId, request);
+    const url = `https://localhost:5141/api/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
+    console.log('URL correta:', url);
+    console.log('Payload enviado:', request);
+
+    return this.http.post(url, request, headers);
   }
 
   registrarInicioExpediente(

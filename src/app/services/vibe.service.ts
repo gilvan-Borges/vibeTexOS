@@ -10,6 +10,7 @@ import { IniciarTrajetoResponseDto } from '../models/vibe-service/iniciarTrajeto
 import { ExecucaoFimResponseDto } from "../models/vibe-service/execucao.Fim.Response.Dto";
 import { ExecucaoFimRequestDto } from "../models/vibe-service/execucao.Fim.Request.Dto";
 import { RegisterRoteirizadorRequestDto, RegisterRoteirizadorResponseDto } from "../models/vibe-service/registerRoteirizadorDto";
+import { ReiniciarExecucaoServicoRequestDto } from "../models/vibe-service/reiniciar.Execucao.Servico.Request.Dto";
 
 @Injectable({
     providedIn: 'root'
@@ -101,13 +102,13 @@ export class VibeService {
     }
 
     deletarOrdemServico(ordemDeServicoId: string): Observable<any> {
-        return this.httpClient.delete<any>(`${this.apiUrl}/usuario/ordem-servico/${ordemDeServicoId}`, {
-            headers: this.getHeaders()
+        return this.httpClient.delete(`${this.apiUrl}/usuario/ordem-servico/${ordemDeServicoId}`, {
+            headers: this.getHeaders(),
+            responseType: 'text' // Define que a resposta pode ser texto (ou vazia)
         }).pipe(
             catchError(this.handleError)
         );
     }
-
 
     atualizarOrdemServicoDespacho(ordemDeServicoId: string, colaboradorId: string): Observable<any> {
         // Corrigindo a URL (dispachar -> despachar) e usando PUT em vez de POST
@@ -184,7 +185,7 @@ export class VibeService {
         const url = `${this.apiUrl}/tarefa/iniciar-execucao-servico/${trajetoIdFinalizado}/${usuarioId}`;
         return this.httpClient.post<ExecucaoResponseDto>(url, request, {
             headers: new HttpHeaders({
-                // Não defina 'Content-Type' explicitamente, pois FormData define automaticamente multipart/form-data
+                
             })
         });
     }
@@ -194,7 +195,15 @@ export class VibeService {
 
         return this.httpClient.post<ExecucaoResponseDto>(url, formData, {
             headers: new HttpHeaders({
-                // Não defina 'Content-Type' explicitamente, pois FormData define automaticamente multipart/form-data
+            })
+        });
+    }
+
+    reiniciarExecucaoServico(execucaoServicoId: string, usuarioId: string, formData: FormData): Observable<ReiniciarExecucaoServicoRequestDto> {
+        const url = `${this.apiUrl}/tarefa/reiniciar-execucao-servico/${execucaoServicoId}/${usuarioId}`;
+
+        return this.httpClient.post<any>(url, formData, {
+            headers: new HttpHeaders({
             })
         });
     }

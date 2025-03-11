@@ -51,8 +51,8 @@ export class ConsultarOrdemServicoComponent implements OnInit {
   ordensServico: OrdemServico[] = [];
   ordensServicoFiltradas: OrdemServico[] = [];
   usuarios: Map<string, Usuario> = new Map();
-  empresas: Map<string, Empresa> = new Map(); // Mapa para armazenar dados das empresas
-  hoje: Date = new Date(); // Data atual para comparação
+  empresas: Map<string, Empresa> = new Map();
+  hoje: Date = new Date();
 
   constructor(
     private fb: FormBuilder,
@@ -67,7 +67,6 @@ export class ConsultarOrdemServicoComponent implements OnInit {
       status: ['']
     });
 
-    // Define a data atual sem a parte de horário para comparação
     this.hoje.setHours(0, 0, 0, 0);
   }
 
@@ -90,10 +89,9 @@ export class ConsultarOrdemServicoComponent implements OnInit {
         console.log('Dados das ordens recebidos:', ordens);
         console.dir(ordens);
         this.ordensServico = ordens.map((os: OrdemServico) => {
-          // Determina se a O.S. é "Agendada" com base na data
           if (os.dataHoraCadastro) {
             const dataOs = new Date(os.dataHoraCadastro);
-            dataOs.setHours(0, 0, 0, 0); // Ignora a hora para comparação
+            dataOs.setHours(0, 0, 0, 0);
             if (dataOs > this.hoje) {
               os.statusOrdem = 'Agendada';
             }
@@ -101,7 +99,6 @@ export class ConsultarOrdemServicoComponent implements OnInit {
           return os;
         });
 
-        // Buscar informações das empresas
         this.carregarDadosEmpresas();
       },
       error: (error) => {
@@ -111,12 +108,9 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     });
   }
 
-  // Método para carregar dados das empresas
   carregarDadosEmpresas(): void {
-    // Obter lista única de IDs de empresas dos usuários
     const empresaIds = new Set<string>();
     
-    // Coletar todos os IDs de empresa dos usuários
     this.usuarios.forEach(usuario => {
       if (usuario.empresaId) {
         empresaIds.add(usuario.empresaId);
@@ -126,7 +120,6 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     
     console.log('Total de empresas para buscar:', empresaIds.size);
 
-    // Se não houver empresas para buscar, apenas aplica os filtros
     if (empresaIds.size === 0) {
       console.log('Nenhuma empresa para buscar, aplicando filtros diretamente');
       this.aplicarFiltros();
@@ -134,14 +127,12 @@ export class ConsultarOrdemServicoComponent implements OnInit {
       return;
     }
 
-    // Buscar cada empresa individualmente para garantir que todas sejam processadas
     empresaIds.forEach(id => {
       console.log('Buscando empresa com ID:', id);
       this.ControllAppService.buscarEmpresasPorId(id).subscribe({
         next: (empresa) => {
           console.log('Resposta da API para empresa ID', id, ':', empresa);
           
-          // Verifica a estrutura da resposta
           if (empresa) {
             this.empresas.set(id, {
               empresaId: id,
@@ -149,7 +140,7 @@ export class ConsultarOrdemServicoComponent implements OnInit {
             });
             
             console.log('Empresa adicionada ao mapa:', id, this.empresas.get(id));
-            this.cdr.markForCheck(); // Atualiza a view após cada empresa carregada
+            this.cdr.markForCheck();
           } else {
             console.error('Resposta da API para empresa inválida:', empresa);
           }
@@ -158,12 +149,11 @@ export class ConsultarOrdemServicoComponent implements OnInit {
           console.error(`Erro ao buscar empresa ${id}:`, error);
         },
         complete: () => {
-          console.log(`Busca de empresa ${id} concluída`);
+          console.log(`Busca de empresa ${id} Concluído`);
         }
       });
     });
 
-    // Aplica os filtros depois de um curto delay para dar tempo de carregar as empresas
     setTimeout(() => {
       console.log('Empresas carregadas:', [...this.empresas.entries()]);
       this.aplicarFiltros();
@@ -175,13 +165,15 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     const filtros = this.filtroForm.value;
 
     this.ordensServicoFiltradas = this.ordensServico.filter(os => {
+      console.log('Status original:', os.statusOrdem);
+      console.log('Status normalizado:', this.normalizeStatus(os.statusOrdem));
+
       const dataInicioMatch = !filtros.dataInicio || 
         (os.dataHoraCadastro && new Date(os.dataHoraCadastro) >= new Date(filtros.dataInicio));
       
       const dataFimMatch = !filtros.dataFim || 
         (os.dataHoraCadastro && new Date(os.dataHoraCadastro) <= new Date(filtros.dataFim));
       
-      // Obter empresaId do usuário relacionado à ordem de serviço
       const usuario = os.usuarioId ? this.usuarios.get(os.usuarioId) : null;
       const nomeEmpresa = usuario?.empresaId ? this.getEmpresaNomeByEmpresaId(usuario.empresaId) : 'N/A';
       
@@ -233,7 +225,6 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     return 'Colaborador Não Atribuído';
   }
 
-  // Método para obter o nome da empresa pelo ID da empresa diretamente
   getEmpresaNomeByEmpresaId(empresaId?: string): string {
     if (!empresaId) {
       return 'Empresa não informada';
@@ -247,29 +238,43 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     return 'Carregando...';
   }
 
-  // Método para obter o nome da empresa pelo ID do usuário na ordem de serviço
   getEmpresaNome(usuarioId?: string): string {
     if (!usuarioId) {
       return 'Usuário não informado';
     }
     
-    // Buscar o usuário para encontrar o empresaId
     const usuario = this.usuarios.get(usuarioId);
     if (!usuario) {
       return 'Usuário não encontrado';
     }
     
-    // Usar o empresaId do usuário para buscar o nome da empresa
     return this.getEmpresaNomeByEmpresaId(usuario.empresaId);
   }
 
-  // Método para normalizar o status para uso em classes CSS
   normalizeStatus(status?: string): string {
     if (!status) return '';
-    return status
+    const normalized = status
       .trim()
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const statusMap: { [key: string]: string } = {
+      'concluido': 'concluida',
+      'concluida': 'concluida',
+      'completed': 'concluida',
+      'pendente': 'pendente',
+      'pending': 'pendente',
+      'em andamento': 'em andamento',
+      'emandamento': 'em andamento',
+      'inprogress': 'em andamento',
+      'cancelado': 'cancelado',
+      'canceled': 'cancelado',
+      'agendada': 'agendada',
+      'agendado': 'agendada',
+      'scheduled': 'agendada'
+    };
+
+    return statusMap[normalized] || normalized;
   }
 }

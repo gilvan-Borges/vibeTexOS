@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { WebcamImage, WebcamInitError, WebcamModule } from 'ngx-webcam';
-import { Subject, throwError } from 'rxjs';
+import { Subject, throwError, Subscription } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { ServicoFoto } from '../../../services/foto.service';
 import { ServicoLocalizacao } from '../../../services/localizacao.service';
@@ -111,6 +111,7 @@ export class OrdemServicoExecComponent implements OnInit {
   notificationVisible: boolean = false;
   notificationMessage: string = '';
   notificationType: 'success' | 'error' | 'info' | 'warning' = 'info';
+  private autoSaveSubscription: Subscription | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -125,8 +126,64 @@ export class OrdemServicoExecComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('Iniciando componente de execução de ordem de serviço');
+    
+    // Verificar imediatamente se existe um formulário para restaurar
+    this.verificarFormularioSalvo();
+    
+    // Continuar com inicialização padrão
     localStorage.removeItem('execucaoServico');
     this.carregarOrdemServico();
+  }
+
+  // Método para verificar se existe um formulário salvo
+  private verificarFormularioSalvo(): void {
+    const formularioAberto = localStorage.getItem('formularioAberto');
+    const execucaoConcluida = localStorage.getItem('execucaoConcluida');
+    const formularioData = localStorage.getItem('formularioData');
+    
+    console.log('Verificando formulário salvo:', {
+      formularioAberto,
+      execucaoConcluida,
+      temDadosFormulario: !!formularioData
+    });
+    
+    if (formularioAberto === 'true' && execucaoConcluida === 'true' && formularioData) {
+      console.log('Restaurando formulário salvo');
+      
+      this.mostrarFormulario = true;
+      this.disabled = [true, true, true]; // Desabilita todos os botões quando mostra o formulário
+      
+      // Aguardar um momento para garantir que os componentes do angular foram inicializados
+      setTimeout(() => {
+        this.restaurarFormulario();
+      }, 500);
+    }
+  }
+  
+  private restaurarFormulario(): void {
+    try {
+      const formularioData = localStorage.getItem('formularioData');
+      if (!formularioData) return;
+      
+      const dados = JSON.parse(formularioData);
+      console.log('Dados do formulário restaurados:', dados);
+      
+      // Preencher o formulário com os dados salvos
+      this.formularioServico.patchValue(dados);
+      
+      // Registrar-se para alterações no formulário para salvar automaticamente
+      this.configurarAutoSave();
+      
+      // Se tiver canvas de assinatura disponível, inicializá-lo
+      setTimeout(() => {
+        if (this.signaturePadCanvas && this.signaturePadCanvas.nativeElement) {
+          this.signaturePad = new SignaturePad(this.signaturePadCanvas.nativeElement);
+        }
+      }, 200);
+    } catch (error) {
+      console.error('Erro ao restaurar formulário:', error);
+    }
   }
 
   private carregarOrdemServico(): void {
@@ -498,6 +555,10 @@ export class OrdemServicoExecComponent implements OnInit {
   
       alert('Ordem de serviço cancelada com sucesso.');
       this.fecharModal();
+      
+      // Substituir o redirecionamento para a página de ordens pendentes
+      this.router.navigate([`/pages/ordem-servico/pendentes/${usuarioId}`]);
+      
     } catch (error: any) {
       console.error('Erro ao enviar cancelamento:', error);
       alert(error.message || 'Não foi possível processar o cancelamento.');
@@ -671,8 +732,20 @@ export class OrdemServicoExecComponent implements OnInit {
 
       this.disabled = [false, true, true];
       this.mostrarFormulario = true;
+      
+      // Marcar que a execução foi concluída e o formulário está aberto
+      localStorage.setItem('formularioAberto', 'true');
+      localStorage.setItem('execucaoConcluida', 'true');
+      
       this.fecharModal();
+      
+      // Inicializar formulário e configurar auto-save
       await this.inicializarFormulario();
+      
+      // Salvar dados iniciais do formulário imediatamente
+      const valoresFormulario = this.formularioServico.value;
+      localStorage.setItem('formularioData', JSON.stringify(valoresFormulario));
+      console.log('Dados do formulário salvos inicialmente:', valoresFormulario);
     } catch (error) {
       console.error('Erro ao finalizar execução:', error);
       throw error;
@@ -683,6 +756,19 @@ export class OrdemServicoExecComponent implements OnInit {
     try {
       const dadosAutomaticos = await this.formularioService.preencherDadosAutomaticos();
       console.log('Dados automáticos recuperados:', dadosAutomaticos);
+
+      // Tentar restaurar dados do formulário do localStorage
+      const formularioData = localStorage.getItem('formularioData');
+      let dadosSalvos = null;
+      
+      if (formularioData) {
+        try {
+          dadosSalvos = JSON.parse(formularioData);
+          console.log('Dados do formulário restaurados do localStorage:', dadosSalvos);
+        } catch (e) {
+          console.error('Erro ao parsear dados do formulário:', e);
+        }
+      }
 
       const execucaoData = localStorage.getItem('execucaoServico');
       let fotoInicioUrl: string = '';
@@ -702,21 +788,22 @@ export class OrdemServicoExecComponent implements OnInit {
       const fotoFimStored = localStorage.getItem('osFotoFim') || dadosAutomaticos.fotoFim || '';
 
       this.formularioServico.patchValue({
-        codigoOS: dadosAutomaticos.codigoOS || '',
-        nomeColaborador: dadosAutomaticos.nomeColaborador || '',
-        empresaColaborador: dadosAutomaticos.empresaColaborador || 'VIBETEX',
-        nomeCliente: dadosAutomaticos.nomeCliente || '',
-        cpf: dadosAutomaticos.cpf || '',
-        telefone: this.formularioService.formatarTelefone(dadosAutomaticos.telefone || ''),
-        cep: dadosAutomaticos.cep || '',
-        logradouro: dadosAutomaticos.logradouro || '',
-        numero: dadosAutomaticos.numero || '',
-        complemento: dadosAutomaticos.complemento || '',
-        bairro: dadosAutomaticos.bairro || '',
-        cidade: dadosAutomaticos.cidade || '',
-        estado: dadosAutomaticos.estado || '',
-        fotoInicio: fotoInicioUrl || fotoInicioStored,
-        fotoFim: fotoFimUrl || fotoFimStored,
+        codigoOS: dadosSalvos?.codigoOS || dadosAutomaticos.codigoOS || '',
+        nomeColaborador: dadosSalvos?.nomeColaborador || dadosAutomaticos.nomeColaborador || '',
+        empresaColaborador: dadosSalvos?.empresaColaborador || dadosAutomaticos.empresaColaborador || 'VIBETEX',
+        nomeCliente: dadosSalvos?.nomeCliente || dadosAutomaticos.nomeCliente || '',
+        cpf: dadosSalvos?.cpf || dadosAutomaticos.cpf || '',
+        telefone: dadosSalvos?.telefone || this.formularioService.formatarTelefone(dadosAutomaticos.telefone || ''),
+        cep: dadosSalvos?.cep || dadosAutomaticos.cep || '',
+        logradouro: dadosSalvos?.logradouro || dadosAutomaticos.logradouro || '',
+        numero: dadosSalvos?.numero || dadosAutomaticos.numero || '',
+        complemento: dadosSalvos?.complemento || dadosAutomaticos.complemento || '',
+        bairro: dadosSalvos?.bairro || dadosAutomaticos.bairro || '',
+        cidade: dadosSalvos?.cidade || dadosAutomaticos.cidade || '',
+        estado: dadosSalvos?.estado || dadosAutomaticos.estado || '',
+        fotoInicio: dadosSalvos?.fotoInicio || fotoInicioUrl || fotoInicioStored,
+        fotoFim: dadosSalvos?.fotoFim || fotoFimUrl || fotoFimStored,
+        observacoes: dadosSalvos?.observacoes || '',
       });
 
       const cep = this.formularioServico.get('cep')?.value;
@@ -745,10 +832,28 @@ export class OrdemServicoExecComponent implements OnInit {
           console.error('Canvas para assinatura não encontrado');
         }
       }, 0);
+
+      // Configurar o listener para salvar alterações no formulário
+      this.configurarAutoSave();
+
     } catch (error) {
       console.error('Erro ao preencher dados automáticos:', error);
       alert('Erro ao carregar dados do formulário.');
     }
+  }
+
+  // Método para configurar o auto-save do formulário
+  private configurarAutoSave(): void {
+    // Desinscrever de assinaturas anteriores, se houver
+    if (this.autoSaveSubscription) {
+      this.autoSaveSubscription.unsubscribe();
+    }
+    
+    // Registrar para mudanças no formulário
+    this.autoSaveSubscription = this.formularioServico.valueChanges.subscribe(valores => {
+      localStorage.setItem('formularioData', JSON.stringify(valores));
+      console.log('AutoSave: Dados do formulário atualizados');
+    });
   }
 
   limparAssinatura(): void {
@@ -792,14 +897,33 @@ export class OrdemServicoExecComponent implements OnInit {
       await this.atualizarStatusOrdemConcluida(formData.observacoes);
 
       this.showNotification('Formulário enviado com sucesso! Obrigado por utilizar nosso sistema.', 'success');
+      
+      // Limpar todos os dados do formulário
+      this.limparTodosDadosFormulario();
       this.limparLocalStorageAposConclusao();
+      
       this.formularioServico.reset();
       this.limparAssinatura();
       this.mostrarFormulario = false;
-      this.router.navigate(['/']);
+      
+      // Redirecionar para a página de ordens pendentes após o envio bem-sucedido
+      this.router.navigate([`/pages/ordem-servico/pendentes/${usuarioId}`]);
     } catch (error) {
       console.error('Erro ao enviar formulário:', error);
       this.showNotification('Erro ao enviar formulário. Por favor, tente novamente.', 'error');
+    }
+  }
+
+  // Método para limpar dados do formulário no localStorage
+  private limparTodosDadosFormulario(): void {
+    localStorage.removeItem('formularioAberto');
+    localStorage.removeItem('execucaoConcluida');
+    localStorage.removeItem('formularioData');
+    
+    // Cancelar a assinatura do autoSave
+    if (this.autoSaveSubscription) {
+      this.autoSaveSubscription.unsubscribe();
+      this.autoSaveSubscription = null;
     }
   }
 
@@ -920,6 +1044,7 @@ export class OrdemServicoExecComponent implements OnInit {
   private async atualizarStatusOrdemConcluida(observacoes: string): Promise<void> {
     const ordemData = localStorage.getItem('ordemServico');
     const ordemDeServicoId = localStorage.getItem('ordemServicoId') || '';
+    const execucaoData = localStorage.getItem('execucaoServico');
 
     if (!ordemData || !ordemDeServicoId) {
       console.error('Dados da ordem de serviço ou ID não encontrados.');
@@ -927,14 +1052,48 @@ export class OrdemServicoExecComponent implements OnInit {
     }
 
     const ordem: OrdemServico = JSON.parse(ordemData);
+    
+    // Obter os dados de início da execução
+    let dataInicio = ordem.dataEHoraInicioServico;
+    let dataFim = new Date().toISOString();
+    
+    if (execucaoData) {
+      const execucao = JSON.parse(execucaoData) as ExecucaoDto;
+      
+      // Verificar se temos datas disponíveis na execução
+      if ('dataEHoraInicioExecucao' in execucao && execucao.dataEHoraInicioExecucao) {
+        dataInicio = execucao.dataEHoraInicioExecucao;
+      }
+      
+      if ('dataEHoraFimExecucao' in execucao && execucao.dataEHoraFimExecucao) {
+        dataFim = execucao.dataEHoraFimExecucao instanceof Date 
+          ? execucao.dataEHoraFimExecucao.toISOString() 
+          : execucao.dataEHoraFimExecucao;
+      } else if ('dataHoraFim' in execucao && execucao.dataHoraFim) {
+    
+        dataFim = typeof execucao.dataHoraFim === 'string' ? execucao.dataHoraFim : new Date().toISOString();
+      }
+    }
+    
+    // Se ainda não tivermos data de início, use a atual
+    if (!dataInicio) {
+      dataInicio = ordem.dataEHoraInicioServico || dataFim;
+    }
+
+    console.log('Atualizando ordem com datas:', {
+      dataInicio,
+      dataFim,
+      execucaoData: execucaoData ? JSON.parse(execucaoData) : null
+    });
+
     const updateData = {
       numeroOrdemDeServico: ordem.numeroOrdemDeServico || '',
       clienteId: ordem.clienteId || '',
       tipoServico: ordem.tipoServico || '',
       statusOrdem: 'Concluído',
       observacoesReparo: observacoes || ordem.observacoesReparo || '',
-      dataEHoraInicioServico: ordem.dataEHoraInicioServico || '',
-      dataEHoraFimServico: ordem.dataEHoraFimServico || new Date().toISOString(),
+      dataEHoraInicioServico: dataInicio,
+      dataEHoraFimServico: dataFim,
     };
 
     try {
@@ -942,7 +1101,7 @@ export class OrdemServicoExecComponent implements OnInit {
         .pipe(
           catchError((error: HttpErrorResponse) => {
             console.error('Erro ao atualizar o status no backend:', error);
-            alert('Erro ao atualizar o status da ordem de serviço no backend.');
+            this.showNotification('Erro ao atualizar o status da ordem de serviço no backend.', 'error');
             return throwError(() => error);
           })
         )
@@ -950,6 +1109,8 @@ export class OrdemServicoExecComponent implements OnInit {
 
       console.log('Status da ordem de serviço atualizado no backend:', response);
       ordem.statusOrdem = 'Concluído';
+      ordem.dataEHoraInicioServico = dataInicio;
+      ordem.dataEHoraFimServico = dataFim;
       localStorage.setItem('ordemServico', JSON.stringify(ordem));
     } catch (error) {
       console.error('Erro ao atualizar status da ordem:', error);
@@ -957,6 +1118,7 @@ export class OrdemServicoExecComponent implements OnInit {
   }
 
   private limparLocalStorageAposCancelamento(): void {
+    this.limparTodosDadosFormulario();
     localStorage.removeItem('osEmAndamento');
     localStorage.removeItem('osIniciada');
     localStorage.removeItem('osFotoInicio');
@@ -966,6 +1128,7 @@ export class OrdemServicoExecComponent implements OnInit {
   }
 
   private limparLocalStorageAposConclusao(): void {
+    this.limparTodosDadosFormulario();
     localStorage.removeItem('execucaoServico');
     localStorage.removeItem('execucaoServicoId');
     localStorage.removeItem('osFotoInicio');
@@ -1006,5 +1169,13 @@ export class OrdemServicoExecComponent implements OnInit {
   
   hideNotification(): void {
     this.notificationVisible = false;
+  }
+
+  // Implementar um método para destruição do componente
+  ngOnDestroy(): void {
+    // Garantir que a assinatura é cancelada quando o componente é destruído
+    if (this.autoSaveSubscription) {
+      this.autoSaveSubscription.unsubscribe();
+    }
   }
 }

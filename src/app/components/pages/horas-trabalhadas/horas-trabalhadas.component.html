@@ -27,7 +27,10 @@
       <button (click)="filtrarPorPeriodo()">Filtrar</button>
 
       <!-- Botão para filtrar pelo mês atual -->
-      <button (click)="filtrarMesAtual()">Mês Atual</button><br>
+      <button (click)="filtrarMesAtual()">Mês Atual</button>
+      
+      <!-- Botão para gerar PDF -->
+      <button (click)="gerarPDF()" class="btn-pdf">Gerar PDF</button><br>
 
       <!-- Mensagem de alerta -->
       <div *ngIf="mensagemSemRegistros" class="alert alert-warning">
@@ -57,7 +60,10 @@
         <tbody>
           <tr *ngFor="let hora of horasFiltradas">
             <td>
-              <img [src]="hora.fotoPerfil" alt="Foto do Técnico" class="foto-perfil">
+              <img [src]="hora.fotoPerfil" 
+                   alt="Foto do Colaborador" 
+                   class="foto-perfil"
+                   (error)="handleImageError($event, '/default-avatar.png')">
             </td>
             <td>{{ hora.nome }}</td>
             <td>{{ hora.data }}</td>
@@ -69,17 +75,25 @@
             <td [ngClass]="{ 'bg-red': hora.horasDevidas !== '00:00' }">{{ hora.horasDevidas }}</td>
             <td [ngClass]="{ 'bg-yellow': hora.horasExtras !== '00:00' }">{{ hora.horasExtras }}</td>
             <td>
-        <a *ngIf="hora.fotoInicio" [href]="hora.fotoInicio" target="_blank">
-          <img [src]="hora.fotoInicio" alt="Foto Início" style="width: 50px; height: 50px; border-radius: 5px;">
-        </a>
-      </td>
+              <a *ngIf="hora.fotoInicio" [href]="hora.fotoInicio" target="_blank">
+                <img [src]="hora.fotoInicio" 
+                     alt="Foto Início" 
+                     style="width: 50px; height: 50px; border-radius: 5px;" 
+                     (error)="handleImageError($event, '/no-image.png')">
+              </a>
+              <span *ngIf="!hora.fotoInicio">-</span>
+            </td>
 
-      <!-- Exibe a foto do fim do expediente com link para abrir -->
-      <td>
-        <a *ngIf="hora.fotoFim" [href]="hora.fotoFim" target="_blank">
-          <img [src]="hora.fotoFim" alt="Foto Fim" style="width: 50px; height: 50px; border-radius: 5px;">
-        </a>
-      </td>
+            <!-- Exibe a foto do fim do expediente com link para abrir -->
+            <td>
+              <a *ngIf="hora.fotoFim" [href]="hora.fotoFim" target="_blank">
+                <img [src]="hora.fotoFim" 
+                     alt="Foto Fim" 
+                     style="width: 50px; height: 50px; border-radius: 5px;" 
+                     (error)="handleImageError($event, '/no-image.png')">
+              </a>
+              <span *ngIf="!hora.fotoFim">-</span>
+            </td>
           </tr>
         </tbody>
       </table>

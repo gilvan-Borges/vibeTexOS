@@ -1,236 +1,239 @@
 /* 🔹 Layout Principal */
 .container {
-    max-width: 1100px;
-    margin: auto;
-    padding: 20px;
-  }
-  
-  /* 🔹 Estilização dos Cards */
-  .card {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  .card:hover {
-    transform: scale(1.01);
-  }
-  
-  /* 🔹 Cabeçalho do Card */
-  .card-header {
-    background: linear-gradient(135deg, #0056b3, #003d80);
-    color: #fff;
-    padding: 12px;
-    text-align: center;
-    font-size: 1.4rem;
-    font-weight: bold;
-  }
-  
-  /* 🔹 Corpo e Rodapé do Card */
-  .card-body {
-    padding: 15px;
-  }
-  
-  .card-footer {
-    background: #f5f5f5;
-    padding: 12px;
-    text-align: right;
-    font-size: 1.1rem;
-    font-weight: bold;
-  }
-  
-  /* 🔹 Seção de Filtros */
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    padding-top: 10px;
-    gap: 10px;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-    justify-content: center;
-    
-  }
- 
-  .filters label {
-    margin-right: 5px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .filters select,
-  .filters input[type="date"] {
-    padding: 6px 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    transition: border-color 0.2s ease-in-out;
-  }
-  
-  .filters select:focus,
-  .filters input[type="date"]:focus {
-    outline: none;
-    border-color: #0056b3;
-  }
-  
-  /* 🔹 Botões nos Filtros */
-  .filters button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    background-color: #0056b3;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-  }
-  
-  .filters button:hover {
-    background-color: #003d80;
-  }
-  
-  /* 🔹 Estilização da Tabela */
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.85rem;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 0; /* Remova se quiser espaço ao final */
-  }
-  
-  .table th {
-    background: #0056b3;
-    color: #fff;
-    padding: 10px;
-    text-align: center;
-    font-weight: bold;
-    border-bottom: 3px solid #003d80;
-  }
-  
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* 🔹 Estilização dos Cards */
+.card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: scale(1.01);
+}
+
+/* 🔹 Cabeçalho do Card */
+.card-header {
+  background: linear-gradient(135deg, #0056b3, #003d80);
+  color: #fff;
+  padding: 16px;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+/* 🔹 Corpo e Rodapé do Card */
+.card-body {
+  padding: 20px;
+}
+
+.card-footer {
+  background: #f5f5f5;
+  padding: 16px;
+  text-align: right;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* 🔹 Seção de Filtros */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  padding-top: 15px;
+  gap: 15px;
+  margin-bottom: 20px;
+  font-size: 1rem;
+  justify-content: center;
+}
+
+.filters label {
+  margin-right: 10px;
+  font-weight: 600;
+  color: #333;
+}
+
+.filters select,
+.filters input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.filters select:focus,
+.filters input[type="date"]:focus {
+  outline: none;
+  border-color: #0056b3;
+}
+
+/* 🔹 Botões nos Filtros */
+.filters button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #0056b3;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.filters button:hover {
+  background-color: #003d80;
+}
+
+/* 🔹 Botão de PDF */
+.btn-pdf {
+  background-color: #d9534f;
+  margin-left: 10px;
+}
+
+.btn-pdf:hover {
+  background-color: #c9302c;
+}
+
+/* 🔹 Estilização da Tabela */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.table th {
+  background: #0056b3;
+  color: #fff;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 3px solid #003d80;
+}
+
+.table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+/* 🔹 Alternância de Cores nas Linhas */
+.table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* 🔹 Efeito Hover na Linha */
+.table tbody tr:hover {
+  background: rgba(0, 86, 179, 0.1);
+  transition: background 0.2s ease-in-out;
+}
+
+/* 🔹 Imagem de Perfil do Técnico */
+.img-perfil {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #0056b3;
+}
+
+/* 🔹 Imagens de Registro de Expediente */
+.img-expediente {
+  width: 55px;
+  height: 55px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #0056b3;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* 🔹 Links para Fotos */
+.link-foto {
+  display: inline-block;
+  color: #0056b3;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.2s ease-in-out;
+}
+
+.foto-perfil {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #0056b3;
+  margin-right: 5px;
+  transition: transform 0.2s ease-in-out;
+}
+
+td {
+  vertical-align: middle;
+}
+
+.link-foto:hover {
+  color: #003d80;
+  text-decoration: underline;
+}
+
+.bg-red {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.bg-yellow {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+/* 🔹 Responsividade */
+@media (max-width: 1024px) {
+  .table th,
   .table td {
-    padding: 10px;
-    text-align: center;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  /* 🔹 Alternância de Cores nas Linhas */
-  .table tbody tr:nth-child(even) {
-    background: #f9f9f9;
-  }
-  
-  /* 🔹 Efeito Hover na Linha */
-  .table tbody tr:hover {
-    background: rgba(0, 86, 179, 0.1);
-    transition: background 0.2s ease-in-out;
-  }
-  
-  /* 🔹 Imagem de Perfil do Técnico */
-  .img-perfil {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #0056b3;
-  }
-  
-  /* 🔹 Imagens de Registro de Expediente */
-  .img-expediente {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 2px solid #0056b3;
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  /* 🔹 Links para Fotos */
-  .link-foto {
-    display: inline-block;
-    color: #0056b3;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.2s ease-in-out;
-  }
-  .foto-perfil{
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #0056b3;
-    margin-right: 5px;
-    transition: transform 0.2s ease-in-out;
-  }
-  td{
-    vertical-align: middle;
-  }
-  .link-foto:hover {
-    color: #003d80;
-    text-decoration: underline;
-  }
-  .bg-red {
-    
-    color: #000000;
-  }
-  
-  .bg-yellow {
-    
-    color: #121211;
-  }
-  
-  .foto-perfil {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+      padding: 10px;
+      font-size: 0.85rem;
   }
 
-  #filtroTecnico{
-    width: 110px;
-  }
-  
-  /* 🔹 Responsividade */
-  @media (max-width: 1024px) {
-    .table th,
-    .table td {
-      padding: 8px;
-      font-size: 0.8rem;
-    }
-  
-    .img-perfil {
-      width: 35px;
-      height: 35px;
-    }
-  
-    .img-expediente {
-      width: 45px;
-      height: 45px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .container {
-      padding: 15px;
-    }
-  
-    .table {
-      font-size: 0.75rem;
-    }
-  
-    .card-header {
-      font-size: 1.2rem;
-    }
-  
-    .img-perfil {
-      width: 30px;
-      height: 30px;
-    }
-  
-    .img-expediente {
+  .img-perfil {
       width: 40px;
       height: 40px;
-    }
   }
-  
+
+  .img-expediente {
+      width: 50px;
+      height: 50px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+      padding: 15px;
+  }
+
+  .table {
+      font-size: 0.8rem;
+  }
+
+  .card-header {
+      font-size: 1.4rem;
+  }
+
+  .img-perfil {
+      width: 35px;
+      height: 35px;
+  }
+
+  .img-expediente {
+      width: 45px;
+      height: 45px;
+  }
+}

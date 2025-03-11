@@ -2,12 +2,11 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http
 import { Injectable } from "@angular/core";
 import { RegisterRequestDto } from "../models/control-app/register.request,dto";
 import { RegisterResponseDto } from "../models/control-app/register.response.dto";
-import { forkJoin, Observable, throwError } from "rxjs";
-import { catchError, tap, map } from "rxjs/operators";
+import { forkJoin, Observable, throwError, of } from "rxjs";
+import { catchError, tap, map, retry, timeout } from "rxjs/operators";
 import { environment } from "../../environments/environment.development";
 import { AutenticarResponseDto } from "../models/control-app/autenticar.response.dto";
 import { UsuarioResponseDto } from "../models/control-app/usuario.response.dto";
-import { RegistrarPontoInicioRequestDto } from "../models/control-app/registrar.ponto.inicio.request.dto";
 import { RegistrarPontoInicioResponseDto } from "../models/control-app/registrar.ponto.inicio.response.dto";
 import { RegistrarPontoFimRequestDto } from "../models/control-app/registrar.ponto.fim.request";
 import { RegistrarPontoFimResponseDto } from "../models/control-app/registrar.ponto.fim.response.dto";
@@ -128,10 +127,20 @@ export class ControllAppService {
   }
 
   pontoRegistarFimExpediente(usuarioId: string, pontoId: string, formData: FormData): Observable<RegistrarPontoFimResponseDto> {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return throwError(() => new Error('Token não encontrado'));
+    }
+    
+    // For FormData, only include Authorization header
+    const headers = {
+      'Authorization': `Bearer ${token}`
+    };
+    
     return this.httpClient.post<RegistrarPontoFimResponseDto>(
       `${environment.controllApp}/ponto/${usuarioId}/registrarfimexpediente/${pontoId}`,
-      formData
-      // ❌ Removemos os headers manualmente, pois o Angular já adiciona `multipart/form-data` automaticamente.
+      formData,
+      { headers }
     ).pipe(
       tap(response => console.log('📨 Resposta da API:', response)),
       catchError(error => {
@@ -149,33 +158,6 @@ export class ControllAppService {
     );
   }
 
-  pontoRegistarFimPausa(
-    usuarioId: string,
-    pontoId: string,
-    request: RegistrarFimPausaRequestDto
-  ): Observable<any> {
-    return this.httpClient.post(
-      `${environment.controllApp}/ponto/${usuarioId}/registrarfimpausa/${pontoId}`,
-      request,
-      { responseType: 'text' } // Ajuste para receber texto
-    ).pipe(
-      catchError(this.handleError),
-      // Se a API retornar algum campo que indique erro, lance manualmente
-      (source) => new Observable<any>((observer) => {
-        source.subscribe({
-          next: (response) => {
-            if (response && response.includes('Erro')) {
-              observer.error(new Error(response));
-            } else {
-              observer.next(response);
-            }
-          },
-          error: (err) => observer.error(err),
-          complete: () => observer.complete()
-        });
-      })
-    );
-  }
 
   registrarFimPausa(usuarioId: string, pontoId: string, request: RegistrarFimPausaRequestDto) {
     const headers = {
@@ -268,13 +250,26 @@ export class ControllAppService {
   }
 
   PontoGetByUsuarioId(usuarioId: string): Observable<any[]> {
-    // Ensure usuarioId is properly formatted and URL doesn't have double slashes
+        // Ensure usuarioId is properly formatted and URL doesn't have double slashes
     const url = `${this.apiUrl}/ponto/${usuarioId}/pontos-combinados`.replace(/([^:]\/)\/+/g, "$1");
-
+    
     return this.httpClient.get<any[]>(url, { headers: this.getHeaders() }).pipe(
-      tap(response => console.log('📌 Resposta da API pontos-combinados:', response)),
+      retry(2), // Retry failed requests up to 2 times
+      timeout(5000), // Set a 5-second timeout
+      tap(response => {
+        const count = response?.length || 0;
+        console.log(`📌 Resposta da API pontos-combinados: ${count} registros encontrados`);
+      }),
       catchError(error => {
-        console.error('❌ Erro ao buscar pontos:', error);
+        console.error(`❌ Erro ao buscar pontos para usuário ${usuarioId}:`, error);
+        
+        if (error.status === 401) {
+          console.warn('🔑 Erro de autenticação ao buscar pontos. Token pode ter expirado.');
+          // Poderia disparar uma ação de renovação de token aqui
+        } else if (error.status === 400) {
+          console.warn('🚫 Requisição inválida. Verifique parâmetros e formato.');
+        }
+        
         return throwError(() => error);
       })
     );

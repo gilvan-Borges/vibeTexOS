@@ -83,6 +83,22 @@
   background-color: #0056b3;
 }
 
+.btn-danger {
+  transition: background-color 0.2s;
+  font-size: 18px;
+  font-weight: 500;
+  height: 50px; /* Mantém a altura do botão da imagem */
+  line-height: 1; /* Remove espaçamento extra entre linhas */
+  background-color: #dc3545; /* Vermelho padrão do Bootstrap */
+  border: none;
+  padding: 10px 20px;
+  color: #fff; /* Texto branco para contraste */
+}
+
+.btn-danger:hover {
+  background-color: #c82333; /* Tom mais escuro de vermelho ao passar o mouse */
+}
+
 .card-footer {
   background-color: transparent;
   border-top: none;
@@ -109,7 +125,8 @@ h1 {
 
 /* Ajustes responsivos personalizados */
 @media (max-width: 768px) {
-  .btn-primary {
+  .btn-primary,
+  .btn-danger {
     font-size: 16px;
     padding: 10px 20px;
   }
@@ -128,7 +145,8 @@ h1 {
 }
 
 @media (max-width: 576px) {
-  .btn-primary {
+  .btn-primary,
+  .btn-danger {
     font-size: 14px;
     padding: 8px 15px;
   }
@@ -170,7 +188,33 @@ h1 {
   margin-top: 10px;
   margin-bottom: 30px;
 }
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+  margin-right: 10px;
+}
 
+.badge-canceladas {
+  background-color: #6c757d; /* Cor padrão (cinza) */
+  color: white;
+}
+
+.badge-empty {
+  background-color: #dc3545 !important; /* Vermelho para quando não há ordens */
+  color: white;
+}
+
+.no-orders-message {
+  color: #6c757d;
+  font-style: italic;
+}
 .contador-os .badge {
   font-size: 1rem;
   padding: 10px 20px;
@@ -178,7 +222,15 @@ h1 {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
+/* Para o ícone de tipo de serviço */
+.tipo .fas.fa-tools {
+  color: black !important;
+}
 
+/* Para o ícone de motivo de cancelamento */
+.card-text .fas.fa-exclamation-triangle {
+  color: black !important;
+}
 .contador-os .bg-primary {
   background-color: #dc3545 !important; /* Vermelho */
   animation: pulse 2s infinite;
@@ -186,6 +238,18 @@ h1 {
 
 .contador-os .bg-success {
   background-color: #28a745 !important;
+}
+
+.contador-os .bg-secondary {
+  background-color: #6c757d !important; /* Cinza original */
+}
+
+.contador-os .bg-warning {
+  background-color: #ffc107 !important; /* Amarelo */
+}
+
+.contador-os .bg-danger {
+  background-color: #dc3545 !important; /* Vermelho */
 }
 
 @keyframes pulse {
@@ -328,4 +392,9 @@ h1 {
   .form-value {
     font-size: 0.9rem;
   }
+}
+
+/* Estilo para ícones na seção Cancelado */
+.icon-cancelado {
+  color: #dc3545; /* Vermelho igual ao botão */
 }

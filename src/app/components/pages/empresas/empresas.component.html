@@ -61,6 +61,13 @@
             </div>
           </div>
           <div class="col-md-3">
+            <label for="cidade" class="form-label fw-bold">Cidade:</label>
+            <input id="cidade" type="text" class="form-control form-control-lg" formControlName="cidade" />
+            <div class="text-danger small" *ngIf="f['cidade'].touched && f['cidade'].invalid">
+              Por favor, informe a cidade.
+            </div>
+          </div>
+          <div class="col-md-3">
             <label for="uf" class="form-label fw-bold">UF:</label>
             <input id="uf" type="text" class="form-control form-control-lg" formControlName="uf" />
             <div class="text-danger small" *ngIf="f['uf'].touched && f['uf'].invalid">

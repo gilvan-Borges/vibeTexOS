@@ -1,9 +1,9 @@
 <div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
   <div class="conteudo d-flex shadow">
     <!-- Lado esquerdo: Formulário de Login -->
-    <div class="card p-4">
+    <div class="card">
       <div class="card-body">
-        <h3 class="card-title text-center mb-4">Entrar</h3>
+        <h3 class="card-title text-center mb-1">Entrar</h3>
         <form [formGroup]="formulario" (ngSubmit)="autenticarUsuario()">
           <!-- Nome de usuário -->
           <div class="mb-3">
@@ -18,7 +18,7 @@
 
       
           <!-- Campo de Senha -->
-          <div class="mb-3">
+          <div class="mb-1">
             <label for="senha" class="form-label">Senha</label>
             <input 
               type="password" 
@@ -51,7 +51,7 @@
       </div>
     </div>
 
+    <div class="foto"><img src="https://gilvandev.com/img/logo_vibetex.png" alt=""></div>
     <!-- Lado direito: Imagem -->
-    <div class="foto"></div>
   </div>
 </div>

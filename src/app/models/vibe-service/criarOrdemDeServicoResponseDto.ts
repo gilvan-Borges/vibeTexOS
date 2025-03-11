@@ -11,8 +11,9 @@ export interface CriarOrdemDeServicoResponseDto {
     dataEHoraFimServico?: string | null;
     dataHoraCadastro?: string;
     despachoId?: string;
-    codigoOS?: string; // Adicionado para resolver o erro
-    cliente?: string;  // Adicionado para compatibilidade
-    endereco?: string; // Adicionado para compatibilidade
-    colaborador?: string; // Adicionado para compatibilidade
+    codigoOS?: string; 
+    cliente?: string; 
+    endereco?: string; 
+    colaborador?: string; 
+    execucoes?: any; 
 }

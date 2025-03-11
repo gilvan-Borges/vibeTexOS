@@ -15,6 +15,7 @@ interface Empresa {
   numero: string;
   complemento: string;
   bairro: string;
+  cidade: string; // Novo campo
   uf: string;
   estado: string;
   endereco: string;
@@ -66,6 +67,7 @@ export class EmpresasComponent implements OnInit {
       numero: ['', [Validators.required]],
       complemento: [''],
       bairro: ['', [Validators.required]],
+      cidade: ['', [Validators.required]], // Novo campo com validação
       uf: ['', [Validators.required]],
       estado: ['', [Validators.required]]
     });
@@ -97,6 +99,7 @@ export class EmpresasComponent implements OnInit {
       this.formulario.patchValue({
         logradouro: data.logradouro,
         bairro: data.bairro,
+        cidade: data.localidade, // Preenche o novo campo cidade com a localidade do CEP
         uf: data.uf,
         estado: this.getEstadoPorUF(data.uf)
       });
@@ -140,6 +143,52 @@ export class EmpresasComponent implements OnInit {
     }
   }
 
+  // Função auxiliar para formatar endereço consistentemente
+  formatarEndereco(endereco: any): string {
+    // Verifica se temos dados de endereço
+    if (!endereco) {
+      console.log('Endereço nulo ou indefinido');
+      return 'Endereço não disponível';
+    }
+    
+    console.log('Dados do endereço recebidos:', endereco);
+    
+    // Extrai os campos com segurança
+    const logradouro = endereco.logradouro || '';
+    const numero = endereco.numero || '';
+    const complemento = endereco.complemento ? ` - ${endereco.complemento}` : '';
+    const bairro = endereco.bairro || '';
+    const localidade = endereco.localidade || '';
+    const uf = endereco.uf || '';
+    
+    // Se não temos nenhuma informação de endereço, retorna mensagem padrão
+    if (!logradouro && !bairro && !localidade && !uf) {
+      return 'Endereço não disponível';
+    }
+    
+    // Monta o endereço com as partes que existem
+    let enderecoFormatado = '';
+    
+    if (logradouro) {
+      enderecoFormatado += `${logradouro}`;
+      if (numero) enderecoFormatado += `, ${numero}`;
+      if (complemento) enderecoFormatado += complemento;
+    }
+    
+    if (bairro) {
+      if (enderecoFormatado) enderecoFormatado += ', ';
+      enderecoFormatado += bairro;
+    }
+    
+    if (localidade || uf) {
+      if (enderecoFormatado) enderecoFormatado += ', ';
+      if (localidade) enderecoFormatado += localidade;
+      if (uf) enderecoFormatado += ` - ${uf}`;
+    }
+    
+    return enderecoFormatado || 'Endereço não disponível';
+  }
+
   cadastrarEmpresa(formData: any) {
     const empresaData = {
       nomeDaEmpresa: formData.nome,
@@ -149,6 +198,7 @@ export class EmpresasComponent implements OnInit {
         numero: formData.numero,
         complemento: formData.complemento || '',
         bairro: formData.bairro,
+        cidade: formData.cidade, // Adicionando o novo campo
         localidade: formData.estado,
         uf: formData.uf
       }
@@ -160,7 +210,14 @@ export class EmpresasComponent implements OnInit {
           empresaId: response.empresaId,
           ativo: response.ativo || true,
           ...formData,
-          endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''}, ${formData.bairro}, ${formData.estado} - ${formData.uf}`
+          endereco: this.formatarEndereco({
+            logradouro: formData.logradouro,
+            numero: formData.numero,
+            complemento: formData.complemento,
+            bairro: formData.bairro,
+            localidade: formData.estado,
+            uf: formData.uf
+          })
         };
         this.empresas.push(novaEmpresa);
         this.resetForm();
@@ -183,6 +240,7 @@ export class EmpresasComponent implements OnInit {
       return;
     }
 
+    // Formatar dados conforme esperado pelo endpoint /usuario/empresa/{empresaId}
     const empresaData = {
       nomeDaEmpresa: formData.nome,
       endereco: {
@@ -191,31 +249,79 @@ export class EmpresasComponent implements OnInit {
         numero: formData.numero,
         complemento: formData.complemento || '',
         bairro: formData.bairro,
+        cidade: formData.cidade, // Adicionando o novo campo
         localidade: formData.estado,
         uf: formData.uf
-      }
+      },
+      // Adicionar qualquer outro campo que o endpoint possa exigir
+      ativo: true
     };
 
-    console.log('Enviando requisição de atualização para ID:', this.empresaEditandoId);
+    console.log('Dados formatados para atualização:', JSON.stringify(empresaData));
+    console.log('ID da empresa para atualização:', this.empresaEditandoId);
+    console.log('Endpoint de atualização: /usuario/empresa/' + this.empresaEditandoId);
+
     this.controllAppService.atualizarEmpresa(this.empresaEditandoId, empresaData).subscribe({
       next: (response) => {
-        console.log('Resposta da atualização:', response);
+        console.log('Resposta da API após atualização:', response);
+        
         const index = this.empresas.findIndex(e => e.empresaId === this.empresaEditandoId);
         if (index !== -1) {
+          // Atualiza o objeto no array local com base nos dados enviados no formulário,
+          // não nos dados retornados pela API (que podem estar incompletos)
           this.empresas[index] = {
-            ...formData,
             empresaId: this.empresaEditandoId!,
-            ativo: response.ativo || true,
-            endereco
+            ativo: true,
+            nome: formData.nome,
+            cep: formData.cep,
+            logradouro: formData.logradouro,
+            numero: formData.numero,
+            complemento: formData.complemento || '',
+            bairro: formData.bairro,
+            cidade: formData.cidade, // Adicionando o novo campo
+            uf: formData.uf,
+            estado: formData.estado,
+            endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''}, ${formData.bairro}, ${formData.cidade}, ${formData.estado} - ${formData.uf}`
           };
+          
           this.updatePagination();
           this.mensagem = 'Empresa atualizada com sucesso!';
           this.isError = false;
           this.resetForm();
         }
       },
-      error: (error: any) => {
-        this.mensagem = 'Erro ao atualizar empresa. ' + (error.message || 'Tente novamente mais tarde.');
+      error: (error) => {
+        console.error('Erro detalhado na atualização:', error);
+        
+        // Verificar se é um erro 200 (que na verdade é sucesso)
+        if (error.status === 200) {
+          const index = this.empresas.findIndex(e => e.empresaId === this.empresaEditandoId);
+          if (index !== -1) {
+            // Mesmo tratamento para sucesso
+            this.empresas[index] = {
+              empresaId: this.empresaEditandoId!,
+              ativo: true,
+              nome: formData.nome,
+              cep: formData.cep,
+              logradouro: formData.logradouro,
+              numero: formData.numero,
+              complemento: formData.complemento || '',
+              bairro: formData.bairro,
+              cidade: formData.cidade, // Adicionando o novo campo
+              uf: formData.uf,
+              estado: formData.estado,
+              endereco: `${formData.logradouro}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''}, ${formData.bairro}, ${formData.cidade}, ${formData.estado} - ${formData.uf}`
+            };
+            
+            this.updatePagination();
+            this.mensagem = 'Empresa atualizada com sucesso!';
+            this.isError = false;
+            this.resetForm();
+            return;
+          }
+        }
+        
+        this.mensagem = `Erro ao atualizar empresa: ${error.message || 'Tente novamente mais tarde.'}`;
         this.isError = true;
       }
     });
@@ -232,46 +338,53 @@ export class EmpresasComponent implements OnInit {
     this.editando = true;
     this.empresaEditandoId = empresa.empresaId;
     
-    console.log('Buscando empresa com ID:', this.empresaEditandoId);
+    console.log('Editando empresa com ID:', this.empresaEditandoId);
     
+    // Preenche o formulário com os dados disponíveis da empresa selecionada
     this.formulario.patchValue({
-      nome: empresa.nome,
-      cep: empresa.cep,
-      logradouro: empresa.logradouro,
-      numero: empresa.numero,
+      nome: empresa.nome || '',
+      cep: empresa.cep || '',
+      logradouro: empresa.logradouro || '',
+      numero: empresa.numero || '',
       complemento: empresa.complemento || '',
-      bairro: empresa.bairro,
-      uf: empresa.uf,
-      estado: empresa.estado
+      bairro: empresa.bairro || '',
+      cidade: empresa.cidade || '', // Adicionando o novo campo
+      uf: empresa.uf || '',
+      estado: empresa.estado || ''
     });
 
+    // Busca dados atualizados da empresa a partir da API
     this.controllAppService.buscarEmpresasPorId(this.empresaEditandoId).subscribe({
       next: (response) => {
         if (!response) {
-          this.mensagem = 'Erro: Empresa não encontrada';
-          this.isError = true;
-          return;
+          console.log('API retornou dados vazios para a empresa');
+          return; // Mantenha os dados que já foram preenchidos
         }
         
-        console.log('Dados recebidos da empresa:', response);
+        console.log('Dados da empresa recebidos da API:', response);
         
-        this.formulario.patchValue({
-          nome: response.nomeDaEmpresa || '',
-          cep: response.endereco?.cep || '',
-          logradouro: response.endereco?.logradouro || '',
-          numero: response.endereco?.numero || '',
-          complemento: response.endereco?.complemento || '',
-          bairro: response.endereco?.bairro || '',
-          uf: response.endereco?.uf || '',
-          estado: response.endereco?.localidade || ''
-        });
-
-        console.log('Formulário atualizado:', this.formulario.value);
+        // Apenas atualiza campos que existirem na resposta
+        const updateData: any = {};
+        
+        if (response.nomeDaEmpresa) updateData.nome = response.nomeDaEmpresa;
+        
+        if (response.endereco) {
+          if (response.endereco.cep) updateData.cep = response.endereco.cep;
+          if (response.endereco.logradouro) updateData.logradouro = response.endereco.logradouro;
+          if (response.endereco.numero) updateData.numero = response.endereco.numero;
+          if (response.endereco.complemento !== undefined) updateData.complemento = response.endereco.complemento;
+          if (response.endereco.bairro) updateData.bairro = response.endereco.bairro;
+          if (response.endereco.uf) updateData.uf = response.endereco.uf;
+          if (response.endereco.localidade) updateData.estado = response.endereco.localidade;
+          if (response.endereco.cidade) updateData.cidade = response.endereco.cidade;
+        }
+        
+        console.log('Atualizando formulário com:', updateData);
+        this.formulario.patchValue(updateData);
       },
-      error: (error: any) => {
+      error: (error) => {
         console.error('Erro ao buscar empresa:', error);
-        this.mensagem = 'Erro ao carregar dados da empresa. ' + (error.message || 'Tente novamente mais tarde.');
-        this.isError = true;
+        // Não exibe mensagem de erro, pois já temos dados básicos preenchidos
       }
     });
 
@@ -356,19 +469,100 @@ export class EmpresasComponent implements OnInit {
     this.controllAppService.buscarEmpresas().subscribe({
       next: (response) => {
         console.log('Response from buscarEmpresas:', response);
-        this.empresas = response.map((empresa: any) => ({
-          empresaId: empresa.empresaId,
-          ativo: empresa.ativo || true,
-          nome: empresa.nomeDaEmpresa || '',
-          cep: empresa.endereco?.cep || '',
-          logradouro: empresa.endereco?.logradouro || '',
-          numero: empresa.endereco?.numero || '',
-          complemento: empresa.endereco?.complemento || '',
-          bairro: empresa.endereco?.bairro || '',
-          uf: empresa.endereco?.uf || '',
-          estado: empresa.endereco?.localidade || '',
-          endereco: `${empresa.endereco?.logradouro || ''}, ${empresa.endereco?.numero || ''}${empresa.endereco?.complemento ? ` - ${empresa.endereco.complemento}` : ''}, ${empresa.endereco?.bairro || ''}, ${empresa.endereco?.localidade || ''} - ${empresa.endereco?.uf || ''}`
-        }));
+        
+        // Exibe toda a resposta para diagnóstico
+        console.log('RESPOSTA COMPLETA:', JSON.stringify(response));
+        
+        this.empresas = response.map((empresa: any) => {
+          // Dados de endereço diretos da API
+          const endereco = empresa.endereco;
+          
+          // Criar formato de endereço manualmente, sem usar funções auxiliares
+          let enderecoFinal = '';
+          
+          try {
+            // Lógica direta e simplificada - tenta todas as possibilidades
+            if (endereco) {
+              // Concatenar logradouro e número (mesmo que apenas um exista)
+              const temLogradouro = endereco.logradouro && endereco.logradouro.trim() !== '';
+              const temNumero = endereco.numero && endereco.numero.trim() !== '';
+              
+              if (temLogradouro || temNumero) {
+                if (temLogradouro) enderecoFinal += endereco.logradouro;
+                if (temNumero) enderecoFinal += temLogradouro ? `, ${endereco.numero}` : endereco.numero;
+              }
+              
+              // Adicionar complemento se existir
+              if (endereco.complemento && endereco.complemento.trim() !== '') {
+                enderecoFinal += ` - ${endereco.complemento}`;
+              }
+              
+              // Adicionar bairro se existir
+              if (endereco.bairro && endereco.bairro.trim() !== '') {
+                if (enderecoFinal) enderecoFinal += ', ';
+                enderecoFinal += endereco.bairro;
+              }
+              
+              // Adicionar cidade/estado/UF se existirem
+              const temLocalidade = endereco.localidade && endereco.localidade.trim() !== '';
+              const temUF = endereco.uf && endereco.uf.trim() !== '';
+              
+              if (temLocalidade || temUF) {
+                if (enderecoFinal) enderecoFinal += ', ';
+                if (temLocalidade) enderecoFinal += endereco.localidade;
+                if (temUF) enderecoFinal += temLocalidade ? ` - ${endereco.uf}` : endereco.uf;
+              }
+            }
+            
+            // Se ainda não temos nada, tenta outro método de construção
+            if (!enderecoFinal) {
+              // Usar campos diretos do objeto empresa (caso existam)
+              const campos = ['logradouro', 'numero', 'bairro', 'estado', 'uf'];
+              const partes = [];
+              
+              for (const campo of campos) {
+                if (empresa[campo] && empresa[campo].trim() !== '') {
+                  partes.push(empresa[campo]);
+                }
+              }
+              
+              enderecoFinal = partes.join(', ');
+            }
+            
+            // Último recurso
+            if (!enderecoFinal && typeof endereco === 'string') {
+              enderecoFinal = endereco;
+            }
+          } catch (error) {
+            console.error('Erro ao montar endereço:', error);
+          }
+          
+          // Se depois de tudo, ainda não temos um endereço, usamos um texto padrão
+          if (!enderecoFinal) {
+            enderecoFinal = 'Rua ' + (empresa.logradouro || '') + 
+                            ', ' + (empresa.numero || 'S/N') + 
+                            (empresa.complemento ? ' - ' + empresa.complemento : '') + 
+                            ', ' + (empresa.bairro || 'Centro') + 
+                            ', ' + (empresa.estado || '') + 
+                            ' - ' + (empresa.uf || '');
+          }
+          
+          return {
+            empresaId: empresa.empresaId,
+            ativo: empresa.ativo || true,
+            nome: empresa.nomeDaEmpresa || '',
+            cep: empresa.endereco?.cep || '',
+            logradouro: empresa.endereco?.logradouro || '',
+            numero: empresa.endereco?.numero || '',
+            complemento: empresa.endereco?.complemento || '',
+            bairro: empresa.endereco?.bairro || '',
+            cidade: empresa.endereco?.cidade || empresa.endereco?.localidade || '', // Usando cidade ou localidade
+            uf: empresa.endereco?.uf || '',
+            estado: empresa.endereco?.localidade || '',
+            endereco: enderecoFinal || 'Endereço não informado'
+          };
+        });
+        
         this.updatePagination();
       },
       error: (error: any) => {

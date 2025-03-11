@@ -88,6 +88,7 @@
         <th class="col-metrics">Atrib.</th>
         <th class="col-metrics">Real.</th>
         <th class="col-metrics">Pend.</th>
+        <th class="col-metrics">Canc.</th>
         <th class="col-metrics">T. Médio</th>
         <th>Eficiência</th>
         <th>Jornada</th>
@@ -101,14 +102,15 @@
         </td>
         <td>
           <a [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]" 
-             class="d-flex flex-column align-items-center">
-            <img [src]="colaborador.fotoUrl" class="tecnico-foto mb-1" alt="{{ colaborador.nome }}">
+             class="d-flex flex-row align-items-center">
+            <img [src]="colaborador.fotoUrl" class="tecnico-foto me-2" alt="{{ colaborador.nome }}">
             <span>{{ colaborador.nome }}</span>
           </a>
         </td>
         <td class="text-center col-metrics">{{ colaborador.osAtribuidas }}</td>
         <td class="text-center col-metrics text-success">{{ colaborador.osRealizadas }}</td>
         <td class="text-center col-metrics text-warning">{{ colaborador.osPendentes }}</td>
+        <td class="text-center col-metrics text-danger">{{ colaborador.osCanceladas }}</td>
         <td class="text-center col-metrics">{{ colaborador.tempoMedio }}</td>
         <td>
           <div class="custom-progress-container">

@@ -8,6 +8,8 @@ import { VibeService } from '../../../services/vibe.service';
 import { UsuarioService } from '../../../services/usuario.service';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { Pipe, PipeTransform } from '@angular/core';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, map, timeout } from 'rxjs/operators';
 
 export interface OrdemServico {
   ordemDeServicoId: string;
@@ -27,6 +29,7 @@ export interface DesempenhoColaborador {
   osAtribuidas: number;
   osRealizadas: number;
   osPendentes: number;
+  osCanceladas: number; // Nova propriedade adicionada
   tempoMedio: string;
   eficiencia: number;
   jornada: string;
@@ -47,7 +50,13 @@ export interface Colaborador {
   isOnline?: boolean;
 }
 
-
+export interface PontoRegistro {
+  pontoId: string;
+  usuarioId: string;
+  horaEntrada: string; // ISO date string
+  horaSaida?: string;  // ISO date string, optional
+  // ... other properties
+}
 
 @Pipe({
   name: 'filter'
@@ -89,7 +98,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   efficiencyGeneral: number = 0;
   colaboradoresDesempenho: DesempenhoColaborador[] = [];
   colaboradores: Colaborador[] = [];
-  
+
   // Propriedade para armazenar apenas colaboradores online
   get colaboradoresOnline(): DesempenhoColaborador[] {
     return this.colaboradoresDesempenho.filter(c => c.isOnline === true);
@@ -145,8 +154,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private carregarColaboradoresOnlineNoMapa(): void {
-    this.vibeService.buscarUsuario().subscribe({
+    console.log('📍 Iniciando carregamento de colaboradores no mapa...');
+
+    this.vibeService.buscarUsuario().pipe(
+      catchError(error => {
+        console.error('❌ Erro ao carregar colaboradores para o mapa:', error);
+        // Retorna um array vazio em caso de erro para não quebrar o fluxo
+        return of([]);
+      })
+    ).subscribe({
       next: (response: any[]) => {
+        if (!response || response.length === 0) {
+          console.warn('⚠️ Nenhum colaborador encontrado ou resposta vazia');
+          return;
+        }
+
         const colaboradores = response.map(colab => ({
           usuarioId: colab.usuarioId,
           nome: colab.nome || 'Sem Nome',
@@ -157,17 +179,18 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           longitudeAtual: colab.longitudeAtual,
           dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined,
           fotoUrl: colab.fotoUrl || '/assets/default-profile.png',
-          isOnline: colab.isOnline === true  // Garantir que isOnline seja um booleano
+          isOnline: colab.isOnline === true
         } as Colaborador));
-        
-        const colaboradoresOnline = colaboradores.filter(u => 
+
+        const colaboradoresOnline = colaboradores.filter(u =>
           u.latitudeAtual && u.longitudeAtual && u.isOnline === true
         );
-        
+
+        console.log(`✅ Encontrados ${colaboradoresOnline.length} colaboradores online com localização`);
         this.processarColaboradoresOnline(colaboradoresOnline);
       },
       error: (error) => {
-        console.error('Erro ao carregar colaboradores:', error);
+        console.error('❌ Erro inesperado ao carregar colaboradores:', error);
       }
     });
   }
@@ -185,15 +208,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
       if (!isNaN(lat) && !isNaN(lng)) {
         // Determinar a cor do ícone com base na empresa
-        let iconColor = 'blue'; 
-        
+        let iconColor = 'blue';
+
         if (colaborador.empresa) {
           const empresaNormalizada = colaborador.empresa.toLowerCase().trim();
-          
+
           if (empresaNormalizada.includes('flamengo')) {
             iconColor = 'red';
-          } else if (empresaNormalizada.includes('figth') || 
-                    empresaNormalizada.includes('fight')) {
+          } else if (empresaNormalizada.includes('figth') ||
+            empresaNormalizada.includes('fight')) {
             iconColor = 'blue';
           } else if (empresaNormalizada.includes('vibetex')) {
             iconColor = 'green';
@@ -270,16 +293,44 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private carregarColaboradoresAtivos() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-  
-    this.vibeService.buscarUsuario().subscribe({
+
+    console.log('👥 Iniciando carregamento de colaboradores ativos...');
+
+    // Adiciona tratamento de erros na busca de usuários
+    this.vibeService.buscarUsuario().pipe(
+      catchError(error => {
+        console.error('❌ Erro ao buscar usuários:', error);
+        // Em caso de erro, tenta obter dados do localStorage como fallback
+        const cachedData = localStorage.getItem('cached_colaboradores');
+        if (cachedData) {
+          console.log('🔄 Usando dados em cache como fallback');
+          try {
+            return of(JSON.parse(cachedData));
+          } catch (e) {
+            console.error('Erro ao analisar dados em cache:', e);
+          }
+        }
+        return of([]); // Retorna array vazio como último recurso
+      })
+    ).subscribe({
       next: (colaboradores: any[]) => {
         if (!colaboradores || colaboradores.length === 0) {
+          console.warn('⚠️ Nenhum colaborador encontrado ou resposta vazia');
           this.colaboradoresDesempenho = [];
           this.colaboradores = [];
           return;
         }
-  
-        // Usar a propriedade isOnline diretamente da API
+
+        console.log(`✅ Recebidos ${colaboradores.length} colaboradores da API`);
+
+        // Armazena dados em cache para uso futuro
+        try {
+          localStorage.setItem('cached_colaboradores', JSON.stringify(colaboradores));
+        } catch (e) {
+          console.warn('Não foi possível armazenar dados em cache:', e);
+        }
+
+        // Formata os dados dos colaboradores
         this.colaboradores = colaboradores
           .filter(colab => colab.role === 'Colaborador')
           .map(colab => ({
@@ -293,33 +344,107 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ?
               new Date(colab.dataHoraUltimaAutenticacao) : undefined,
             fotoUrl: colab.fotoUrl || '/assets/default-profile.png',
-            isOnline: colab.isOnline === true // Usar isOnline direto da API
+            isOnline: colab.isOnline === true
           }));
-  
-        this.vibeService.buscarOrdemServico().subscribe({
+
+        console.log(`👥 Filtragem resultou em ${this.colaboradores.length} colaboradores válidos`);
+
+        // Buscar ordens de serviço com tratamento de erros
+        this.vibeService.buscarOrdemServico().pipe(
+          catchError(err => {
+            console.error('❌ Erro ao buscar ordens de serviço:', err);
+            return of([]);
+          })
+        ).subscribe({
           next: (ordens: OrdemServico[]) => {
             const ordensHoje = ordens.filter(ordem => {
-              const dataOrdem = new Date(ordem.dataHoraCadastro);
-              return dataOrdem >= hoje;
+              try {
+                const dataOrdem = new Date(ordem.dataHoraCadastro);
+                return dataOrdem >= hoje;
+              } catch (e) {
+                console.warn('⚠️ Data inválida em ordem:', ordem);
+                return false;
+              }
             });
-  
+
             // Filtrar apenas colaboradores que estão online
             const colaboradoresOnline = this.colaboradores.filter(colab => colab.isOnline === true);
-            console.log('Colaboradores online:', colaboradoresOnline.length);
-            this.atualizarDesempenhoColaboradores(colaboradoresOnline, ordensHoje);
+            console.log(`👤 ${colaboradoresOnline.length} colaboradores online encontrados`);
+
+            // Buscar pontos com tratamento aprimorado de erros
+            this.buscarPontosColaboradoresEAtualizarDesempenho(colaboradoresOnline, ordensHoje);
           },
-          error: (err) => console.error('Erro ao carregar ordens do dia:', err)
+          error: (err) => {
+            console.error('❌ Erro inesperado ao carregar ordens do dia:', err);
+
+            // Mesmo com erro, tenta continuar com os dados de colaboradores
+            const colaboradoresOnline = this.colaboradores.filter(colab => colab.isOnline === true);
+            this.buscarPontosColaboradoresEAtualizarDesempenho(colaboradoresOnline, []);
+          }
         });
       },
-      error: (err) => console.error('Erro ao carregar colaboradores:', err)
+      error: (err) => {
+        console.error('❌ Erro fatal ao carregar colaboradores:', err);
+        this.colaboradoresDesempenho = [];
+        this.colaboradores = [];
+      }
     });
   }
 
-  private atualizarDesempenhoColaboradores(colaboradores: Colaborador[], ordens: OrdemServico[]) {
-    this.colaboradoresDesempenho = colaboradores.map(colaborador => {
+  // Novo método para buscar os pontos dos colaboradores em paralelo
+  private buscarPontosColaboradoresEAtualizarDesempenho(colaboradores: Colaborador[], ordens: OrdemServico[]) {
+    if (!colaboradores || colaboradores.length === 0) {
+      this.colaboradoresDesempenho = [];
+      return;
+    }
+
+    console.log(`🔄 Buscando pontos para ${colaboradores.length} colaboradores...`);
+
+    const requisicoes: Observable<any>[] = colaboradores.map(colaborador =>
+      this.controllAppService.PontoGetByUsuarioId(colaborador.usuarioId).pipe(
+        catchError(err => {
+          console.warn(`⚠️ Erro ao buscar pontos do colaborador ${colaborador.nome}:`, err);
+          return of([]);  // Retorna array vazio em caso de erro
+        })
+      )
+    );
+
+    // Timeout para não bloquear a interface caso a API demore muito
+    forkJoin(requisicoes).pipe(
+      timeout(10000), // 10 segundos de timeout
+      catchError(err => {
+        console.error('❌ Timeout ou erro ao buscar pontos:', err);
+        return of(colaboradores.map(() => [])); // Array de arrays vazios como fallback
+      })
+    ).subscribe({
+      next: (resultados) => {
+        console.log(`✅ Dados de pontos recebidos para ${resultados.filter(r => r.length > 0).length} colaboradores`);
+        this.atualizarDesempenhoColaboradores(colaboradores, ordens, resultados);
+      },
+      error: (err) => {
+        console.error('❌ Erro fatal ao buscar pontos dos colaboradores:', err);
+        // Continue com a lógica antiga
+        this.atualizarDesempenhoColaboradores(colaboradores, ordens, []);
+      }
+    });
+  }
+
+  private atualizarDesempenhoColaboradores(
+    colaboradores: Colaborador[],
+    ordens: OrdemServico[],
+    pontosColaboradores: any[][] = []
+  ) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    this.colaboradoresDesempenho = colaboradores.map((colaborador, index) => {
       const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
       const ordensFinalizadas = ordensDoColaborador.filter(o =>
-        ['concluído', 'concluida', 'concluido', 'finalizada', 'finalizado']
+        ['concluído']
+          .includes(o.statusOrdem?.toLowerCase().trim() || '')
+      );
+      const ordensCanceladas = ordensDoColaborador.filter(o =>
+        ['cancelado', 'cancelada']
           .includes(o.statusOrdem?.toLowerCase().trim() || '')
       );
 
@@ -329,7 +454,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         nome: colaborador.nome,
         osAtribuidas: ordensDoColaborador.length,
         osRealizadas: ordensFinalizadas.length,
-        osPendentes: ordensDoColaborador.length - ordensFinalizadas.length,
+        osPendentes: ordensDoColaborador.length - ordensFinalizadas.length - ordensCanceladas.length,
+        osCanceladas: ordensCanceladas.length, // Nova propriedade
         tempoMedio: this.calcularTempoMedio(ordensFinalizadas),
         eficiencia: ordensDoColaborador.length ?
           Math.round((ordensFinalizadas.length / ordensDoColaborador.length) * 100) : 0,
@@ -338,45 +464,111 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         isOnline: true // adicionado, pois somente colaboradores online chegam aqui
       };
 
+      // Buscar os pontos registrados hoje para este colaborador
+      const pontosDoColaborador = pontosColaboradores[index] || [];
+      desempenho.jornada = this.calcularProgressoJornada(colaborador, pontosDoColaborador);
+
       return desempenho;
     });
+  }
 
-    // Atualiza a jornada para cada colaborador
-    this.colaboradoresDesempenho.forEach(cd => {
-      // Encontra o colaborador na lista original
-      const colaborador = this.colaboradores.find(c => c.usuarioId === cd.usuarioId);
-      
-      if (colaborador) {
-        // Obtém horaEntrada e horaSaida do colaborador
-        const horaEntradaStr = colaborador.horaEntrada || '08:00'; // Padrão: 08:00
-        const horaSaidaStr = colaborador.horaSaida || '17:00'; // Padrão: 17:00
+  private calcularProgressoJornada(colaborador: Colaborador, pontos: any[]): string {
+    const agora = new Date();
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
-        // Cria a data de início e fim do expediente no dia atual
-        const agora = new Date();
-        const dataInicioExpediente = new Date(agora);
-        const [horaEntrada, minutoEntrada] = horaEntradaStr.split(':').map(Number);
-        dataInicioExpediente.setHours(horaEntrada, minutoEntrada, 0, 0);
+    console.log(`🔍 Calculando jornada para colaborador ${colaborador.nome}...`);
 
-        const dataFimExpediente = new Date(agora);
-        const [horaSaida, minutoSaida] = horaSaidaStr.split(':').map(Number);
-        dataFimExpediente.setHours(horaSaida, minutoSaida, 0, 0);
-
-        // Calcula o progresso da jornada
-        if (agora < dataInicioExpediente) {
-          cd.jornada = '0%';
-        } else if (agora > dataFimExpediente) {
-          cd.jornada = '100%';
-        } else {
-          const totalJornadaMs = dataFimExpediente.getTime() - dataInicioExpediente.getTime();
-          const decorridoMs = agora.getTime() - dataInicioExpediente.getTime();
-          const percentualJornada = Math.round((decorridoMs / totalJornadaMs) * 100);
-          cd.jornada = `${percentualJornada}%`;
-        }
-      } else {
-        console.warn(`Colaborador com ID ${cd.usuarioId} não encontrado na lista.`);
-        cd.jornada = '0%';
+    // Filtrar apenas pontos de hoje e que tenham registro de entrada (usando inicioExpediente)
+    const pontosHoje = pontos.filter(ponto => {
+      const horaEntrada = ponto.horaEntrada || ponto.inicioExpediente; // Usa inicioExpediente como fallback
+      if (!horaEntrada) {
+        console.warn(`⚠️ Ponto sem horaEntrada ou inicioExpediente para colaborador ${colaborador.nome}:`, ponto);
+        return false;
       }
+
+      const dataEntrada = new Date(horaEntrada);
+      if (isNaN(dataEntrada.getTime())) {
+        console.warn(`⚠️ Data de entrada inválida para colaborador ${colaborador.nome}: ${horaEntrada}`, ponto);
+        return false;
+      }
+
+      return dataEntrada >= hoje && dataEntrada <= agora; // Garante que a data seja de hoje e não futura
     });
+
+    // Ordenar pontos por data de entrada (mais recente primeiro)
+    pontosHoje.sort((a, b) =>
+      new Date(b.inicioExpediente || b.horaEntrada).getTime() - new Date(a.inicioExpediente || a.horaEntrada).getTime()
+    );
+
+    // Pegar o ponto mais recente de hoje
+    const pontoHoje = pontosHoje.length > 0 ? pontosHoje[0] : null;
+
+    console.log(`📍 Ponto mais recente para ${colaborador.nome}:`, pontoHoje);
+
+    // Se tem um registro de ponto hoje, usar horário real de entrada
+    if (pontoHoje && (pontoHoje.inicioExpediente || pontoHoje.horaEntrada)) {
+      const dataEntrada = new Date(pontoHoje.inicioExpediente || pontoHoje.horaEntrada);
+      console.log(`✅ Usando horário real de entrada para ${colaborador.nome}: ${dataEntrada.toLocaleString()}`);
+
+      // Pegar hora de saída prevista do cadastro do colaborador
+      const horaSaidaPrevista = new Date(agora);
+      const [horaSaida, minutoSaida] = (colaborador.horaSaida || '17:00').split(':').map(Number);
+      horaSaidaPrevista.setHours(horaSaida, minutoSaida, 0, 0);
+
+      console.log(`⏰ Horário de saída previsto para ${colaborador.nome}: ${horaSaidaPrevista.toLocaleString()}`);
+
+      // Se já tiver registrado saída, mostrar 100%
+      if (pontoHoje.horaSaida || pontoHoje.fimExpediente) {
+        console.log(`✅ Colaborador ${colaborador.nome} já registrou saída: ${pontoHoje.horaSaida || pontoHoje.fimExpediente}`);
+        return '100%';
+      }
+
+      // Se o horário atual for maior que o horário de saída previsto, mostrar 100%
+      if (agora > horaSaidaPrevista) {
+        console.log(`✅ Jornada de ${colaborador.nome} concluída (horário atual > saída prevista)`);
+        return '100%';
+      }
+
+      // Calcular o progresso com base no horário real de entrada
+      const totalJornadaMs = horaSaidaPrevista.getTime() - dataEntrada.getTime();
+      const decorridoMs = agora.getTime() - dataEntrada.getTime();
+      const percentualJornada = Math.round((decorridoMs / totalJornadaMs) * 100);
+
+      console.log(`📊 Progresso da jornada para ${colaborador.nome}: ${percentualJornada}% (Decorrido: ${decorridoMs / 1000 / 60} min, Total: ${totalJornadaMs / 1000 / 60} min)`);
+
+      return `${Math.min(100, Math.max(0, percentualJornada))}%`;
+    } else {
+      // Fallback: usar horário cadastrado do colaborador
+      console.warn(`⚠️ Nenhum ponto registrado hoje para ${colaborador.nome}. Usando horário cadastrado: ${colaborador.horaEntrada}`);
+
+      const horaEntradaStr = colaborador.horaEntrada || '08:00';
+      const horaSaidaStr = colaborador.horaSaida || '17:00';
+
+      const dataInicioExpediente = new Date(agora);
+      const [horaEntrada, minutoEntrada] = horaEntradaStr.split(':').map(Number);
+      dataInicioExpediente.setHours(horaEntrada, minutoEntrada, 0, 0);
+
+      const dataFimExpediente = new Date(agora);
+      const [horaSaida, minutoSaida] = horaSaidaStr.split(':').map(Number);
+      dataFimExpediente.setHours(horaSaida, minutoSaida, 0, 0);
+
+      if (agora < dataInicioExpediente) {
+        console.log(`⏳ Jornada de ${colaborador.nome} ainda não começou`);
+        return '0%';
+      } else if (agora > dataFimExpediente) {
+        console.log(`✅ Jornada de ${colaborador.nome} concluída (horário atual > saída prevista)`);
+        return '100%';
+      } else {
+        const totalJornadaMs = dataFimExpediente.getTime() - dataInicioExpediente.getTime();
+        const decorridoMs = agora.getTime() - dataInicioExpediente.getTime();
+        const percentualJornada = Math.round((decorridoMs / totalJornadaMs) * 100);
+
+        console.log(`📊 Progresso da jornada (fallback) para ${colaborador.nome}: ${percentualJornada}% (Decorrido: ${decorridoMs / 1000 / 60} min, Total: ${totalJornadaMs / 1000 / 60} min)`);
+
+        return `${percentualJornada}%`;
+      }
+    }
   }
 
   private resetarMetricas() {
@@ -390,21 +582,25 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private atualizarMetricasGerais(ordens: OrdemServico[]) {
     this.totalOS = ordens.length;
 
+    // O.S. Realizadas
     this.osRealizadas = ordens.filter(o => {
       const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return ['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada'].includes(status);
+      return ['concluído'].includes(status);
     }).length;
 
-    this.osNaoAtribuidas = ordens.filter(o => {
-      const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return o.atribuida === false && !['concluído', 'concluido', 'concluída', 'concluida', 'finalizado', 'finalizada'].includes(status);
-    }).length;
-
+    // O.S. Não Realizadas (Canceladas)
     this.osNaoRealizadas = ordens.filter(o => {
       const status = o.statusOrdem?.toLowerCase().trim() || '';
       return ['cancelado', 'cancelada'].includes(status);
     }).length;
 
+    // O.S. Não Atribuídas: somente ordens que não foram atribuídas E ainda estão pendentes (não realizadas/finalizadas ou canceladas)
+    this.osNaoAtribuidas = ordens.filter(o => {
+      const status = o.statusOrdem?.toLowerCase().trim() || '';
+      return !o.atribuida && !(['concluído', 'cancelado', 'cancelada'].includes(status));
+    }).length;
+
+    // Eficiência Geral
     this.efficiencyGeneral = this.totalOS > 0 ?
       Math.round((this.osRealizadas / this.totalOS) * 100) : 0;
 
@@ -442,14 +638,18 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.colaboradoresDesempenho = this.colaboradores.map(colaborador => {
           const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);
           const ordensFinalizadas = ordensDoColaborador.filter(o =>
-            ['concluída', 'concluida', 'Concluído', 'finalizada', 'finalizado']
+            ['concluído']
+              .includes(o.statusOrdem?.toLowerCase().trim() || '')
+          );
+          const ordensCanceladas = ordensDoColaborador.filter(o =>
+            ['cancelado', 'cancelada']
               .includes(o.statusOrdem?.toLowerCase().trim() || '')
           );
 
           const tempoMedio = this.calcularTempoMedio(ordensFinalizadas);
           const osAtribuidas = ordensDoColaborador.length;
           const osRealizadas = ordensFinalizadas.length;
-          const osPendentes = osAtribuidas - osRealizadas;
+          const osPendentes = ordensDoColaborador.length - ordensFinalizadas.length - ordensCanceladas.length;
           const eficiencia = osAtribuidas ? Math.round((osRealizadas / osAtribuidas) * 100) : 0;
 
           return {
@@ -459,6 +659,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             osAtribuidas,
             osRealizadas,
             osPendentes,
+            osCanceladas: ordensCanceladas.length, // Adicionando a propriedade que estava faltando
             tempoMedio,
             eficiencia,
             jornada: '0%', // placeholder
@@ -477,7 +678,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     const tempoTotalMs = ordens.reduce((acc, ordem) => {
       const inicio = new Date(ordem.dataHoraCadastro).getTime();
-      const fim = ordem.statusOrdem?.toLowerCase() === 'concluída' ? new Date().getTime() : inicio;
+      const fim = ordem.statusOrdem?.toLowerCase() === 'concluído' ? new Date().getTime() : inicio;
       return acc + (fim - inicio);
     }, 0);
 

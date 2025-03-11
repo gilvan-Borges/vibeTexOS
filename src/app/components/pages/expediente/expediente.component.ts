@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RegistrarFimPausaRequestDto } from '../../../models/control-app/registrar.fim.pausa.request';
-import { RegistrarPontoService } from '../../../services/registrar.ponto.service';
 import { ServicoFoto } from '../../../services/foto.service';
 import { ServicoLocalizacao } from '../../../services/localizacao.service';
 import { ServicoArmazenamento } from '../../../services/armazenamento.service';
@@ -19,6 +18,7 @@ import { UsuarioService } from '../../../services/usuario.service';
 
 import { RegistroExpedienteService } from '../../../services/registro-expediente.service';
 import { NgxSpinnerService } from 'ngx-spinner';
+import { RegistrarPontoService } from '../../../services/registrar.ponto.service';
 
 
 @Component({
@@ -80,6 +80,7 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private registrarPontoService: RegistrarPontoService,
+
     private route: ActivatedRoute,
     private servicoFoto: ServicoFoto,
     private servicoLocalizacao: ServicoLocalizacao,

@@ -3,27 +3,30 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, of, catchError, switchMap, tap, map, throwError } from 'rxjs';
 import { ControllAppService } from './controllApp.service';
+import { VibeService } from './vibe.service'; // Injete o VibeService
 import { environment } from '../../environments/environment';
+import { CriarOrdemDeServicoResponseDto } from '../models/vibe-service/criarOrdemDeServicoResponseDto'; // Ajuste o caminho
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly apiUrl = 'http://localhost:5030/api';
+
   private autenticadoSubject = new BehaviorSubject<boolean>(false);
-  autenticado$ = this.autenticadoSubject.asObservable();
+  public autenticado$ = this.autenticadoSubject.asObservable();
 
   private expedienteAtivoSubject = new BehaviorSubject<boolean>(false);
-  expedienteAtivo$ = this.expedienteAtivoSubject.asObservable();
+  public expedienteAtivo$ = this.expedienteAtivoSubject.asObservable();
 
   private osEmAndamentoSubject = new BehaviorSubject<boolean>(false);
-  osEmAndamento$ = this.osEmAndamentoSubject.asObservable();
-
-  private apiUrl = 'http://localhost:5030/api';
+  public osEmAndamento$ = this.osEmAndamentoSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private controllAppService: ControllAppService,
+    private vibeService: VibeService // Injete o VibeService
   ) {
     this.restaurarEstadoDoLocalStorage();
     this.autenticadoSubject.next(this.isLoggedInInternal());
@@ -33,37 +36,35 @@ export class AuthService {
     return localStorage.getItem('usuario') !== null;
   }
 
-  isLoggedIn(): boolean {
+  public isLoggedIn(): boolean {
     return this.autenticadoSubject.getValue();
   }
 
-  getAutenticadoStatus(): Observable<boolean> {
+  public getAutenticadoStatus(): Observable<boolean> {
     return this.autenticado$;
   }
 
-  getUsuario(): any {
+  public getUsuario(): any {
     const usuarioStorage = localStorage.getItem('usuario');
     return usuarioStorage ? JSON.parse(usuarioStorage).usuario : null;
   }
 
-  login(userName: string, senha: string): void {
+  public login(userName: string, senha: string): void {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const latitude = position.coords.latitude.toFixed(7);
         const longitude = position.coords.longitude.toFixed(7);
 
-        // Tenta autenticar na primeira API (controllApp)
         this.http
           .post(`${environment.controllApp}/usuario/authenticate`, { userName, senha })
           .pipe(
             catchError((error1) => {
               console.error('Erro na primeira API (controllApp):', error1);
-              // Se a primeira API falhar, tenta a segunda API (vibeservice)
               return this.http.post(`${environment.vibeservice}/usuario/authenticate`, { userName, senha }).pipe(
                 catchError((error2) => {
                   console.error('Erro na segunda API (vibeservice):', error2);
                   this.autenticadoSubject.next(false);
-                  return throwError(() => error2); // Propaga o erro final
+                  return throwError(() => error2);
                 })
               );
             })
@@ -72,7 +73,7 @@ export class AuthService {
             next: (response: any) => {
               console.log('Autenticação bem-sucedida:', response);
               this.processLoginSuccess(response, latitude, longitude);
-              this.autenticadoSubject.next(true); // Atualiza o estado de autenticação
+              this.autenticadoSubject.next(true);
             },
             error: (error) => {
               console.error('Erro geral na autenticação:', error);
@@ -115,15 +116,22 @@ export class AuthService {
 
     const role = usuarioData.usuario?.role?.toLowerCase();
     if (role === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuarioData.usuarioId}`]);
+      this.router.navigate([`/pages/expediente/${usuarioData.usuarioId}`], { replaceUrl: true }).then(() => {
+        window.location.reload();
+      });
     } else if (role === 'administrador' || role === 'roteirizador') {
-      this.router.navigate(['/pages/dashboard']);
+      this.router.navigate(['/pages/dashboard'], { replaceUrl: true }).then(() => {
+        window.location.reload();
+      });
     } else {
       console.log('Role não reconhecido. Ajuste a rota conforme necessário.');
     }
+
+    // Verificar O.S. em andamento na API após login
+    this.verificarOrdemEmAndamentoNaAPI(usuarioData.usuarioId);
   }
 
-  logout(): void {
+  public logout(): void {
     const usuario = this.getUsuario();
     if (usuario && usuario.usuarioId) {
       this.controllAppService
@@ -156,56 +164,28 @@ export class AuthService {
     }
   }
 
-  private handleAuthentication(response: any): void {
-    const usuario = response.usuario;
-    console.log('Dados do usuário para autenticação:', usuario);
-
-    if (!usuario || !usuario.usuarioId) {
-      console.error('Erro: usuário ou ID do usuário não encontrado.', usuario);
-      return;
-    }
-
-    console.log('Redirecionando o usuário com ID:', usuario.usuarioId);
-
-    if (usuario.role?.toLowerCase() === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`]);
-    } else if (usuario.role?.toLowerCase() === 'administrador' || usuario.role?.toLowerCase() === 'roteirizador') {
-      this.router.navigate(['/pages/dashboard']);
-    }
-
-    this.controllAppService
-      .atualizarStatusUsuario(usuario.usuarioId, true)
-      .subscribe({
-        next: () => {
-          console.log('Status atualizado com sucesso.');
-        },
-        error: (err) => {
-          console.error('Erro ao atualizar status:', err);
-        },
-      });
-  }
-
   private clearAllStorageData(): void {
     localStorage.removeItem('token');
     localStorage.clear();
     sessionStorage.clear();
   }
 
-  verificarEstadoExpedienteEOS(usuarioId: string): Observable<void> {
+  public verificarEstadoExpedienteEOS(usuarioId: string): Observable<void> {
     return this.controllAppService.PontoGetAll().pipe(
-      map(response => {
+      map((response) => {
         const hoje = new Date().toISOString().split('T')[0];
-        const pontoAtivo = response.find(ponto =>
-          ponto.usuarioId === usuarioId &&
-          new Date(ponto.inicioExpediente).toISOString().split('T')[0] === hoje &&
-          !ponto.fimExpediente
+        const pontoAtivo = response.find(
+          (ponto) =>
+            ponto.usuarioId === usuarioId &&
+            new Date(ponto.inicioExpediente).toISOString().split('T')[0] === hoje &&
+            !ponto.fimExpediente
         );
         this.expedienteAtivoSubject.next(!!pontoAtivo);
 
-        const osEmAndamento = localStorage.getItem('osEmAndamento') && localStorage.getItem('osIniciada') === 'true';
-        this.osEmAndamentoSubject.next(!!osEmAndamento);
+        // Não verificar localStorage aqui, apenas API
+        this.verificarOrdemEmAndamentoNaAPI(usuarioId);
       }),
-      catchError(err => {
+      catchError((err) => {
         console.error('Erro ao verificar estado do expediente e O.S.:', err);
         this.expedienteAtivoSubject.next(false);
         this.osEmAndamentoSubject.next(false);
@@ -214,45 +194,74 @@ export class AuthService {
     );
   }
 
-  setExpedienteAtivo(ativo: boolean): void {
+  public setExpedienteAtivo(ativo: boolean): void {
     this.expedienteAtivoSubject.next(ativo);
   }
 
-  setOsEmAndamento(ativo: boolean): void {
-    this.osEmAndamentoSubject.next(ativo);
-    localStorage.setItem('osIniciada', ativo.toString());
+  public setOsEmAndamento(value: boolean): void {
+    this.osEmAndamentoSubject.next(value);
+    localStorage.setItem('osEmAndamento', value.toString());
   }
 
-  restaurarEstadoDoLocalStorage(): void {
+  private restaurarEstadoDoLocalStorage(): void {
     const usuario = this.getUsuario();
     if (usuario && usuario.usuarioId) {
       this.verificarEstadoExpedienteEOS(usuario.usuarioId).subscribe();
     }
-    const osEmAndamento = localStorage.getItem('osIniciada') === 'true';
-    this.osEmAndamentoSubject.next(osEmAndamento);
+    // Remover verificação inicial do localStorage para osEmAndamento
+    this.osEmAndamentoSubject.next(false); // Estado inicial falso até a API verificar
   }
 
-  getToken(): string | null {
+  public getToken(): string | null {
     return localStorage.getItem('token');
   }
 
-  setToken(token: string): void {
+  public setToken(token: string): void {
     localStorage.setItem('token', token);
   }
 
-  verificarToken(): Observable<any> {
+  public verificarToken(): Observable<any> {
     const token = this.getToken();
     if (!token) {
       return throwError(() => new Error('Token não encontrado'));
     }
 
     return this.http.get<any>(`${this.apiUrl}/auth/verificar-token`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     }).pipe(
-      catchError(error => {
+      catchError((error) => {
         console.error('Token inválido:', error);
         return throwError(() => error);
       })
     );
+  }
+
+  // Método para verificar O.S. em andamento na API
+  private verificarOrdemEmAndamentoNaAPI(usuarioId: string): void {
+    this.vibeService.buscarOrdemServicoUsuarioId(usuarioId).subscribe({
+      next: (response: CriarOrdemDeServicoResponseDto[]) => {
+        console.log('Resposta da API para ordens:', response);
+
+        const ordemEmAndamento = response.find(
+          (ordem) => ordem.statusOrdem === 'EmAndamento' && ordem.usuarioId === usuarioId
+        );
+
+        if (ordemEmAndamento) {
+          console.log('Ordem em andamento encontrada:', ordemEmAndamento);
+          localStorage.setItem('osEmAndamento', 'true');
+          localStorage.setItem('ordemServicoId', ordemEmAndamento.ordemDeServicoId || '');
+          this.osEmAndamentoSubject.next(true);
+        } else {
+          console.log('Nenhuma ordem em andamento encontrada para o usuarioId:', usuarioId);
+          localStorage.setItem('osEmAndamento', 'false');
+          this.osEmAndamentoSubject.next(false);
+        }
+      },
+      error: (error) => {
+        console.error('Erro ao verificar ordens em andamento:', error);
+        localStorage.setItem('osEmAndamento', 'false');
+        this.osEmAndamentoSubject.next(false);
+      },
+    });
   }
 }

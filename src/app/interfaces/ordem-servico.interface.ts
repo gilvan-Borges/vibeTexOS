@@ -14,8 +14,9 @@ export interface OrdemServico {
   usuarioId: string;
   colaborador: string;
   atribuida: boolean;
-  clienteData?: any; // Dados do cliente quando carregados
+  clienteData?: any; 
   observacoesReparo?: string;
   dataEHoraInicioServico?: string | null;
   dataEHoraFimServico?: string | null;
+  
 }

@@ -62,14 +62,18 @@ td {
   background-color: #28a745 !important; /* Verde para "Concluído" */
 }
 
+.bg-blue-soft {
+  background-color: #007bff !important; /* Azul para "Pendente" */
+}
+
 .bg-orange-soft {
-  background-color: #f4941f !important; /* Laranja para "Pendente" */
+  background-color: #ff8c00 !important; /* Laranja para "Em Andamento" */
 }
 
 .bg-red-soft {
-  background-color: #f8d7da !important; /* Vermelho para "Cancelado" */
+  background-color: #dc3545 !important; /* Vermelho para "Cancelado" */
 }
 
-.bg-blue-soft {
-  background-color: #007bff !important; /* Azul para "Agendada" */
+.bg-brown-soft {
+  background-color: #8b4513 !important; /* Marrom para "Agendado" */
 }

@@ -23,7 +23,8 @@
           <div class="col-md-6">
             <!-- coluna -->
             <label for="nome" class="form-label">Nome completo:</label>
-            <input id="nome" type="text" class="form-control" formControlName="nome" />
+            <input id="nome" type="text" class="form-control" formControlName="nome"
+            placeholder=" ex: João Gomes da Silva" />
             <div class="text-danger" *ngIf="f['nome'].touched && f['nome'].invalid">
               Por favor, informe o nome completo com pelo menos 8 caracteres.
             </div>
@@ -31,14 +32,16 @@
           <div class="col-md-6">
             <!-- coluna -->
             <label for="nomeusuario" class="form-label">Nome do usuario:</label>
-            <input id="nomeusuario" type="text" class="form-control" formControlName="userName" />
+            <input id="nomeusuario" type="text" class="form-control" formControlName="userName" 
+            placeholder=" ex: jaogomes"/>
             <div class="text-danger" *ngIf="f['userName'].touched && f['userName'].invalid">
               Por favor, informe o nome do usuario com pelo menos 4 caracteres.
             </div>
           </div>
           <div class="col-md-5">
             <label for="cpf" class="form-label">CPF:</label>
-            <input id="cpf" type="text" class="form-control" formControlName="cpf" mask="000.000.000-00" />
+            <input id="cpf" type="text" class="form-control" formControlName="cpf" mask="000.000.000-00"
+             placeholder=" ex: 111.111.111-11"/>
             <div class="text-danger" *ngIf="f['cpf'].touched && f['cpf'].invalid">
               Por favor, informe o CPF com exatamente 11 dígitos. Ex: '12345678900'
             </div>
@@ -59,7 +62,8 @@
 
           <div class="col-md-7">
             <label for="email" class="form-label">Email do Usuario:</label>
-            <input id="email" type="email" class="form-control" formControlName="email" />
+            <input id="email" type="email" class="form-control" formControlName="email" 
+            placeholder=" ex: jaogomes@gmail.com" />
             <div class="text-danger" *ngIf="f['email'].touched && f['email'].invalid">
               Por favor, informe um endereço de email válido.
             </div>

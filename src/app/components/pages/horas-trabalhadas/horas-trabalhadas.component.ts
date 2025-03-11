@@ -3,12 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { UsuarioService } from '../../../services/usuario.service';
-
-
 import { environment } from '../../../../environments/environment.development';
 import { UsuarioResponseDto } from '../../../models/control-app/usuario.response.dto';
 import { Usuario } from '../../../models/control-app/usuario.model';
-
+// Importar bibliotecas para PDF
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Component({
   selector: 'app-horas-trabalhadas',
@@ -26,6 +26,7 @@ export class HorasTrabalhadasComponent implements OnInit {
   mensagemSemRegistros: string = '';
   usuarios: any[] = [];
   listaUsuarios: { usuarioId: string; nome: string }[] = []; // Lista para o dropdown
+  environment = environment; // Adicionar para uso no template
 
   constructor(
     private controllAppService: ControllAppService,
@@ -79,33 +80,80 @@ export class HorasTrabalhadasComponent implements OnInit {
       
           console.log('Processando ponto do usuário:', { 
             usuarioId: ponto.usuarioId, 
-            nome: nomeColaborador,
-            fotoUrl: usuario.fotoUrl,
-            fotoInicio: ponto.fotoInicioExpediente,
-            fotoFim: ponto.fotoFimExpediente
+            nome: nomeColaborador
           });
           
-          // Processamento da foto de perfil
+          // Processamento da foto de perfil - Corrigido
           let fotoPerfilProcessada = `${environment.mediaUrl}/default-avatar.png`;
+          
           if (usuario.fotoUrl && typeof usuario.fotoUrl === 'string' && usuario.fotoUrl !== 'string') {
-            const nomeArquivo = usuario.fotoUrl.replace('/images/', '').split('/').pop();
-            if (nomeArquivo) {
-              fotoPerfilProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+            try {
+              // Verifica se a URL já contém o domínio completo
+              if (usuario.fotoUrl.startsWith('http')) {
+                fotoPerfilProcessada = usuario.fotoUrl;
+              } else {
+                // Extrai apenas o nome do arquivo
+                let nomeArquivo = usuario.fotoUrl;
+                // Remove qualquer caminho de diretório se existir
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                // Constrói a URL completa
+                if (nomeArquivo) {
+                  fotoPerfilProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+                }
+              }
+              console.log('Foto perfil URL original:', usuario.fotoUrl);
               console.log('Foto perfil processada:', fotoPerfilProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de perfil:', error);
             }
           } else {
-            console.log('Usando foto padrão:', fotoPerfilProcessada);
+            console.log('Usando foto padrão para usuário:', nomeColaborador);
           }
           
-          // Processamento da foto de início
-          let fotoInicioProcessada = ponto.fotoInicioExpediente ? 
-            `${environment.mediaUrl}/${ponto.fotoInicioExpediente.replace('/images/', '').split('/').pop()}` : 
-            null;
+          // Processamento das fotos de início e fim - Corrigido
+          let fotoInicioProcessada = null;
+          if (ponto.fotoInicioExpediente) {
+            try {
+              // Verifica se a URL já contém o domínio completo
+              if (ponto.fotoInicioExpediente.startsWith('http')) {
+                fotoInicioProcessada = ponto.fotoInicioExpediente;
+              } else {
+                // Extrai apenas o nome do arquivo
+                let nomeArquivo = ponto.fotoInicioExpediente;
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                fotoInicioProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+              }
+              console.log('Foto início URL original:', ponto.fotoInicioExpediente);
+              console.log('Foto início processada:', fotoInicioProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de início:', error);
+            }
+          }
           
-          // Processamento da foto de fim
-          let fotoFimProcessada = ponto.fotoFimExpediente ? 
-            `${environment.mediaUrl}/${ponto.fotoFimExpediente.replace('/images/', '').split('/').pop()}` : 
-            null;
+          let fotoFimProcessada = null;
+          if (ponto.fotoFimExpediente) {
+            try {
+              // Verifica se a URL já contém o domínio completo
+              if (ponto.fotoFimExpediente.startsWith('http')) {
+                fotoFimProcessada = ponto.fotoFimExpediente;
+              } else {
+                // Extrai apenas o nome do arquivo
+                let nomeArquivo = ponto.fotoFimExpediente;
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                fotoFimProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+              }
+              console.log('Foto fim URL original:', ponto.fotoFimExpediente);
+              console.log('Foto fim processada:', fotoFimProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de fim:', error);
+            }
+          }
       
           this.horasTrabalhadas.push({
             usuarioId: ponto.usuarioId,
@@ -140,7 +188,6 @@ export class HorasTrabalhadasComponent implements OnInit {
     });
   }
   
-
   filtrarPorPeriodo(): void {
     let horas = [...this.horasTrabalhadas];
 
@@ -167,6 +214,7 @@ export class HorasTrabalhadasComponent implements OnInit {
     this.horasFiltradas = horas;
     this.mensagemSemRegistros = this.horasFiltradas.length === 0 ? 'Nenhum registro encontrado.' : '';
   }
+
   filtrarMesAtual(): void {
     const hoje = new Date();
     const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -189,5 +237,79 @@ export class HorasTrabalhadasComponent implements OnInit {
   private formatarHoras(horas: string): string {
     const [h, m] = horas.split(':').map(Number);
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+  
+  // Método para gerar PDF
+  gerarPDF(): void {
+    // Verificar se há dados para gerar o PDF
+    if (this.horasFiltradas.length === 0) {
+      alert('Não há dados para gerar o PDF.');
+      return;
+    }
+
+    // Selecionar a tabela para captura
+    const tabela = document.querySelector('.card-body') as HTMLElement;
+    if (!tabela) {
+      alert('Erro ao localizar a tabela.');
+      return;
+    }
+
+    // Exibir mensagem de carregamento
+    const mensagem = document.createElement('div');
+    mensagem.style.position = 'fixed';
+    mensagem.style.top = '50%';
+    mensagem.style.left = '50%';
+    mensagem.style.transform = 'translate(-50%, -50%)';
+    mensagem.style.padding = '20px';
+    mensagem.style.background = 'rgba(0,0,0,0.7)';
+    mensagem.style.color = 'white';
+    mensagem.style.borderRadius = '5px';
+    mensagem.style.zIndex = '9999';
+    mensagem.textContent = 'Gerando PDF...';
+    document.body.appendChild(mensagem);
+
+    // Criar o PDF
+    setTimeout(() => {
+      html2canvas(tabela).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('l', 'mm', 'a4'); // Paisagem (landscape)
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        // Adicionar título
+        pdf.setFontSize(16);
+        pdf.text('Relatório de Horas Trabalhadas', 10, 10);
+        
+        // Adicionar data do relatório
+        const dataAtual = new Date().toLocaleDateString('pt-BR');
+        pdf.setFontSize(10);
+        pdf.text(`Data do relatório: ${dataAtual}`, 10, 18);
+        
+        // Adicionar período filtrado, se houver
+        if (this.dataInicial && this.dataFinal) {
+          const dataInicial = new Date(this.dataInicial).toLocaleDateString('pt-BR');
+          const dataFinal = new Date(this.dataFinal).toLocaleDateString('pt-BR');
+          pdf.text(`Período: ${dataInicial} a ${dataFinal}`, 10, 24);
+        }
+        
+        // Adicionar a imagem da tabela
+        pdf.addImage(imgData, 'PNG', 10, 30, pdfWidth - 20, pdfHeight - 20);
+        
+        // Salvar o PDF
+        pdf.save('horas-trabalhadas.pdf');
+        
+        // Remover mensagem de carregamento
+        document.body.removeChild(mensagem);
+      });
+    }, 500);
+  }
+
+  // Add these methods for image error handling
+  handleImageError(event: Event, fallbackPath: string): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = `${environment.mediaUrl}${fallbackPath}`;
+    }
   }
 }

@@ -1,66 +1,67 @@
 body, html {
-    height: 100%;
-    margin: 0;
-  }
-  
-  .container {
-    height: 100vh;
-  }
-  
+  height: 100%;
+  margin: 0;
+}
+
+.container {
+  height: 100vh;
+}
+
+.conteudo {
+  max-width: 800px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 10px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.card {
+  flex: 1;
+  padding: 10px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.foto{
+  width: 425px !important;
+  height: 438px !important;
+}
+.foto img {
+  max-width: 600px !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Estilização do botão */
+button {
+  background-color: #007bff;
+  border: none;
+  color: white;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.alert {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
   .conteudo {
-    max-width: 800px;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    border-radius: 10px;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
+    flex-direction: column-reverse;
+    max-width: 100%;
+    
   }
-  
-  .card {
-    flex: 1;
-    padding: 2rem;
-    background-color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  .foto  {
+    width:100% !important;
+    height: 300px !important;
   }
-  
-  .foto {
-    flex: 1;
-    background-image: url('https://gilvandev.com/img/logo_vibetex.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-  }
-  
-  /* Estilização do botão */
-  button {
-    background-color: #007bff;
-    border: none;
-    color: white;
-    padding: 0.75rem;
-    font-size: 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #0056b3;
-  }
-  
-  .alert {
-    font-size: 0.9rem;
-  }
-  
-  @media (max-width: 768px) {
-    .conteudo {
-      flex-direction: column;
-      max-width: 100%;
-    }
-  
-    .foto {
-      height: 200px;
-    }
-  }
-  
+}

@@ -12,9 +12,12 @@
 
       <!-- Área do usuário na navbar -->
       <div class="navbar-nav ms-auto d-flex align-items-center">
-        <span class="nav-link nav-link-navbar text-white">
-          <strong>{{ nomeUsuario || userName }}</strong> ({{ role }})
-        </span>
+        <div class="user-info-container">
+          <span class="nav-link nav-link-navbar text-white mb-0">
+            <strong>{{ nomeUsuario || userName }}</strong> ({{ role }})
+          </span>
+          <span class="company-name">{{ nomeDaEmpresa || '' }}</span>
+        </div>
         <!-- Botão de Logout -->
         <button (click)="logout()" class="btn-sair-navbar btn btn-outline-danger btn-sm ms-2">
           Sair
@@ -25,14 +28,12 @@
 
   <!-- SIDEBAR -->
   <div class="sidebar" [class.closed]="isSidebarClosed">
-    <div class="sidebar-content" #sidebarContent
-         (mousedown)="onMouseDown($event)"
-         (mousemove)="onMouseMove($event)"
-         (mouseup)="onMouseUp()"
-         (mouseleave)="onMouseLeave()">
+    <div class="sidebar-content" #sidebarContent (mousedown)="onMouseDown($event)" (mousemove)="onMouseMove($event)"
+      (mouseup)="onMouseUp()" (mouseleave)="onMouseLeave()">
       <!-- Informações do usuário (visíveis no desktop) -->
       <div class="usuario">
-        <strong>{{ nomeUsuario }}</strong> ({{ role }})
+        <strong>{{ nomeUsuario || userName }}</strong> ({{ role }})
+        <div class="company-name-sidebar">{{ nomeDaEmpresa || '' }}</div>
       </div>
 
       <!-- Menu para Administrador e Roteirizador -->
@@ -111,19 +112,12 @@
       </a>
 
       <!-- Se expediente ativo ou pausa ativa -->
-      <ng-container *ngIf="role === 'Colaborador' && (expedienteAtivo || pausaAtiva)">
+      <ng-container *ngIf="role === 'Colaborador' && (expedienteAtivo || pausaAtiva || osEmAndamento)">
         <!-- Registrar Pausa (se não iniciou pausa ainda) -->
         <a *ngIf="expedienteAtivo && !timestamps['almoco-inicio']" [routerLink]="['/pages/expediente', usuarioId]"
           class="nav-link" (click)="fecharSidebarSeMobile()">
           <i class="fa-regular fa-paste"></i>
           <span>Registrar Pausa</span>
-        </a>
-
-        <!-- O.S. em Andamento (se houver O.S. iniciada) -->
-        <a *ngIf="osEmAndamento" class="nav-link"
-          (click)="continuarOsEmAndamento(); fecharSidebarSeMobile()">
-          <i class="fa-solid fa-tools"></i>
-          <span>O.S. em Andamento</span>
         </a>
 
         <!-- O.S. Pendentes -->
@@ -140,6 +134,18 @@
           <span>O.S. Realizadas</span>
         </a>
 
+        <!-- O.S. Canceladas -->
+        <a [routerLink]="['/pages/ordem-servico/canceladas', usuarioId]" class="nav-link"
+          (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-times-circle"></i>
+          <span>O.S. Canceladas</span>
+        </a>
+
+        <a *ngIf="osEmAndamento && usuarioId" [routerLink]="['/pages/ordem-servico/emAndamento', usuarioId]"
+          class="nav-link" (click)="fecharSidebarSeMobile()">
+          <i class="fa-solid fa-tools"></i>
+          <span>O.S. em Andamento</span>
+        </a>
         <!-- Finalizar Pausa (se iniciou pausa mas não finalizou) -->
         <a *ngIf="timestamps['almoco-inicio'] && !timestamps['almoco-fim']"
           [routerLink]="['/pages/expediente', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">

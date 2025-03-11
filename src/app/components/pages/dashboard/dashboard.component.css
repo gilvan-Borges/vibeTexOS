@@ -349,28 +349,48 @@ body {
 }
 
 .table td a span {
-  font-size: 0.85rem;
+  font-size: 0.7rem; /* Further reduced from 0.75rem */
   font-weight: 500;
 }
 
 .tecnico-foto {
-  width: 50px;
-  height: 50px;
+  width: 30px; /* Further reduced size */
+  height: 30px; /* Further reduced size */
   object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
   border-radius: 50%;
 }
 
-.tecnico-foto:hover {
-  transform: scale(1.1);
-  cursor: pointer;
+/* Add compact layout for collaborator column */
+.table tbody td:nth-child(2) {
+  padding: 0.5rem;
+  max-width: 120px; /* Increased for horizontal layout */
+}
+
+.table tbody td:nth-child(2) a {
+  display: flex;
+  flex-direction: row; /* Changed to row */
+  align-items: center;
+  justify-content: flex-start; /* Align to start */
+}
+
+.table tbody td:nth-child(2) a span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px; /* Limit text width */
+  text-align: center;
+}
+
+.table td:first-child .fw-medium {
+  font-size: 0.75rem; /* Reduced from default size */
 }
 
 .custom-progress-container {
-  width: 100px;
-  height: 20px;
+  width: 80px; /* Reduced from 100px */
+  height: 18px; /* Reduced height */
   background-color: #e0e0e0;
   border-radius: 5px;
   overflow: hidden;
@@ -391,7 +411,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 12px;
+  font-size: 10px; /* Reduced from 12px */
   font-weight: bold;
   color: #ffffff;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
@@ -482,6 +502,19 @@ h5 {
   font-weight: 600;
   letter-spacing: 0.5px;
   font-size: 16px;
+}
+
+/* Make heading columns for efficiency and journey smaller */
+.table th:nth-child(8),
+.table th:nth-child(9) {
+  width: 80px;
+  text-align: center;
+}
+
+/* Adjust padding for these columns */
+.table td:nth-child(8),
+.table td:nth-child(9) {
+  padding: 0.5rem 0.3rem;
 }
 
 /* Responsividade */

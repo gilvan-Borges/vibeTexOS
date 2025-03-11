@@ -149,7 +149,8 @@
               <span class="status" [ngClass]="{
                 'bg-green-soft': normalizeStatus(ordem.status) === 'concluido',
                 'bg-orange-soft': normalizeStatus(ordem.status) === 'pendente',
-                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado'
+                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado',
+                'bg-blue-soft': normalizeStatus(ordem.status) === 'emandamento'
               }">
                 {{ ordem.status }}
               </span>
@@ -217,7 +218,8 @@
               <span class="status" [ngClass]="{
                 'bg-green-soft': normalizeStatus(ordem.status) === 'concluido',
                 'bg-orange-soft': normalizeStatus(ordem.status) === 'pendente',
-                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado'
+                'bg-red-soft': normalizeStatus(ordem.status) === 'cancelado',
+                'bg-blue-soft': normalizeStatus(ordem.status) === 'emandamento'
               }">
                 {{ ordem.status }}
               </span>

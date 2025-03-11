@@ -3,8 +3,9 @@
   border-radius: 12px;
   padding: 15px 25px !important;
   display: flex;
+  flex-direction: column; /* Empilha os elementos verticalmente */
   justify-content: center;
-  align-items: start;
+  align-items: center; /* Centraliza os elementos horizontalmente */
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -18,6 +19,14 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   border: 1px solid #e6e6e6;
   margin: 20px auto;
+}
+
+.servico {
+  margin-bottom: 30px; /* Aumenta o espaço abaixo da seção de botões */
+}
+
+.formulario-container {
+  margin-top: 0; /* Remove a margem superior do formulário para evitar espaço excessivo */
 }
 
 /* Estilos específicos para cabeçalhos e títulos */
@@ -293,17 +302,15 @@
 }
 
 .webcam-container {
-  border: 2px solid #dee2e6;
-  border-radius: 8px;
   width: 100%;
-  max-width: 100%;
-  height: 300px;
+  max-width: 350px;
+  height: 250px;
+  margin: 0 auto;
   overflow: hidden;
   position: relative;
-  margin-bottom: 15px;
 }
 
-webcam {
+.webcam-container ::ng-deep video {
   width: 100%;
   height: 100%;
   object-fit: cover;
