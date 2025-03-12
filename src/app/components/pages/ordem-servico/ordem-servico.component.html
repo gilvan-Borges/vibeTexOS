@@ -132,8 +132,10 @@
 
             <!-- Rodapé do Card (Botões de Ação) -->
             <div class="card-footer text-center">
-              <button class="btn btn-primary w-100" [disabled]="pausaAtiva || verificarOrdemEmAndamento()"
-                (click)="iniciarOrdemServico(os)">
+              <button class="btn btn-primary w-100" 
+                [disabled]="pausaAtiva || verificarOrdemEmAndamento()"
+                (click)="iniciarOrdemServico(os)"
+                [ngClass]="{'btn-disabled': verificarOrdemEmAndamento()}">
                 <ng-container *ngIf="verificarOrdemEmAndamento(); else showLink">
                   Finalize a O.S. em andamento
                 </ng-container>
@@ -143,7 +145,6 @@
                 <small *ngIf="pausaAtiva" class="d-block pausa-msg">
                   (Finalize a pausa primeiro)
                 </small>
-                <!-- Adicionado aviso para ordem em andamento -->
                 <small *ngIf="verificarOrdemEmAndamento()" class="d-block pausa-msg">
                   (Termine a O.S. em andamento antes de iniciar outra)
                 </small>

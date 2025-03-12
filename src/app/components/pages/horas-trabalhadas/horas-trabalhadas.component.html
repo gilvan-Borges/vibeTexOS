@@ -14,8 +14,6 @@
         </option>
       </select>
       
-      
-
       <!-- Escolher Data Inicial e Data Final -->
       <label for="dataInicial">Data Inicial:</label>
       <input id="dataInicial" type="date" [(ngModel)]="dataInicial">
@@ -40,63 +38,63 @@
 
     <!-- Tabela de Horas Trabalhadas -->
     <div class="card-body">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Foto</th>
-            <th>Colaborador</th>
-            <th>Data</th>
-            <th>Início</th>
-            <th>Início da Pausa</th>
-            <th>Fim da Pausa</th>
-            <th>Fim</th>
-            <th>Total</th>
-            <th>Hora Devida</th>
-            <th>Hora Extra</th>
-            <th>Foto Início</th>
-            <th>Foto Fim</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let hora of horasFiltradas">
-            <td>
-              <img [src]="hora.fotoPerfil" 
-                   alt="Foto do Colaborador" 
-                   class="foto-perfil"
-                   (error)="handleImageError($event, '/default-avatar.png')">
-            </td>
-            <td>{{ hora.nome }}</td>
-            <td>{{ hora.data }}</td>
-            <td>{{ hora.horaInicio }}</td>
-            <td>{{ hora.inicioPausa }}</td>
-            <td>{{ hora.fimPausa }}</td>
-            <td>{{ hora.horaFim }}</td>
-            <td>{{ hora.total }}</td>
-            <td [ngClass]="{ 'bg-red': hora.horasDevidas !== '00:00' }">{{ hora.horasDevidas }}</td>
-            <td [ngClass]="{ 'bg-yellow': hora.horasExtras !== '00:00' }">{{ hora.horasExtras }}</td>
-            <td>
-              <a *ngIf="hora.fotoInicio" [href]="hora.fotoInicio" target="_blank">
-                <img [src]="hora.fotoInicio" 
-                     alt="Foto Início" 
-                     style="width: 50px; height: 50px; border-radius: 5px;" 
-                     (error)="handleImageError($event, '/no-image.png')">
-              </a>
-              <span *ngIf="!hora.fotoInicio">-</span>
-            </td>
-
-            <!-- Exibe a foto do fim do expediente com link para abrir -->
-            <td>
-              <a *ngIf="hora.fotoFim" [href]="hora.fotoFim" target="_blank">
-                <img [src]="hora.fotoFim" 
-                     alt="Foto Fim" 
-                     style="width: 50px; height: 50px; border-radius: 5px;" 
-                     (error)="handleImageError($event, '/no-image.png')">
-              </a>
-              <span *ngIf="!hora.fotoFim">-</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Colaborador</th>
+              <th>Data</th>
+              <th>Início</th>
+              <th>Início da Pausa</th>
+              <th>Fim da Pausa</th>
+              <th>Fim</th>
+              <th>Total</th>
+              <th>Hora Devida</th>
+              <th>Hora Extra</th>
+              <th>Foto Início</th>
+              <th>Foto Fim</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let hora of horasFiltradas">
+              <td>
+                <img [src]="hora.fotoPerfil" 
+                     alt="Foto do Colaborador" 
+                     class="foto-perfil"
+                     (error)="handleImageError($event, '/default-avatar.png')">
+              </td>
+              <td>{{ hora.nome }}</td>
+              <td>{{ hora.data }}</td>
+              <td>{{ hora.horaInicio }}</td>
+              <td>{{ hora.inicioPausa }}</td>
+              <td>{{ hora.fimPausa }}</td>
+              <td>{{ hora.horaFim }}</td>
+              <td>{{ hora.total }}</td>
+              <td [ngClass]="{ 'bg-red': hora.horasDevidas !== '00:00' }">{{ hora.horasDevidas }}</td>
+              <td [ngClass]="{ 'bg-yellow': hora.horasExtras !== '00:00' }">{{ hora.horasExtras }}</td>
+              <td>
+                <a *ngIf="hora.fotoInicio" [href]="hora.fotoInicio" target="_blank">
+                  <img [src]="hora.fotoInicio" 
+                       alt="Foto Início" 
+                       style="width: 50px; height: 50px; border-radius: 5px;" 
+                       (error)="handleImageError($event, '/no-image.png')">
+                </a>
+                <span *ngIf="!hora.fotoInicio">-</span>
+              </td>
+              <td>
+                <a *ngIf="hora.fotoFim" [href]="hora.fotoFim" target="_blank">
+                  <img [src]="hora.fotoFim" 
+                       alt="Foto Fim" 
+                       style="width: 50px; height: 50px; border-radius: 5px;" 
+                       (error)="handleImageError($event, '/no-image.png')">
+                </a>
+                <span *ngIf="!hora.fotoFim">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

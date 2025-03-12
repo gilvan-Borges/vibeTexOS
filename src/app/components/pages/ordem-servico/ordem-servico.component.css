@@ -99,6 +99,14 @@
   background-color: #c82333; /* Tom mais escuro de vermelho ao passar o mouse */
 }
 
+.btn-disabled {
+  background-color: #a0a0a0 !important;
+  border-color: #808080 !important;
+  color: #e0e0e0 !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .card-footer {
   background-color: transparent;
   border-top: none;

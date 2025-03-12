@@ -8,7 +8,7 @@
     </div>
     <div class="card-body">
       <div *ngIf="mensagem != ''" class="alert-container">
-        <div class="alert alert-dismissible fade show" [ngClass]="{'alert-error': isError}" role="alert">
+        <div class="alert alert-dismissible fade show" [ngClass]="{'alert-error': isError, 'alert-success': !isError}" role="alert">
           <i class="bi bi-exclamation-circle-fill me-2" *ngIf="isError"></i>
           <i class="bi bi-check-circle-fill me-2" *ngIf="!isError"></i>
           <strong>{{ mensagem }}</strong>

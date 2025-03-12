@@ -254,6 +254,9 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  background-color: #a0a0a0 !important; /* Fundo cinza para botões desativados */
+  border-color: #808080 !important; /* Borda cinza para botões desativados */
+  color: #e0e0e0 !important; /* Cor do texto mais clara */
 }
 
 /* Campos de assinatura */

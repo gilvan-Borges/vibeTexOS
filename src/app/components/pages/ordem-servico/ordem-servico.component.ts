@@ -554,8 +554,10 @@ reabrirOrdemServico(os: OrdemServico): void {
 
   verificarOrdemEmAndamento(): boolean {
     const emAndamento = localStorage.getItem('osEmAndamento') === 'true';
-    console.log('Verificando se há ordem em andamento:', emAndamento);
-    return emAndamento;
+    // Também verifica se há ordens carregadas em andamento
+    const temOrdensAndamento = this.ordensAndamento.length > 0;
+    console.log('Verificando se há ordem em andamento:', emAndamento || temOrdensAndamento);
+    return emAndamento || temOrdensAndamento;
   }
 
   verificarOrdemEmAndamentoNaAPI(): void {
