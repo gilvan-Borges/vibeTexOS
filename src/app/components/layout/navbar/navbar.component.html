@@ -1,17 +1,19 @@
 <body *ngIf="autenticado">
   <!-- NAVBAR -->
   <nav class="navbar fixed-top">
-    <div class="container-fluid">
-      <!-- Botão que abre/fecha o Sidebar -->
-      <button class="btn btn-x btn-outline-light sidebar-toggle" (click)="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-      </button>
 
-      <!-- Nome da empresa -->
-      <a class="navbar-brand ms-2">VibeTex</a>
+    <div class="container-fluid ">
+      
+      <div class="menu">
+        <button class="btn btn-x btn-outline-light sidebar-toggle" (click)="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <a class="navbar-brand ms-2">VibeTex</a>
+  
+      </div>
 
       <!-- Área do usuário na navbar -->
-      <div class="navbar-nav ms-auto d-flex align-items-center">
+      <div class="navbar-nav  d-flex align-items-center">
         <div class="user-info-container">
           <span class="nav-link nav-link-navbar text-white mb-0">
             <strong>{{ nomeUsuario || userName }}</strong> ({{ role }})
@@ -23,6 +25,7 @@
           Sair
         </button>
       </div>
+
     </div>
   </nav>
 
@@ -44,7 +47,7 @@
 
       <!-- Dropdown de Gerenciamento de Usuários -->
       <div *ngIf="role === 'Administrador' || role === 'Roteirizador'" class="nav-item custom-dropdown">
-        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdown1()">
+        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdown1($event)">
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <i class="fas fa-users-cog me-2"></i>
@@ -54,11 +57,11 @@
           </div>
         </button>
         <div class="dropdown-content" [class.show]="isDropdownOpen">
-          <a class="dropdown-item" routerLink="/pages/usuarios">
+          <a class="dropdown-item" routerLink="/pages/usuarios" (click)="closeDropdowns()">
             <i class="fas fa-users me-2"></i>
             <span>Lista de Usuários</span>
           </a>
-          <a class="dropdown-item" routerLink="/pages/cadastrar-usuario">
+          <a class="dropdown-item" routerLink="/pages/cadastrar-usuario" (click)="closeDropdowns()">
             <i class="fas fa-user-plus me-2"></i>
             <span>Cadastrar Usuário</span>
           </a>
@@ -83,7 +86,7 @@
 
       <!-- Dropdown de Gerenciar Ordem de Serviço -->
       <div *ngIf="role === 'Administrador' || role === 'Roteirizador'" class="nav-item custom-dropdown">
-        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdownOs()">
+        <button class="nav-link w-100 text-start border-0" (click)="toggleDropdownOs($event)">
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <i class="fas fa-tasks me-2"></i>
@@ -93,11 +96,11 @@
           </div>
         </button>
         <div class="dropdown-content" [class.show]="isDropdownOsOpen">
-          <a class="dropdown-item" routerLink="/pages/gerenciar-ordem-servico">
+          <a class="dropdown-item" routerLink="/pages/gerenciar-ordem-servico" (click)="closeDropdowns()">
             <i class="fas fa-plus me-2"></i>
             <span>Cadastrar O.S.</span>
           </a>
-          <a class="dropdown-item" routerLink="/pages/consultar-ordem-servico">
+          <a class="dropdown-item" routerLink="/pages/consultar-ordem-servico" (click)="closeDropdowns()">
             <i class="fas fa-search me-2"></i>
             <span>Consultar O.S.</span>
           </a>
@@ -111,10 +114,22 @@
         <span>Horas Trabalhadas</span>
       </a>
 
+      <!-- Adicionado link de Início Expediente (visível apenas se o expediente não foi iniciado hoje) -->
+      <a *ngIf="role === 'Colaborador' && !expedienteIniciadoHoje" [routerLink]="['/pages/expediente/inicio', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">
+        <i class="fa-regular fa-play"></i>
+        <span>Início Expediente</span>
+      </a>
+
+      <!-- Link de Finalizar Pausa (visível apenas se há pausa iniciada mas não finalizada) -->
+      <a *ngIf="role === 'Colaborador' && pausaAtiva" [routerLink]="['/pages/expediente/fim-pausa', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">
+        <i class="fa-regular fa-play-circle"></i>
+        <span>Finalizar Pausa</span>
+      </a>
+
       <!-- Se expediente ativo ou pausa ativa -->
       <ng-container *ngIf="role === 'Colaborador' && (expedienteAtivo || pausaAtiva || osEmAndamento)">
         <!-- Registrar Pausa (se não iniciou pausa ainda) -->
-        <a *ngIf="expedienteAtivo && !timestamps['almoco-inicio']" [routerLink]="['/pages/expediente', usuarioId]"
+        <a *ngIf="expedienteAtivo && !timestamps['almoco-inicio']" [routerLink]="['/pages/expediente/inicio-pausa', usuarioId]"
           class="nav-link" (click)="fecharSidebarSeMobile()">
           <i class="fa-regular fa-paste"></i>
           <span>Registrar Pausa</span>
@@ -148,13 +163,13 @@
         </a>
         <!-- Finalizar Pausa (se iniciou pausa mas não finalizou) -->
         <a *ngIf="timestamps['almoco-inicio'] && !timestamps['almoco-fim']"
-          [routerLink]="['/pages/expediente', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">
-          <i class="fa-regular fa-pause-circle"></i>
+          [routerLink]="['/pages/expediente/fim-pausa', usuarioId]" class="nav-link" (click)="fecharSidebarSeMobile()">
+          <i class="fa-regular fa-play-circle"></i>
           <span>Finalizar Pausa</span>
         </a>
 
         <!-- Finalizar Expediente (se já finalizou a pausa) -->
-        <a *ngIf="timestamps['almoco-fim']" [routerLink]="['/pages/expediente', usuarioId]" class="nav-link"
+        <a *ngIf="timestamps['almoco-fim']" [routerLink]="['/pages/expediente/fim', usuarioId]" class="nav-link"
           (click)="fecharSidebarSeMobile()">
           <i class="fa-regular fa-clock"></i>
           <span>Finalizar Expediente</span>

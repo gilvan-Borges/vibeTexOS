@@ -1,0 +1,23 @@
+<div class="container-fluid">
+  <!-- Mensagem de tempo restante da pausa -->
+  <div *ngIf="mensagemPausa$ | async as mensagem" class="alert alert-info mt-3">
+    <span class="mensagem-pausa">{{ mensagem }}</span>
+  </div>
+
+  <!-- Alerta de pausa liberada -->
+  <div *ngIf="mostrarAlertaPausaLiberada" class="alert alert-success mt-3 animate__animated animate__bounceIn">
+    <i class="fas fa-check-circle me-2"></i>
+    <strong>Pausa finalizada!</strong> Você já pode registrar o fim da sua pausa.
+    <button type="button" class="btn-close float-end" (click)="mostrarAlertaPausaLiberada = false"></button>
+  </div>
+
+  <!-- Botão de Fim de Pausa -->
+  <button class="btn btn-warning btn-lg btn-block w-100 mb-3"
+    [class.btn-pulse]="registroExpediente.verificarPodeFinalizarPausa()"
+    [disabled]="!registroExpediente.verificarPodeFinalizarPausa()" (click)="finalizarPausa()">
+    Finalizar Pausa
+    <span *ngIf="!registroExpediente.verificarPodeFinalizarPausa()" class="text-muted d-block small">
+      (Aguarde o tempo necessário para finalizar a pausa)
+    </span>
+  </button>
+</div>

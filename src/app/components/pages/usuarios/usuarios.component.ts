@@ -32,20 +32,35 @@ export class UsuariosComponent implements OnInit {
   carregarTodosColaboradores(): void {
     this.usuarioService.carregarTodosColaboradores().subscribe({
       next: (colaboradores) => {
-        this.colaboradores = colaboradores.map(colaborador => ({
-          ...colaborador,
-          fotoUrl: colaborador.fotoUrl
-            ? `${environment.mediaUrl}/${colaborador.fotoUrl.split('/').pop()}`
-            : 'https://via.placeholder.com/40x40',
-          jornada: this.formatJornada(colaborador.jornada)
-        }));
+        this.colaboradores = colaboradores.map(colaborador => {
+          // Extract image filename or use the full URL if needed
+          let imageUrl = 'https://via.placeholder.com/40x40';
+          
+          if (colaborador.fotoUrl) {
+            // Check if fotoUrl already contains the full URL
+            if (colaborador.fotoUrl.includes(`${environment.mediaUrl}/images/`)) {
+              imageUrl = colaborador.fotoUrl;
+            } else {
+              // Extract just the filename if it's a path
+              const filename = colaborador.fotoUrl.split('/').pop();
+              // Construct the full URL using environment.mediaUrl
+              imageUrl = `${environment.mediaUrl}/images/${filename}`;
+            }
+          }
+          
+          return {
+            ...colaborador,
+            fotoUrl: imageUrl,
+            jornada: this.formatJornada(colaborador.jornada)
+          };
+        });
         this.filteredColaboradores = [...this.colaboradores]; // Initialize filtered list
       },
       error: (err) => {
         console.error('Erro ao carregar colaboradores:', err);
       }
     });
-  }
+}
 
   // Método para formatar a jornada no formato HH:MM - HH:MM
   formatJornada(jornada: string): string {
@@ -53,6 +68,22 @@ export class UsuariosComponent implements OnInit {
     const [inicio, fim] = jornada.split(' - ');
     if (!inicio || !fim) return '00:00 - 00:00';
     return `${inicio.substring(0, 5)} - ${fim.substring(0, 5)}`;
+  }
+
+  /**
+   * Formata o CPF para o padrão 000.000.000-00
+   */
+  formatarCPF(cpf: string): string {
+    if (!cpf) return '';
+    
+    // Remove caracteres não numéricos
+    const numerosCPF = cpf.replace(/\D/g, '');
+    
+    // Verifica se tem 11 dígitos
+    if (numerosCPF.length !== 11) return cpf;
+    
+    // Formata para 000.000.000-00
+    return numerosCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   }
 
   applyFilter(): void {

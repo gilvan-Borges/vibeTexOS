@@ -1,57 +1,50 @@
-<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
-  <div class="conteudo d-flex shadow">
-    <!-- Lado esquerdo: Formulário de Login -->
-    <div class="card">
+<div class="container d-flex justify-content-center align-items-center">
+  
+  <!-- Mensagem de erro -->
+  <div *ngIf="mensagem && mensagem !== 'Autenticando e obtendo sua localização...'" 
+       class="alert alert-danger text-center mb-3 position-absolute top-0">
+    {{ mensagem }}
+  </div>
+
+  <div class="conteudo shadow-lg rounded-4 overflow-hidden">
+    
+    <!-- Área do formulário -->
+    <div class="card border-0 bg-transparent">
       <div class="card-body">
-        <h3 class="card-title text-center mb-1">Entrar</h3>
+        <h3 class="card-title text-center mb-3 fw-bold text-white">Entrar</h3>
+
         <form [formGroup]="formulario" (ngSubmit)="autenticarUsuario()">
-          <!-- Nome de usuário -->
           <div class="mb-3">
-            <label for="userName" class="form-label">Nome de usuário</label>
+            <label for="userName" class="form-label text-white">Nome de usuário</label>
             <input 
-              type="text" 
-              class="form-control" 
-              id="userName" 
-              formControlName="userName" 
-              placeholder="Digite seu nome de usuário" />
+              type="text" class="form-control rounded-3" id="userName" formControlName="userName" placeholder="Digite seu nome de usuário">
           </div>
 
-      
-          <!-- Campo de Senha -->
-          <div class="mb-1">
-            <label for="senha" class="form-label">Senha</label>
+          <div class="mb-3">
+            <label for="senha" class="form-label text-white">Senha</label>
             <input 
-              type="password" 
-              class="form-control" 
-              id="senha" 
-              formControlName="senha" 
-              placeholder="Digite sua senha" />
-            <small class="text-danger" *ngIf="formulario.get('senha')?.invalid && formulario.get('senha')?.touched">
+              type="password" class="form-control rounded-3" id="senha" formControlName="senha" placeholder="Digite sua senha">
+            <small class="text-warning fw-bold" *ngIf="formulario.get('senha')?.invalid && formulario.get('senha')?.touched">
               A senha deve ter pelo menos 8 caracteres.
             </small>
           </div>
 
-          <!-- Checkbox para Lembrar-me -->
-          <div class="mb-3 form-check">
+          <div class="form-check mb-4">
             <input type="checkbox" class="form-check-input" id="lembrar">
-            <label class="form-check-label" for="lembrar">Lembrar-me</label>
+            <label class="form-check-label text-white" for="lembrar">Lembrar-me</label>
           </div>
 
-          <!-- Botão de Login -->
-          <button type="submit" class="btn btn-primary w-100" >Entrar</button>
+          <button type="submit" class="btn w-100 rounded-3 fw-bold" [disabled]="carregando">
+            {{ carregando ? 'Processando...' : 'Entrar' }}
+          </button>
         </form>
-
-        <!-- Link para recuperação de senha -->
-        <div class="text-center mt-3">
-          <a href="#">Esqueceu a senha?</a>
-        </div>
-
-        <!-- Mensagem de erro -->
-        <div *ngIf="mensagem" class="alert alert-danger mt-3">{{ mensagem }}</div>
       </div>
     </div>
 
-    <div class="foto"><img src="https://gilvandev.com/img/logo_vibetex.png" alt=""></div>
-    <!-- Lado direito: Imagem -->
+    <!-- Área da imagem lateral -->
+    <div class="foto">
+      <img src="https://api.gilvandev.com/image/logo_vibetex.png" alt="Logo Vibetex">
+    </div>
+
   </div>
 </div>

@@ -25,7 +25,7 @@ export class LoginGuard implements CanActivate {
     } 
     // Se for colaborador, redireciona para expediente
     else if (role === 'colaborador') {
-      this.router.navigate(['/pages/expediente']);
+      this.router.navigate(['/pages/ordem-servico/', usuario?.usuario?.id]);
       return of(false);
     } 
     // Caso contrário, deixa passar (ou trate como preferir)

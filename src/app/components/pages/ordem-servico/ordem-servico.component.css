@@ -386,7 +386,18 @@ h1 {
   max-width: 100%;
   object-fit: contain;
 }
+@media (max-width: 768px) {
+  .container-fluid {
+    margin-top: 90px !important;
+  }
+}
 
+@media (max-width: 600px) {
+  .container-fluid {
+      margin-top: 60px !important;
+  }
+
+}
 /* Responsividade para o modal */
 @media (max-width: 576px) {
   .modal-dialog {

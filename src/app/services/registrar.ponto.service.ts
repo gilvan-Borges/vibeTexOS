@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { ControllAppService } from './controllApp.service';
 
 import { RegistrarPontoFimRequestDto } from '../models/control-app/registrar.ponto.fim.request';
@@ -9,44 +9,73 @@ import { RegistrarFimPausaRequestDto } from '../models/control-app/registrar.fim
 import { RegistrarPontoInicioRequestDto } from '../models/control-app/registrar.ponto.inicio.request.dto';
 import { RegistrarPontoInicioResponseDto } from '../models/control-app/registrar.ponto.inicio.response.dto';
 import { RegistrarPontoFimResponseDto } from '../models/control-app/registrar.ponto.fim.response.dto';
+import { environment } from '../../environments/environment.development';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RegistrarPontoService {
-  private apiUrl = 'https://api.exemplo.com'; // Substitua pela URL da sua API
 
-  constructor(private http: HttpClient, private controllAppService: ControllAppService) {}
+  constructor(private http: HttpClient, 
+    private controllAppService: ControllAppService) {}
 
 
   
-
-
   registrarInicioPausa(
     userId: string,
     request: RegistrarPausaInicioRequestDto
   ): Observable<any> {
     return this.controllAppService.pontoRegistarInicioPausa(userId, request);
+
+    
   }
   registrarFimPausa(usuarioId: string, pontoId: string, request: RegistrarFimPausaRequestDto) {
+    // Validar os parâmetros
+    if (!usuarioId) {
+      console.error('Erro: usuarioId é obrigatório para registrarFimPausa');
+      return throwError(() => new Error('usuarioId é obrigatório'));
+    }
+  
+    if (!pontoId) {
+      console.error('Erro: pontoId é obrigatório para registrarFimPausa');
+      return throwError(() => new Error('pontoId é obrigatório'));
+    }
+  
     const headers = {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`  // Recupere o token do localStorage ou onde você salvou
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     };
-
-    const url = `https://localhost:5141/api/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
-    console.log('URL correta:', url);
+  
+    // Garantir que a URL seja construída corretamente sem barras duplas
+    const baseUrl = environment.controllApp.endsWith('/') 
+      ? environment.controllApp.slice(0, -1) 
+      : environment.controllApp;
+    
+    const url = `${baseUrl}/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
+    
+    console.log('URL final para finalizar pausa:', url);
     console.log('Payload enviado:', request);
-
-    return this.http.post(url, request, headers);
+  
+    // Especificar responseType: 'text' para aceitar respostas de texto simples
+    return this.http.post(url, request, { 
+      ...headers, 
+      responseType: 'text' 
+    });
   }
 
   registrarInicioExpediente(
     userId: string,
     request: RegistrarPontoInicioRequestDto
   ): Observable<RegistrarPontoInicioResponseDto> {
+    // Recuperar userId do localStorage como fallback
+    const resolvedUserId = userId || localStorage.getItem('usuarioId') || '';
+    if (!resolvedUserId || resolvedUserId.trim() === '') {
+      console.error('Erro: userId está vazio ou inválido.');
+      throw new Error('userId é obrigatório para registrar o início do expediente.');
+    }
+
     const formData = new FormData();
     formData.append('pontoId', request.pontoId);
     formData.append('inicioExpediente', request.inicioExpediente);
@@ -55,7 +84,11 @@ export class RegistrarPontoService {
     formData.append('fotoInicioExpedienteFile', request.fotoInicioExpedienteFile);
     formData.append('observacoes', request.observacoes);
 
-    return this.controllAppService.pontoRegistrarInicioExpediente(userId, formData);
+    // Construir a URL com o resolvedUserId
+    const url = `${environment.controllApp}/ponto/${resolvedUserId}/registrarinicioexpediente`;
+    console.log('URL construída para registrarInicioExpediente:', url);
+
+    return this.http.post<RegistrarPontoInicioResponseDto>(url, formData);
   }
 
   registrarFimExpediente(

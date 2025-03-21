@@ -66,8 +66,15 @@ export class HorasTrabalhadasComponent implements OnInit {
   }
 
   processarHorasUsuarios(): void {
+    // Define an absolute media URL with /images
+    const mediaBase = environment.mediaUrl.startsWith('http') 
+      ? environment.mediaUrl 
+      : 'http://' + environment.mediaUrl;
+    const mediaUrlFinal = mediaBase.endsWith('/') 
+      ? `${mediaBase}images/` 
+      : `${mediaBase}/images/`;
+    
     this.horasTrabalhadas = [];
-  
     this.usuarios.forEach((ponto) => {
       // Buscar os dados do usuário para obter a foto correta
       this.controllAppService.usuarioGetById(ponto.usuarioId).subscribe({
@@ -83,24 +90,20 @@ export class HorasTrabalhadasComponent implements OnInit {
             nome: nomeColaborador
           });
           
-          // Processamento da foto de perfil - Corrigido
-          let fotoPerfilProcessada = `${environment.mediaUrl}/default-avatar.png`;
+          // Processamento da foto de perfil - Ajustado para URL absoluta com /images
+          let fotoPerfilProcessada = `${mediaUrlFinal}default-avatar.png`;
           
-          if (usuario.fotoUrl && typeof usuario.fotoUrl === 'string' && usuario.fotoUrl !== 'string') {
+          if (usuario.fotoUrl && typeof usuario.fotoUrl === 'string') {
             try {
-              // Verifica se a URL já contém o domínio completo
               if (usuario.fotoUrl.startsWith('http')) {
                 fotoPerfilProcessada = usuario.fotoUrl;
               } else {
-                // Extrai apenas o nome do arquivo
                 let nomeArquivo = usuario.fotoUrl;
-                // Remove qualquer caminho de diretório se existir
                 if (nomeArquivo.includes('/')) {
                   nomeArquivo = nomeArquivo.split('/').pop() || '';
                 }
-                // Constrói a URL completa
                 if (nomeArquivo) {
-                  fotoPerfilProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+                  fotoPerfilProcessada = `${mediaUrlFinal}${nomeArquivo}`;
                 }
               }
               console.log('Foto perfil URL original:', usuario.fotoUrl);
@@ -109,23 +112,21 @@ export class HorasTrabalhadasComponent implements OnInit {
               console.error('Erro ao processar URL da foto de perfil:', error);
             }
           } else {
-            console.log('Usando foto padrão para usuário:', nomeColaborador);
+              console.log('Usando foto padrão para usuário:', nomeColaborador);
           }
           
-          // Processamento das fotos de início e fim - Corrigido
+          // Processamento das fotos de início e fim - Ajustado com /images
           let fotoInicioProcessada = null;
           if (ponto.fotoInicioExpediente) {
             try {
-              // Verifica se a URL já contém o domínio completo
               if (ponto.fotoInicioExpediente.startsWith('http')) {
                 fotoInicioProcessada = ponto.fotoInicioExpediente;
               } else {
-                // Extrai apenas o nome do arquivo
                 let nomeArquivo = ponto.fotoInicioExpediente;
                 if (nomeArquivo.includes('/')) {
                   nomeArquivo = nomeArquivo.split('/').pop() || '';
                 }
-                fotoInicioProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+                fotoInicioProcessada = `${mediaUrlFinal}${nomeArquivo}`;
               }
               console.log('Foto início URL original:', ponto.fotoInicioExpediente);
               console.log('Foto início processada:', fotoInicioProcessada);
@@ -137,16 +138,14 @@ export class HorasTrabalhadasComponent implements OnInit {
           let fotoFimProcessada = null;
           if (ponto.fotoFimExpediente) {
             try {
-              // Verifica se a URL já contém o domínio completo
               if (ponto.fotoFimExpediente.startsWith('http')) {
                 fotoFimProcessada = ponto.fotoFimExpediente;
               } else {
-                // Extrai apenas o nome do arquivo
                 let nomeArquivo = ponto.fotoFimExpediente;
                 if (nomeArquivo.includes('/')) {
                   nomeArquivo = nomeArquivo.split('/').pop() || '';
                 }
-                fotoFimProcessada = `${environment.mediaUrl}/${nomeArquivo}`;
+                fotoFimProcessada = `${mediaUrlFinal}${nomeArquivo}`;
               }
               console.log('Foto fim URL original:', ponto.fotoFimExpediente);
               console.log('Foto fim processada:', fotoFimProcessada);
@@ -306,10 +305,17 @@ export class HorasTrabalhadasComponent implements OnInit {
   }
 
   // Add these methods for image error handling
+  // Updated image error handling to remove repetitive error events
   handleImageError(event: Event, fallbackPath: string): void {
     const img = event.target as HTMLImageElement;
     if (img) {
-      img.src = `${environment.mediaUrl}${fallbackPath}`;
+      // Remove error listener to avoid loop
+      img.onerror = null;
+      // Ensure mediaUrl ends with a slash and includes /images
+      const baseUrl = environment.mediaUrl.endsWith('/')
+        ? `${environment.mediaUrl}images/`
+        : `${environment.mediaUrl}/images/`;
+      img.src = `${baseUrl}${fallbackPath}`;
     }
   }
 }

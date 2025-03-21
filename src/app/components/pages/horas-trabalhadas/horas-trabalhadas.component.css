@@ -220,9 +220,13 @@ td {
 
 @media (max-width: 768px) {
   .container {
-      padding: 15px;
+      padding: 5px !important;
+      margin-top: 80px !important;
   }
-
+  .card-body {
+    padding: 8px !important;
+    box-shadow:  0 2px 4px rgba(0, 0, 0, 0.1);
+  }
   .table {
       font-size: 0.8rem;
   }
@@ -244,14 +248,17 @@ td {
   /* Ajustes na seção de filtros no modo mobile */
   .filters {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch; /* Mudança para esticar os elementos */
     gap: 10px;
+    width: 100%; /* Garantir que ocupe toda a largura */
+    padding: 5px;
   }
 
   .filters label {
     margin-bottom: 5px;
     margin-right: 0;
-    text-align: center;
+    text-align: left; /* Alinhamento à esquerda */
+    width: 100%; /* Ocupar toda a largura */
   }
 
   .filters select,
@@ -259,6 +266,7 @@ td {
     max-width: 100%;
     width: 100%;
     margin: 0 auto 10px;
+    box-sizing: border-box; /* Incluir padding e border na largura total */
   }
 
   .filters button {
@@ -272,7 +280,14 @@ td {
   .filters .btn-pdf {
     margin-left: 0;
     width: 100%;
-    max-width: 200px; /* Mesma largura máxima dos outros botões */
-    margin: 5px auto; /* Centralizado com margem consistente */
+    max-width: 200px;
+    margin: 5px auto;
   }
+}
+
+@media (max-width: 600px) {
+  .container {
+      margin-top: 60px !important;
+  }
+
 }

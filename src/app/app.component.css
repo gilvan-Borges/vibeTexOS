@@ -1,7 +1,7 @@
 .main-container {
     margin-left: 250px; /* Espaço para o sidebar */
     margin-top: 56px; /* Espaço para a navbar */
-    padding: 20px;
+    padding: 10px;
     transition: margin-left 0.3s ease-in-out;
 }
 

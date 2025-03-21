@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router, Routes } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { Observable, of } from 'rxjs';
 import { HorasTrabalhadasComponent } from '../components/pages/horas-trabalhadas/horas-trabalhadas.component';
 import { AutenticarComponent } from '../components/pages/autenticar/autenticar.component';
 

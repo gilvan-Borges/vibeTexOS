@@ -82,7 +82,7 @@ export class AutenticarComponent {
           console.log('Status atualizado para offline.');
           localStorage.clear();
           this.router.navigate(['/pages/usuarios/autenticar']);
-          this.pararAtualizacaoLocalizacao(); // Para a atualização automática ao deslogar
+          this.pararAtualizacaoLocalizacao();
         },
         error: (err) => console.error('Erro ao atualizar status de logout:', err)
       });
@@ -110,7 +110,7 @@ export class AutenticarComponent {
     // Redireciona baseado no role do usuário
     const role = usuario.role?.toLowerCase();
     if (role === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuario.usuarioId}`], { replaceUrl: true }).then(() => {
+      this.router.navigate([`/pages/ordem-servico/pendentes/${usuario.usuarioId}`], { replaceUrl: true }).then(() => {
         window.location.reload();
       });
     } else if (role === 'administrador' || role === 'roteirizador') {

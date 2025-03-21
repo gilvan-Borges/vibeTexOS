@@ -10,6 +10,7 @@ import { ControllAppService } from '../../../services/controllApp.service';
 import { Pipe, PipeTransform } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment.development';
 
 export interface OrdemServico {
   ordemDeServicoId: string;
@@ -333,19 +334,33 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         // Formata os dados dos colaboradores
         this.colaboradores = colaboradores
           .filter(colab => colab.role === 'Colaborador')
-          .map(colab => ({
-            usuarioId: colab.usuarioId,
-            nome: colab.nome,
-            empresa: colab.nomeDaEmpresa || colab.empresa || 'VibeTex Soluções',
-            horaEntrada: colab.horaEntrada || '08:00',
-            horaSaida: colab.horaSaida || '18:00',
-            latitudeAtual: colab.latitudeAtual || '',
-            longitudeAtual: colab.longitudeAtual || '',
-            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ?
-              new Date(colab.dataHoraUltimaAutenticacao) : undefined,
-            fotoUrl: colab.fotoUrl || '/assets/default-profile.png',
-            isOnline: colab.isOnline === true
-          }));
+          .map(colab => {
+            // Process the photo URL properly
+            let photoUrl = '/assets/default-profile.png';
+            if (colab.fotoUrl) {
+              if (colab.fotoUrl.startsWith('http://') || colab.fotoUrl.startsWith('https://')) {
+                photoUrl = colab.fotoUrl;
+              } else {
+                // Extract filename if it's a path
+                const filename = colab.fotoUrl.split('/').pop();
+                photoUrl = `${environment.mediaUrl}/images/${filename}`;
+              }
+            }
+            
+            return {
+              usuarioId: colab.usuarioId,
+              nome: colab.nome,
+              empresa: colab.nomeDaEmpresa || colab.empresa || 'VibeTex Soluções',
+              horaEntrada: colab.horaEntrada || '08:00',
+              horaSaida: colab.horaSaida || '18:00',
+              latitudeAtual: colab.latitudeAtual || '',
+              longitudeAtual: colab.longitudeAtual || '',
+              dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ?
+                new Date(colab.dataHoraUltimaAutenticacao) : undefined,
+              fotoUrl: photoUrl,
+              isOnline: colab.isOnline === true
+            };
+          });
 
         console.log(`👥 Filtragem resultou em ${this.colaboradores.length} colaboradores válidos`);
 
@@ -460,7 +475,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         eficiencia: ordensDoColaborador.length ?
           Math.round((ordensFinalizadas.length / ordensDoColaborador.length) * 100) : 0,
         jornada: '0%', // Valor inicial
-        fotoUrl: colaborador.fotoUrl,
+        fotoUrl: colaborador.fotoUrl, // This should already be properly formatted from earlier
         isOnline: true // adicionado, pois somente colaboradores online chegam aqui
       };
 
@@ -623,17 +638,31 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           return;
         }
 
-        this.colaboradores = colaboradores.map(colab => ({
-          usuarioId: colab.usuarioId,
-          nome: colab.nome,
-          empresa: colab.nomeDaEmpresa || colab.empresa || 'N/A',
-          horaEntrada: colab.horaEntrada || '08:00',
-          horaSaida: colab.horaSaida || '18:00',
-          latitudeAtual: colab.latitudeAtual || '',
-          longitudeAtual: colab.longitudeAtual || '',
-          dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined,
-          fotoUrl: colab.fotoUrl || '/assets/default-profile.png'
-        }));
+        this.colaboradores = colaboradores.map(colab => {
+          // Process photo URL
+          let photoUrl = '/assets/default-profile.png';
+          if (colab.fotoUrl) {
+            if (colab.fotoUrl.startsWith('http://') || colab.fotoUrl.startsWith('https://')) {
+              photoUrl = colab.fotoUrl;
+            } else {
+              // Extract filename if it's a path
+              const filename = colab.fotoUrl.split('/').pop();
+               photoUrl = `${environment.mediaUrl}/images/${filename}`;
+            }
+          }
+          
+          return {
+            usuarioId: colab.usuarioId,
+            nome: colab.nome,
+            empresa: colab.nomeDaEmpresa || colab.empresa || 'N/A',
+            horaEntrada: colab.horaEntrada || '08:00',
+            horaSaida: colab.horaSaida || '18:00',
+            latitudeAtual: colab.latitudeAtual || '',
+            longitudeAtual: colab.longitudeAtual || '',
+            dataHoraUltimaAutenticacao: colab.dataHoraUltimaAutenticacao ? new Date(colab.dataHoraUltimaAutenticacao) : undefined,
+            fotoUrl: photoUrl
+          };
+        });
 
         this.colaboradoresDesempenho = this.colaboradores.map(colaborador => {
           const ordensDoColaborador = ordens.filter(o => o.usuarioId === colaborador.usuarioId);

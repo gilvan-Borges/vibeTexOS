@@ -11,6 +11,8 @@ import { ExecucaoFimResponseDto } from "../models/vibe-service/execucao.Fim.Resp
 import { ExecucaoFimRequestDto } from "../models/vibe-service/execucao.Fim.Request.Dto";
 import { RegisterRoteirizadorRequestDto, RegisterRoteirizadorResponseDto } from "../models/vibe-service/registerRoteirizadorDto";
 import { ReiniciarExecucaoServicoRequestDto } from "../models/vibe-service/reiniciar.Execucao.Servico.Request.Dto";
+import { ReiniciarExecucaoServicoResponseDto } from "../models/vibe-service/reiniciar.Execucao.Servico.Response.Dto";
+import { environment } from "../../environments/environment.development";
 
 @Injectable({
     providedIn: 'root'
@@ -19,7 +21,7 @@ import { ReiniciarExecucaoServicoRequestDto } from "../models/vibe-service/reini
 export class VibeService {
 
     constructor(private httpClient: HttpClient) { }
-    public apiUrl = 'http://localhost:5030/api';
+    public apiUrl =  environment.vibeservice;
 
     private handleError(error: HttpErrorResponse) {
         let errorMessage = 'An error occurred';
@@ -199,14 +201,21 @@ export class VibeService {
         });
     }
 
-    reiniciarExecucaoServico(execucaoServicoId: string, usuarioId: string, formData: FormData): Observable<ReiniciarExecucaoServicoRequestDto> {
+    reiniciarExecucaoServico(execucaoServicoId: string, usuarioId: string, formData: FormData): Observable<ReiniciarExecucaoServicoResponseDto> {
+       
         const url = `${this.apiUrl}/tarefa/reiniciar-execucao-servico/${execucaoServicoId}/${usuarioId}`;
-
-        return this.httpClient.post<any>(url, formData, {
-            headers: new HttpHeaders({
-            })
-        });
-    }
+        console.log('URL gerada para iniciarTrajeto:', url); // Log para depuração
+        console.log('Requisição enviada:', formData);
+        return this.httpClient.post<ReiniciarExecucaoServicoResponseDto>(url, formData, {
+          headers: new HttpHeaders({})
+          
+        }).pipe(
+          tap(response => console.log('Execução reiniciada:', response)),
+          catchError(this.handleError)
+          
+        );
+        
+      }
 
     public finalizarExecucaoServico(execucaoId: string, usuarioId: string, data: FormData | ExecucaoFimRequestDto): Observable<ExecucaoFimResponseDto> {
         const url = `${this.apiUrl}/tarefa/finalizar-execucao-servico/${execucaoId}/${usuarioId}`;

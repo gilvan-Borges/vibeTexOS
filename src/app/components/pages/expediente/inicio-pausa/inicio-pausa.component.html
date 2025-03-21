@@ -1,0 +1,11 @@
+<div class="container-fluid">
+  <!-- Mensagem de contagem regressiva -->
+  <div *ngIf="mensagemContagem$ | async as mensagem" class="alert alert-info mt-3">
+    <span class="mensagem-contagem">{{ mensagem }}</span>
+  </div>
+
+  <!-- Botão de Início de Pausa -->
+  <button class="btn btn-warning btn-lg btn-block w-100 mb-3" [disabled]="disabled" (click)="iniciarPausa()">
+    Iniciar Pausa
+  </button>
+</div>

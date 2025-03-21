@@ -1,15 +1,16 @@
 :root{
     background-color: #f8f9fa;
+    
   }
   i{
     padding: 0;
   }
   
-  .container {
+  .container-fluid {
     border-radius: 10px;
     padding: 5px 20px !important;
     height: auto;
-    
+   margin-top: 50px;
   }
   
   .titulo {
@@ -221,4 +222,30 @@
   border-color: #bee5eb;
   margin: 15px 0;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Estilo para destacar o botão quando a rota específica é acessada */
+.btn-highlight {
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.8);
+  animation: pulse-highlight 2s infinite;
+}
+
+@keyframes pulse-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+  }
+  
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+  }
+  
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+  }
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    margin-top: 50px;
+  }
 }

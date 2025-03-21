@@ -253,7 +253,7 @@ export class EmpresasComponent implements OnInit {
         localidade: formData.estado,
         uf: formData.uf
       },
-      // Adicionar qualquer outro campo que o endpoint possa exigir
+
       ativo: true
     };
 
@@ -348,7 +348,7 @@ export class EmpresasComponent implements OnInit {
       numero: empresa.numero || '',
       complemento: empresa.complemento || '',
       bairro: empresa.bairro || '',
-      cidade: empresa.cidade || '', // Adicionando o novo campo
+      cidade: empresa.cidade || '', 
       uf: empresa.uf || '',
       estado: empresa.estado || ''
     });
@@ -503,7 +503,7 @@ export class EmpresasComponent implements OnInit {
                 enderecoFinal += endereco.bairro;
               }
               
-              // Adicionar cidade/estado/UF se existirem
+             
               const temLocalidade = endereco.localidade && endereco.localidade.trim() !== '';
               const temUF = endereco.uf && endereco.uf.trim() !== '';
               
@@ -514,9 +514,9 @@ export class EmpresasComponent implements OnInit {
               }
             }
             
-            // Se ainda não temos nada, tenta outro método de construção
+           
             if (!enderecoFinal) {
-              // Usar campos diretos do objeto empresa (caso existam)
+              
               const campos = ['logradouro', 'numero', 'bairro', 'estado', 'uf'];
               const partes = [];
               
@@ -556,7 +556,7 @@ export class EmpresasComponent implements OnInit {
             numero: empresa.endereco?.numero || '',
             complemento: empresa.endereco?.complemento || '',
             bairro: empresa.endereco?.bairro || '',
-            cidade: empresa.endereco?.cidade || empresa.endereco?.localidade || '', // Usando cidade ou localidade
+            cidade: empresa.endereco?.cidade || empresa.endereco?.localidade || '', 
             uf: empresa.endereco?.uf || '',
             estado: empresa.endereco?.localidade || '',
             endereco: enderecoFinal || 'Endereço não informado'

@@ -1,121 +1,88 @@
-<!-- Tabela de Colaboradores em Serviço -->
-<div class="tabela card shadow-lg mt-4">
-  <div class="card-header text-dark d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0">Lista de Colaboradores</h5>
-    <div class="filter-container">
-      <select [(ngModel)]="filterType" class="form-select filter-select">
-        <option value="nome">Nome</option>
-        <option value="cpf">CPF</option>
-        <option value="matricula">Matrícula</option>
-        <option value="empresaNome">Empresa</option>
-      </select>
-      <input
-        type="text"
-        [(ngModel)]="searchTerm"
-        (input)="applyFilter()"
-        class="form-control filter-input"
-        placeholder="Pesquisar..."
-      />
+<div class="container-fluid">
+  <div class="tabela card shadow-lg mt-4">
+    <div class="card-header text-dark d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">Lista de Colaboradores</h5>
+      <div class="filter-container">
+        <select [(ngModel)]="filterType" class="form-select filter-select">
+          <option value="nome">Nome</option>
+          <option value="cpf">CPF</option>
+          <option value="matricula">Matrícula</option>
+          <option value="empresaNome">Empresa</option>
+        </select>
+        <input type="text" [(ngModel)]="searchTerm" (input)="applyFilter()" class="form-control filter-input"
+          placeholder="Pesquisar..." />
+      </div>
     </div>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead class="bg-light">
-          <tr>
-            <th>Foto</th>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>CPF</th>
-            <th>Matrícula</th>
-            <th>Empresa</th>
-            <th>Jornada</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            *ngFor="let colaborador of filteredColaboradores"
-          >
-            <td>
-              <a [routerLink]="['/pages/historico-tecnico', colaborador.id]">
-                <img
-                  [src]="colaborador.fotoUrl"
-                  [alt]="colaborador.nome"
-                  class="tecnico-foto rounded-circle"
-                  style="width: 40px; height: 40px;"
-                />
-              </a>
-            </td>
-            <td class="nome">{{ colaborador.nome }}</td>
-            <td>{{ colaborador.email }}</td>
-            <td>{{ colaborador.cpf }}</td>
-            <td>{{ colaborador.matricula }}</td>
-            <td>{{ colaborador.empresaNome }}</td>
-            <td>{{ colaborador.jornada }}</td>
-            <td>
-              <div class="d-flex gap-2">
-                <a
-                  [routerLink]="[
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="bg-light">
+            <tr>
+              <th>Foto</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>CPF</th>
+              <th>Matrícula</th>
+              <th>Empresa</th>
+              <th>Jornada</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let colaborador of filteredColaboradores">
+              <td>
+                <a [routerLink]="['/pages/historico-tecnico', colaborador.id]">
+                  <img [src]="colaborador.fotoUrl" [alt]="colaborador.nome" class="tecnico-foto rounded-circle"
+                    style="width: 40px; height: 40px;" />
+                </a>
+              </td>
+              <td class="nome">{{ colaborador.nome }}</td>
+              <td>{{ colaborador.email }}</td>
+              <td>{{ formatarCPF(colaborador.cpf) }}</td>
+              <td>{{ colaborador.matricula }}</td>
+              <td>{{ colaborador.empresaNome }}</td>
+              <td>{{ colaborador.jornada }}</td>
+              <td>
+                <div class="action-buttons">
+                  <a [routerLink]="[
                     '/pages/editar-colaborador',
                     colaborador.id || colaborador.usuarioId
-                  ]"
-                  class="btn btn-warning btn-sm me-2"
-                >
-                  Editar
-                </a>
-                <button
-                  class="btn btn-danger btn-sm"
-                  (click)="abrirModalExclusao(colaborador)"
-                >
-                  Excluir
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                  ]" class="btn btn-warning btn-sm btn-action">
+                    Editar
+                  </a>
+                  <button class="btn btn-danger btn-sm btn-action" (click)="abrirModalExclusao(colaborador)">
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Modal de Confirmação -->
-<div
-  *ngIf="colaboradorSelecionado"
-  class="modal fade show d-block"
-  tabindex="-1"
->
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">Confirmação de Exclusão</h5>
-        <button
-          type="button"
-          class="close btn-close"
-          (click)="fecharModalExclusao()"
-        ></button>
-      </div>
-      <div class="modal-body text-center">
-        <p>Tem certeza que deseja excluir este colaborador?</p>
-        <strong>{{ colaboradorSelecionado.nome }}</strong>
-      </div>
-      <div class="modal-footer d-flex justify-content-between">
-        <button
-          type="button"
-          class="btn btn-secondary w-45"
-          (click)="fecharModalExclusao()"
-        >
-          Não
-        </button>
-        <button
-          type="button"
-          class="btn btn-danger w-45"
-          (click)="excluirColaborador()"
-        >
-          Sim
-        </button>
+  <div *ngIf="colaboradorSelecionado" class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmação de Exclusão</h5>
+          <button type="button" class="close btn-close" (click)="fecharModalExclusao()"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>Tem certeza que deseja excluir este colaborador?</p>
+          <strong>{{ colaboradorSelecionado.nome }}</strong>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary w-45" (click)="fecharModalExclusao()">
+            Não
+          </button>
+          <button type="button" class="btn btn-danger w-45" (click)="excluirColaborador()">
+            Sim
+          </button>
+        </div>
       </div>
     </div>
   </div>
+  <div *ngIf="colaboradorSelecionado" class="modal-backdrop fade show"></div>
 </div>
-<div *ngIf="colaboradorSelecionado" class="modal-backdrop fade show"></div>

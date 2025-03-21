@@ -190,23 +190,24 @@ export class OrdemServicoExecComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       const codigo = params['codigo'];
       this.codigoOSId = codigo || '';
+      // Valor inicial apenas para exibição, será atualizado com o número correto
       this.codigoOS = codigo ? `O.S. número ${codigo}` : 'O.S. número 001';
       if (codigo) {
         localStorage.setItem('ordemServicoId', codigo);
       }
-
+  
       const usuarioData = localStorage.getItem('usuario');
       const usuarioId = usuarioData ? (JSON.parse(usuarioData) as Usuario).usuarioId : null;
-
+  
       if (!usuarioId) {
         console.error('ID do usuário não encontrado no localStorage');
         this.salvarOrdemServicoPadrao();
         return;
       }
-
+  
       console.log('Carregando O.S. com codigoOSId:', this.codigoOSId);
       console.log('Dados atuais do localStorage (execucaoServico):', localStorage.getItem('execucaoServico'));
-
+  
       this.vibeService.buscarOrdemServicoUsuarioId(usuarioId).pipe(
         tap((response: OrdemServico[]) => {
           console.log('Resposta completa da API (buscarOrdemServicoUsuarioId):', response);
@@ -215,15 +216,12 @@ export class OrdemServicoExecComponent implements OnInit {
               os.ordemDeServicoId === this.codigoOSId || os.despachoid === this.codigoOSId
             );
             if (ordemServico?.numeroOrdemDeServico) {
-              const numeroOS = parseInt(ordemServico.numeroOrdemDeServico, 10);
-              if (!isNaN(numeroOS)) {
-                this.codigoOS = `O.S. número ${numeroOS.toString().padStart(3, '0')}`;
-              } else {
-                this.codigoOS = `O.S. número ${ordemServico.ordemDeServicoId || ordemServico.despachoid}`;
-              }
+              // Usar diretamente o numeroOrdemDeServico, sem conversão para inteiro
+              console.log('numeroOrdemDeServico encontrado:', ordemServico.numeroOrdemDeServico);
+              this.codigoOS = `O.S. número ${ordemServico.numeroOrdemDeServico}`;
               localStorage.setItem('ordemServico', JSON.stringify(ordemServico));
               console.log('Ordem de serviço encontrada:', ordemServico);
-
+  
               if (ordemServico.execucoes && ordemServico.execucoes.length > 0) {
                 const execucaoAtiva = ordemServico.execucoes
                   .filter(exec => exec.statusExecucao === 'EmAndamento' || exec.statusExecucao === 'Iniciada')
@@ -232,7 +230,7 @@ export class OrdemServicoExecComponent implements OnInit {
                     const dateB = (b as ExecucaoDtoExtended).dataEHoraInicioExecucao || '1970-01-01T00:00:00';
                     return new Date(dateB).getTime() - new Date(dateA).getTime();
                   })[0];
-
+  
                 if (execucaoAtiva) {
                   this.execucao = execucaoAtiva;
                   localStorage.setItem('execucaoServico', JSON.stringify(this.execucao));
@@ -253,7 +251,7 @@ export class OrdemServicoExecComponent implements OnInit {
                     this.disabled = [true, true, true];
                   }
                 }
-
+  
                 if (ordemServico.trajetos && ordemServico.trajetos.length > 0) {
                   const ultimoTrajeto = ordemServico.trajetos.sort(
                     (a, b) => new Date(b.dataEHoraIncioTrajeto).getTime() - new Date(a.dataEHoraIncioTrajeto).getTime()

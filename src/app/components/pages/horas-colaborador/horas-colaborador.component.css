@@ -179,6 +179,7 @@
 @media (max-width: 768px) {
   .container {
       padding: 15px;
+      margin-top: 80px;
   }
 
   .table {
@@ -225,4 +226,10 @@
     display: block;
     text-align: center;
   }
+}
+@media (max-width: 600px) {
+  .container {
+      margin-top: 60px !important;
+  }
+
 }

@@ -2,29 +2,31 @@
 .navbar {
   background-color: #1e1e2d;
   color: white;
-  height: 56px;
+  height: 63px; /* altura fixa */
   display: flex;
   align-items: center;
-  padding: 0 1rem;
+  justify-content: space-between; /* alinhamento correto */
+  padding: 0 1rem; /* padronize em todas as resoluções */
   width: 100%;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   position: fixed;
   top: 0;
   z-index: 99999;
 }
+
 
 .navbar .navbar-brand {
   color: white;
   font-size: 1.2rem;
   font-weight: bold;
   text-decoration: none;
-  margin-left: 10px;
+  margin:0px;
 }
 
 .navbar-nav {
   max-width: 350px;
-  width: 100%;
+
   flex-direction: row;
+  justify-content: flex-end;
 }
 
 .navbar .btn-outline-light {
@@ -93,7 +95,7 @@
   color: white;
   padding: 1rem;
   transition: transform 0.3s ease-in-out;
-  z-index: 999;
+  z-index: 999999 !important; /* ajuste aqui com !important */
 }
 
 .sidebar.closed {
@@ -104,10 +106,14 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow-x: auto; /* Garante rolagem horizontal */
-  -webkit-overflow-scrolling: touch; /* Suaviza rolagem em mobile */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent; /* Firefox */
+  overflow-x: auto;
+  /* Garante rolagem horizontal */
+  -webkit-overflow-scrolling: touch;
+  /* Suaviza rolagem em mobile */
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  /* Firefox */
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -129,7 +135,8 @@
   font-size: 1rem;
   font-weight: bold;
   text-align: center;
-  display: block !important; /* Force display */
+  display: block !important;
+  /* Force display */
 }
 
 .sidebar-content .nav-link {
@@ -233,7 +240,7 @@
 
 .dropdown-menu {
   background-color: #343a40;
-  border: 1px solid rgba(255,255,255,.15);
+  border: 1px solid rgba(255, 255, 255, .15);
   margin-left: 1rem;
 }
 
@@ -400,9 +407,11 @@
   color: #e0e0e0;
   line-height: 1;
   margin-top: -3px;
-  display: block !important; /* Force display */
+  display: block !important;
+  /* Force display */
   text-align: right;
-  max-width: 200px; /* Prevent overflows */
+  max-width: 200px;
+  /* Prevent overflows */
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -411,257 +420,349 @@
   font-size: 0.8rem;
   color: #cccccc;
   margin-top: 3px;
-  display: block !important; /* Force display */
+  display: block !important;
+  /* Force display */
 }
 
 @media (max-width: 768px) {
   .sidebar {
-      transform: none;
-      width: 100%;
-      height: 40px;
-      bottom: auto;
-      top: 56px;
-      left: 0;
-      padding: 0;
-      background-color: #1e1e2d;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transform: none;
+    width: 100%;
+    height: 80px;
+    /* Aumentada para 80px no mobile */
+    bottom: auto;
+    top: 56px;
+    left: 0;
+    padding: 0;
+    background-color: #1e1e2d;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
   }
 
   .btn-x {
-      display: none;
+    display: none;
   }
 
   .sidebar-content {
-      flex-direction: row;
-      justify-content: flex-start;
-      align-items: center;
-      height: 100%;
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 0;
-      margin: 0; /* Remove margem para evitar o elemento cinza */
-      -webkit-overflow-scrolling: touch;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100%;
+    /* Ocupa toda a altura da sidebar */
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0;
+    margin: 0;
+    /* Remove margem para evitar o elemento cinza */
+    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar-content .nav-link {
-      flex-direction: row;
-      padding: 0 15px;
-      margin: 0;
-      height: 40px;
-      min-width: auto;
-      text-align: center;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: row;
+    padding: 0 15px;
+    margin: 0;
+    height: 40px;
+    /* Mantém a altura dos links */
+    min-width: auto;
+    text-align: center;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .sidebar-content .nav-link i {
-      display: none;
+    display: none;
   }
 
   .sidebar-content .nav-link span {
-      font-size: 12px;
-      white-space: nowrap;
-      margin: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    margin: 0;
   }
 
   .sidebar.closed {
-      transform: none;
+    transform: none;
   }
 
   .content {
-      margin-left: 0;
-      margin-top: 96px;
-      padding-top: 10px;
+    margin-left: 0;
+    margin-top: 131px;
+    /* Ajustado para 56px (navbar) + 80px (sidebar) */
+    padding-top: 10px;
   }
 
   .sidebar-content .usuario,
-  .btn-sair-sidebar,
-  .dropdown-menu {
-      display: none !important;
+  .btn-sair-sidebar {
+    display: none !important;
   }
 
   .dropdown-toggle::after {
-      display: none;
+    display: none;
   }
 
-  .navbar {
-      height: auto;
-      padding: 0.5rem 1rem;
-  }
+.navbar {
+  background-color: #1e1e2d;
+  color: white;
+  height: 56px; /* altura fixa */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* alinhamento correto */
+  padding: 0 1rem; /* padronize em todas as resoluções */
+  width: 100%;
+  position: fixed;
+  top: 0;
+  z-index: 99999;
+}
+
 
   .navbar .container-fluid {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .navbar-brand {
-      margin: 0;
-      font-size: 1rem;
+    margin: 0;
+    font-size: 1rem;
   }
 
   .nav-link-navbar {
-      font-size: 0.9rem;
-      margin: 0 0.5rem;
+    font-size: 0.8rem;
+    margin: 0 0.9rem;
   }
 
   .btn-sair-navbar {
-      display: inline-block !important;
-      margin: 0;
-      padding: 2px 10px !important;
-      font-size: 0.8rem;
+    display: inline-block !important;
+    margin: 0;
+    padding: 2px 10px !important;
+    font-size: 0.8rem;
+  }
+  .navbar {
+    height: 63px; /* altura fixa */
   }
 
   .navbar-nav {
-      flex-direction: row;
-      align-items: center;
-      gap: 0.5rem;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 0.3rem;
+    margin-top: 10px;
+    /* Espaçamento entre a marca e os links */
   }
 
   .dropdown-menu {
-      position: absolute;
-      left: 0;
-      margin-top: 0;
-      width: 200px;
+    position: absolute;
+    left: 0;
+    margin-top: 0;
+    width: 200px;
   }
 
   .dropdown-toggle span {
-      font-size: 12px;
-      margin-left: 5px;
-  }
-
-  .company-name {
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .navbar {
-      height: auto;
-      padding: 0.3rem 0.5rem;
-  }
-
-  .navbar .container-fluid {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-  }
-
-  .navbar-brand {
-      font-size: 0.9rem;
-      margin: 0;
-  }
-
-  .nav-link-navbar {
-      font-size: 0.8rem;
-      margin: 0 0.3rem;
-  }
-
-  .btn-sair-navbar {
-      display: inline-block !important;
-      padding: 2px 8px !important;
-      font-size: 0.7rem;
-      margin: 0;
-  }
-
-  .navbar-nav {
-      gap: 0.3rem;
-  }
-
-  .content {
-      padding: 10px;
-  }
-
-  .ordem-servico {
-      font-size: 0.9rem;
-  }
-
-  .btn-iniciar {
-      font-size: 0.8rem;
-      padding: 0.3rem 0.8rem;
+    font-size: 12px;
+    margin-left: 5px;
   }
 
   .company-name {
     font-size: 0.65rem;
   }
+
+  /* Update dropdown positioning for mobile */
+  .dropdown-content {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    margin-left: 0;
+    background-color: #343a40;
+    z-index: 1000;
+    width: 220px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 8px 0;
+    max-height: 0;  /* Start with 0 height */
+    overflow: hidden; /* Hide overflow */
+    white-space: normal;
+    opacity: 0; /* Start completely transparent */
+    transform: translateY(-20px); /* Start slightly above final position */
+    transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease; /* Smooth transitions */
+    pointer-events: none; /* Prevent interaction when hidden */
+    z-index: 10000; /* Add z-index to make sure it's above everything else */
+  }
+
+  .dropdown-content.show {
+    max-height: 300px; /* Allow sufficient height when shown */
+    opacity: 1; /* Fully visible */
+    transform: translateY(0); /* Move to final position */
+    pointer-events: auto; /* Allow interaction when shown */
+    overflow: visible; /* Allow content to be visible */
+  }
+
+  /* Make the dropdown toggle area specifically target only itself */
+  .custom-dropdown .nav-link {
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-item.custom-dropdown .dropdown-content.show {
+    display: block; /* Only shown when .show class is applied */
+  }
+
+  /* Ensure dropdown is above other elements */
+  .nav-item.custom-dropdown {
+    position: relative;
+  }
+
+  .nav-item.custom-dropdown .dropdown-content {
+    position: fixed;
+    top: 75px!important; 
+    left: 10px; 
+    max-width: calc(100% - 20px);
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+    background-color: #1e1e2d;
+    width: 100%;  
+    z-index: 9999999999;
+  }
+
+  /* Ensure the dropdown content is properly visible when shown */
+  .nav-item.custom-dropdown .dropdown-content.show {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+    max-height: 300px;
+    overflow: visible;
+    z-index: 10001; /* Make sure it's on top of everything */
+  }
+
 }
 
-@media (max-width: 480px) {
-  .navbar {
-      padding: 0.2rem 0.3rem;
-  }
-
-  .navbar-brand {
-      font-size: 0.8rem;
-  }
-
-  .nav-link-navbar {
-      font-size: 0.7rem;
-      margin: 0 0.2rem;
-  }
-
-  .btn-sair-navbar {
-      padding: 2px 6px !important;
-      font-size: 0.6rem;
-  }
-
-  .navbar-nav {
-      gap: 0.2rem;
+@media (max-width: 600px) {
+  .sidebar {
+    height: 75px;
+    /* Ajuste progressivo */
   }
 
   .content {
-      padding: 5px;
+    margin-top: 131px;
+    /* 56px (navbar) + 75px (sidebar) */
+  }
+  .navbar {
+    height: 63px; /* altura fixa */
+  }
+  
+
+  .navbar-brand {
+    font-size: 01rem;
+    margin: 0;
   }
 
-  .ordem-servico {
-      font-size: 0.8rem;
+  .nav-link-navbar {
+    font-size: 0.8rem;
+    margin: 0 0.3rem;
   }
 
-  .btn-iniciar {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.6rem;
+  .btn-sair-navbar {
+    display: inline-block !important;
+    padding: 2px 8px !important;
+    font-size: 0.7rem;
+    margin: 0;
+  }
+
+  .navbar-nav {
+    gap: 0.3rem;
+    align-items: end;
+  }
+
+  .company-name {
+    font-size: 0.65rem;
+  }
+
+  .nav-item.custom-dropdown .dropdown-content {
+    top: 75px; /* Match sidebar height adjustment */
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    height: 70px;
+    /* Ajuste progressivo */
+  }
+
+  .content {
+    margin-top: 126px;
+    /* 56px (navbar) + 70px (sidebar) */
+  }
+
+  .navbar {
+    height: 63px; /* altura fixa */
+  }
+
+
+  .navbar-brand {
+    font-size: 0.8rem;
+  }
+
+  .nav-link-navbar {
+    font-size: 0.7rem;
+    margin: 0 0.2rem;
+  }
+
+  .btn-sair-navbar {
+    padding: 2px 6px !important;
+    font-size: 0.6rem;
+  }
+
+  .navbar-nav {
+    gap: 0.2rem;
   }
 
   .company-name {
     font-size: 0.6rem;
   }
+
+  .nav-item.custom-dropdown .dropdown-content {
+    top: 7px; /* Match sidebar height adjustment */
+  }
 }
 
 @media (max-width: 366px) {
-  .navbar {
-      padding: 0.1rem 0.2rem;
-  }
-
-  .navbar-brand {
-      font-size: 0.7rem;
-  }
-
-  .nav-link-navbar {
-      font-size: 0.6rem;
-      margin: 0 0.1rem;
-  }
-
-  .btn-sair-navbar {
-      padding: 1px 4px !important;
-      font-size: 0.5rem;
-  }
-
-  .navbar-nav {
-      gap: 0.1rem;
+  .sidebar {
+    height: 65px;
+    /* Ajuste progressivo */
   }
 
   .content {
-      padding: 3px;
+    margin-top: 121px;
+    /* 56px (navbar) + 65px (sidebar) */
   }
 
-  .ordem-servico {
-      font-size: 0.7rem;
+  .navbar {
+    height: 63px; /* altura fixa */
   }
 
-  .btn-iniciar {
-      font-size: 0.6rem;
-      padding: 0.1rem 0.4rem;
+  .navbar-brand {
+    font-size: 0.7rem;
+  }
+
+  .nav-link-navbar {
+    font-size: 0.6rem;
+    margin: 0 0.1rem;
+  }
+
+  .btn-sair-navbar {
+    padding: 1px 4px !important;
+    font-size: 0.5rem;
+  }
+
+  .navbar-nav {
+    gap: 0.1rem;
+  }
+
+  .company-name {
+    font-size: 0.6rem;
+  }
+
+  .nav-item.custom-dropdown .dropdown-content {
+    top: 65px; /* Match sidebar height adjustment */
   }
 }

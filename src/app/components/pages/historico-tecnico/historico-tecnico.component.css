@@ -559,3 +559,18 @@ h3 {
     transform: translateY(0);
   }
 }
+@media (max-width: 768px) {
+  .maps-container {
+    flex-direction: column; /* Coloca em coluna */
+    padding: 0; /* Remove o padding lateral extra */
+    gap: 15px; /* Espaçamento entre mapas */
+  }
+
+  .map-box {
+    width: 100%; /* garante que os mapas ocupem toda a largura disponível */
+  }
+
+  .map {
+    height: 250px; /* Ajusta altura para melhor visualização em dispositivos móveis */
+  }
+}

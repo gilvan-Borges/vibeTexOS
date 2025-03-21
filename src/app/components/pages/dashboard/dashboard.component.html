@@ -1,27 +1,57 @@
 <div class="container-fluid dashboard-container">
-  <!-- Filtro de Período -->
+  <!-- 🔹 Filtro de Período -->
   <div class="period-filter mb-4">
-    <div class="filter-content d-flex align-items-center justify-content-between p-3 rounded-lg shadow-sm" style="background: linear-gradient(135deg, #e0e7ff, #a5b4fc); border: 1px solid #bfdbfe;">
-      <select class="form-select form-select-sm text-dark fw-semibold border-0 bg-transparent" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
-        <option value="hoje">Hoje</option>
-        <option value="semana">Última Semana</option>
-        <option value="mes">Último Mês</option>
-        <option value="custom">Personalizado</option>
-      </select>
-      
-      <div class="custom-period d-flex align-items-center gap-2" *ngIf="periodoSelecionado === 'custom'">
-        <input type="date" class="form-control form-control-sm border-0 bg-white rounded-pill shadow-sm" [(ngModel)]="dataInicial" (ngModelChange)="atualizarDados()">
-        <span class="text-dark fw-medium">até</span>
-        <input type="date" class="form-control form-control-sm border-0 bg-white rounded-pill shadow-sm" [(ngModel)]="dataFinal" (ngModelChange)="atualizarDados()">
+    <div class="filter-content">
+      <div class="filter-row">
+        <select class="form-select form-select-sm text-dark fw-semibold bg-transparent" [(ngModel)]="periodoSelecionado" (ngModelChange)="atualizarDados()">
+          <option value="hoje">Hoje</option>
+          <option value="semana">Última Semana</option>
+          <option value="mes">Último Mês</option>
+          <option value="custom">Personalizado</option>
+        </select>
+        
+        <button class="btn-update" (click)="atualizarDados()">
+          <i class="fas fa-sync-alt"></i> Atualizar
+        </button>
       </div>
       
-      <button class="btn btn-sm btn-primary rounded-pill shadow-sm" (click)="atualizarDados()">
-        <i class="fas fa-sync-alt"></i> Atualizar
-      </button>
+      <div class="custom-period" *ngIf="periodoSelecionado === 'custom'">
+        <div class="date-range-container">
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="dataInicial" (ngModelChange)="atualizarDados()">
+          <span class="text-dark fw-medium">até</span>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="dataFinal" (ngModelChange)="atualizarDados()">
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Cards de Métricas -->
+  <!-- 🔹 Card de Eficiência (Abaixo do Filtro) -->
+  <div class="efficiency-card-wrapper">
+    <div class="efficiency-card">
+      <h6>Eficiência Geral</h6>
+      <div class="efficiency-content">
+        <div class="efficiency-percentage">
+          <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
+        </div>
+        <div class="efficiency-stats-list">
+          <div class="efficiency-stat-item">
+            <i class="fas fa-check-circle efficiency-stat-icon text-success"></i>
+            <span class="efficiency-stat-text">O.S. Realizadas: {{ osRealizadas }}</span>
+          </div>
+          <div class="efficiency-stat-item">
+            <i class="fas fa-times-circle efficiency-stat-icon text-danger"></i>
+            <span class="efficiency-stat-text">O.S. Não Realizadas: {{ osNaoRealizadas }}</span>
+          </div>
+          <div class="efficiency-stat-item">
+            <i class="fas fa-clock efficiency-stat-icon text-warning"></i>
+            <span class="efficiency-stat-text">O.S. Não Atribuídas: {{ osNaoAtribuidas }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Outros Cards de Métricas -->
   <div class="metrics-container">
     <div class="metric-card gradient-bg-primary">
       <h6>Total de O.S.</h6>
@@ -43,105 +73,150 @@
       <h3>{{ osNaoRealizadas }}</h3>
       <i class="fas fa-times-circle icon"></i>
     </div>
-    <div class="metric-card gradient-bg-success">
-      <h6>Eficiência Hoje</h6>
-      <h3>{{ efficiencyGeneral }}%</h3>
-      <i class="fas fa-chart-pie icon"></i>
-    </div>
+  </div>
 
-    <div class="metric-card gradient-bg-info efficiency-general-wide">
-      <h6>Eficiência Geral</h6>
-      <div class="d-flex align-items-center justify-content-between">
-        <div class="efficiency-circle" [ngClass]="{'low-efficiency': efficiencyGeneral < 50}">
-          <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
+  <!-- Map Container - Responsive -->
+  <div class="map-container">
+    <div class="map-header">
+      <h5><i class="fas fa-map-marker-alt me-2"></i> Localização dos Colaboradores</h5>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Collaborators Performance - Mobile Card View -->
+  <div class="table-container">
+    <div class="table-header">
+      <h5><i class="fas fa-chart-line me-2"></i> Desempenho Detalhado</h5>
+    </div>
+    
+    <!-- Mobile Cards View (visible on mobile only) -->
+    <div class="collaborator-cards">
+      <div class="collaborator-card" *ngFor="let colaborador of colaboradoresOnline">
+        <div class="collaborator-header">
+          <img [src]="colaborador.fotoUrl" class="collaborator-photo" alt="{{ colaborador.nome }}">
+          <div class="collaborator-info">
+            <h6 class="collaborator-name">{{ colaborador.nome }}</h6>
+            <p class="collaborator-company">{{ colaborador.empresa }}</p>
+          </div>
         </div>
-        <div class="efficiency-stats">
-          <p class="mb-1"><i class="fas fa-check-circle text-success"></i> O.S. Realizadas: {{ osRealizadas }}</p>
-          <p class="mb-1"><i class="fas fa-times-circle text-danger"></i> O.S. Não Realizadas: {{ osNaoRealizadas }}</p>
-          <p class="mb-0"><i class="fas fa-clock text-warning"></i> O.S. Não Atribuídas: {{ osNaoAtribuidas }}</p>
+        
+        <div class="collaborator-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Atribuídas</span>
+            <span class="metric-value">{{ colaborador.osAtribuidas }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Realizadas</span>
+            <span class="metric-value success">{{ colaborador.osRealizadas }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Pendentes</span>
+            <span class="metric-value warning">{{ colaborador.osPendentes }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Canceladas</span>
+            <span class="metric-value danger">{{ colaborador.osCanceladas }}</span>
+          </div>
+        </div>
+        
+        <div class="progress-section">
+          <div class="progress-row">
+            <span class="progress-label">Eficiência:</span>
+            <div class="custom-progress-container">
+              <div class="custom-progress-bar" 
+                   [ngClass]="{
+                     'bg-success': colaborador.eficiencia >= 70,
+                     'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
+                     'bg-danger': colaborador.eficiencia < 50
+                   }" 
+                   [style.width.%]="colaborador.eficiencia">
+                <span class="custom-progress-text">{{ colaborador.eficiencia }}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="progress-row">
+            <span class="progress-label">Jornada:</span>
+            <div class="custom-progress-container">
+              <div class="custom-progress-bar" 
+                   [ngClass]="{
+                     'progress-0-30': parseJornada(colaborador.jornada) <= 30,
+                     'progress-31-60': parseJornada(colaborador.jornada) > 30 && parseJornada(colaborador.jornada) <= 60,
+                     'progress-61-100': parseJornada(colaborador.jornada) > 60 && parseJornada(colaborador.jornada) <= 100
+                   }" 
+                   [style.width.%]="getProgressWidth(colaborador.jornada)">
+                <span class="custom-progress-text">{{ colaborador.jornada }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="progress-row">
+            <span class="progress-label">Tempo médio:</span>
+            <span class="metric-value">{{ colaborador.tempoMedio }}</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Mapa de Colaboradores (Largura total) -->
-  <div class="card shadow-lg mb-4">
-    <div class="card-header">
-      <h5>Localização dos Colaboradores</h5>
-    </div>
-    <div class="card-body p-0">
-      <div id="map" style="height: 600px; width: 100%"></div>
-    </div>
-  </div>
-
-<!-- Tabela de Desempenho Detalhado -->
-<div class="table-container">
-  <h5>
-    <i class="fas fa-chart-line me-2"></i>
-    Desempenho Detalhado
-  </h5>
-  <table class="table">
-    <thead>
-      <tr>
-        <th class="col-empresa">Empresa</th>
-        <th>Colaborador</th>
-        <th class="col-metrics">Atrib.</th>
-        <th class="col-metrics">Real.</th>
-        <th class="col-metrics">Pend.</th>
-        <th class="col-metrics">Canc.</th>
-        <th class="col-metrics">T. Médio</th>
-        <th>Eficiência</th>
-        <th>Jornada</th>
-      </tr>
-    </thead>
-    <tbody>
-
-      <tr *ngFor="let colaborador of colaboradoresOnline">
-        <td>
-          <span class="fw-medium">{{ colaborador.empresa }}</span>
-        </td>
-        <td>
-          <a [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]" 
-             class="d-flex flex-row align-items-center">
-            <img [src]="colaborador.fotoUrl" class="tecnico-foto me-2" alt="{{ colaborador.nome }}">
-            <span>{{ colaborador.nome }}</span>
-          </a>
-        </td>
-        <td class="text-center col-metrics">{{ colaborador.osAtribuidas }}</td>
-        <td class="text-center col-metrics text-success">{{ colaborador.osRealizadas }}</td>
-        <td class="text-center col-metrics text-warning">{{ colaborador.osPendentes }}</td>
-        <td class="text-center col-metrics text-danger">{{ colaborador.osCanceladas }}</td>
-        <td class="text-center col-metrics">{{ colaborador.tempoMedio }}</td>
-        <td>
-          <div class="custom-progress-container">
-            <div class="custom-progress-bar" 
-                 [ngClass]="{
-                   'bg-success': colaborador.eficiencia >= 70,
-                   'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
-                   'bg-danger': colaborador.eficiencia < 50
-                 }" 
-                 [style.width.%]="colaborador.eficiencia"
-                 [attr.title]="colaborador.eficiencia + '%'">
-              <span class="custom-progress-text">{{ colaborador.eficiencia }}%</span>
+    
+    <!-- Desktop Table View (hidden on mobile) -->
+    <table class="collaborator-table">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Colaborador</th>
+          <th>Atrib.</th>
+          <th>Real.</th>
+          <th>Pend.</th>
+          <th>Canc.</th>
+          <th>T. Médio</th>
+          <th>Eficiência</th>
+          <th>Jornada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let colaborador of colaboradoresOnline">
+          <td>
+            <span class="fw-medium">{{ colaborador.empresa }}</span>
+          </td>
+          <td>
+            <a class="collaborator-link" [routerLink]="['/pages/historico-tecnico', colaborador.usuarioId]">
+              <img [src]="colaborador.fotoUrl" class="collaborator-photo-sm" alt="{{ colaborador.nome }}">
+              <span>{{ colaborador.nome }}</span>
+            </a>
+          </td>
+          <td class="text-center">{{ colaborador.osAtribuidas }}</td>
+          <td class="text-center text-success">{{ colaborador.osRealizadas }}</td>
+          <td class="text-center text-warning">{{ colaborador.osPendentes }}</td>
+          <td class="text-center text-danger">{{ colaborador.osCanceladas }}</td>
+          <td class="text-center">{{ colaborador.tempoMedio }}</td>
+          <td>
+            <div class="custom-progress-container">
+              <div class="custom-progress-bar" 
+                   [ngClass]="{
+                     'bg-success': colaborador.eficiencia >= 70,
+                     'bg-warning': colaborador.eficiencia < 70 && colaborador.eficiencia >= 50,
+                     'bg-danger': colaborador.eficiencia < 50
+                   }" 
+                   [style.width.%]="colaborador.eficiencia">
+                <span class="custom-progress-text">{{ colaborador.eficiencia }}%</span>
+              </div>
             </div>
-          </div>
-        </td>
-        <td class="text-center">
-          <div class="custom-progress-container">
-            <div class="custom-progress-bar" 
-                 [ngClass]="{
-                   'progress-0-30': parseJornada(colaborador.jornada) <= 30,
-                   'progress-31-60': parseJornada(colaborador.jornada) > 30 && parseJornada(colaborador.jornada) <= 60,
-                   'progress-61-100': parseJornada(colaborador.jornada) > 60 && parseJornada(colaborador.jornada) <= 100,
-                   'progress-over-100': parseJornada(colaborador.jornada) > 100
-                 }" 
-                 [style.width.%]="getProgressWidth(colaborador.jornada)">
-              <span class="custom-progress-text">{{ colaborador.jornada }}</span>
+          </td>
+          <td>
+            <div class="custom-progress-container">
+              <div class="custom-progress-bar" 
+                   [ngClass]="{
+                     'progress-0-30': parseJornada(colaborador.jornada) <= 30,
+                     'progress-31-60': parseJornada(colaborador.jornada) > 30 && parseJornada(colaborador.jornada) <= 60,
+                     'progress-61-100': parseJornada(colaborador.jornada) > 60 && parseJornada(colaborador.jornada) <= 100
+                   }" 
+                   [style.width.%]="getProgressWidth(colaborador.jornada)">
+                <span class="custom-progress-text">{{ colaborador.jornada }}</span>
+              </div>
             </div>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

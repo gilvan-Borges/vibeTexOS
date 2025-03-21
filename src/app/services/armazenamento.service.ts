@@ -15,6 +15,13 @@ export class ServicoArmazenamento {
   
   salvarDadosExpediente(dados: DadosExpediente): void {
     console.log("📌 Salvando dados no localStorage:", dados);
+    
+    // Sincronizar inicioPausaTime com o timestamp de almoco-inicio se disponível
+    if (dados.timestamps && dados.timestamps['almoco-inicio'] && !dados.inicioPausaTime) {
+      dados.inicioPausaTime = dados.timestamps['almoco-inicio'];
+      console.log("⏱️ Sincronizando inicioPausaTime com almoco-inicio:", dados.inicioPausaTime);
+    }
+    
     localStorage.setItem('dadosExpediente', JSON.stringify(dados));
     
     // Garante que o inicioPausaTime seja salvo separadamente também
@@ -57,4 +64,4 @@ export class ServicoArmazenamento {
     localStorage.removeItem('inicioPausaTime');
     localStorage.removeItem('pausaTimer');
   }
-} 
+}

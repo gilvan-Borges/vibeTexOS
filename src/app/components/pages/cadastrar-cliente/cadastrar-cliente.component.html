@@ -132,7 +132,7 @@
             <tbody>
               <tr *ngFor="let cliente of paginatedClientes">
                 <td class="text-center">{{ cliente.nomeCliente }}</td>
-                <td class="text-center">{{ cliente.cpfCliente }}</td>
+                <td class="text-center">{{ cliente.cpfCliente ?? '' | mask: '000.000.000-00' }}</td>
                 <td class="text-center">{{ cliente.endereco?.logradouro }}, {{ cliente.endereco?.numero }}, {{ cliente.endereco?.bairro }}, {{ cliente.endereco?.cidade }} - {{ cliente.endereco?.uf }}</td>
                 <td class="text-center">
                   <div class="btn-group">

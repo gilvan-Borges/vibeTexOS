@@ -75,13 +75,12 @@ export class HorasColaboradorComponent implements OnInit {
     // Espera todas as fotos carregarem antes de atualizar `horasFiltradas`
     Promise.all(registrosFormatados).then((registros) => {
       this.horasFiltradas = registros;
-      this.cdr.detectChanges(); // �� Atualiza a tabela
+      this.cdr.detectChanges(); // Atualiza a tabela
       this.mensagemSemRegistros = this.horasFiltradas.length === 0 ? 'Nenhum registro encontrado.' : '';
     });
   
     this.calcularBancoDeHoras();
   }
-  
 
   filtrarMesAtual(): void {
     const hoje = new Date();
@@ -108,8 +107,79 @@ export class HorasColaboradorComponent implements OnInit {
       const mes = String(data.getMonth() + 1).padStart(2, '0');
       const ano = data.getFullYear();
 
+      // Define an absolute media URL with /images
+      const mediaBase = environment.mediaUrl.startsWith('http') 
+        ? environment.mediaUrl 
+        : 'http://' + environment.mediaUrl;
+      const mediaUrlFinal = mediaBase.endsWith('/') 
+        ? `${mediaBase}images/` 
+        : `${mediaBase}/images/`;
+
       this.controllAppService.usuarioGetById(ponto.usuarioId).subscribe({
         next: (usuario) => {
+          // Process profile photo URL with /images
+          let fotoPerfilProcessada = `${mediaUrlFinal}default-avatar.png`;
+          
+          if (usuario.fotoUrl && typeof usuario.fotoUrl === 'string') {
+            try {
+              if (usuario.fotoUrl.startsWith('http')) {
+                fotoPerfilProcessada = usuario.fotoUrl;
+              } else {
+                let nomeArquivo = usuario.fotoUrl;
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                if (nomeArquivo) {
+                  fotoPerfilProcessada = `${mediaUrlFinal}${nomeArquivo}`;
+                }
+              }
+              console.log('Foto perfil URL original:', usuario.fotoUrl);
+              console.log('Foto perfil processada:', fotoPerfilProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de perfil:', error);
+            }
+          }
+          
+          // Process start photo URL with /images
+          let fotoInicioProcessada = null;
+          if (ponto.fotoInicioExpediente) {
+            try {
+              if (ponto.fotoInicioExpediente.startsWith('http')) {
+                fotoInicioProcessada = ponto.fotoInicioExpediente;
+              } else {
+                let nomeArquivo = ponto.fotoInicioExpediente;
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                fotoInicioProcessada = `${mediaUrlFinal}${nomeArquivo}`;
+              }
+              console.log('Foto início URL original:', ponto.fotoInicioExpediente);
+              console.log('Foto início processada:', fotoInicioProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de início:', error);
+            }
+          }
+          
+          // Process end photo URL with /images
+          let fotoFimProcessada = null;
+          if (ponto.fotoFimExpediente) {
+            try {
+              if (ponto.fotoFimExpediente.startsWith('http')) {
+                fotoFimProcessada = ponto.fotoFimExpediente;
+              } else {
+                let nomeArquivo = ponto.fotoFimExpediente;
+                if (nomeArquivo.includes('/')) {
+                  nomeArquivo = nomeArquivo.split('/').pop() || '';
+                }
+                fotoFimProcessada = `${mediaUrlFinal}${nomeArquivo}`;
+              }
+              console.log('Foto fim URL original:', ponto.fotoFimExpediente);
+              console.log('Foto fim processada:', fotoFimProcessada);
+            } catch (error) {
+              console.error('Erro ao processar URL da foto de fim:', error);
+            }
+          }
+
           const registro = {
             data: `${dia}/${mes}/${ano}`,
             inicio: ponto.inicioExpediente ? new Date(ponto.inicioExpediente).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
@@ -119,15 +189,23 @@ export class HorasColaboradorComponent implements OnInit {
             total: this.formatarHoras(ponto.horasTrabalhadas || '00:00:00'),
             horaDevida: this.formatarHoras(ponto.horasDevidas || '00:00:00'),
             horaExtra: this.formatarHoras(ponto.horasExtras || '00:00:00'),
-            fotoPerfil: usuario?.fotoUrl ? `${environment.mediaUrl}/${usuario.fotoUrl.split('/').pop()}` : 'https://via.placeholder.com/40x40',
-            fotoInicio: ponto.fotoInicioExpediente ? `${environment.mediaUrl}/${ponto.fotoInicioExpediente.split('/').pop()}` : null,
-            fotoFim: ponto.fotoFimExpediente ? `${environment.mediaUrl}/${ponto.fotoFimExpediente.split('/').pop()}` : null
+            fotoPerfil: fotoPerfilProcessada,
+            fotoInicio: fotoInicioProcessada,
+            fotoFim: fotoFimProcessada
           };
           
           resolve(registro);
         },
         error: (err) => {
           console.error("Erro ao buscar foto do usuário:", err);
+          // Even in case of error, use the same URL formatting approach with /images
+          const mediaBase = environment.mediaUrl.startsWith('http') 
+            ? environment.mediaUrl 
+            : 'http://' + environment.mediaUrl;
+          const mediaUrlFinal = mediaBase.endsWith('/') 
+            ? `${mediaBase}images/` 
+            : `${mediaBase}/images/`;
+          
           resolve({
             data: `${dia}/${mes}/${ano}`,
             inicio: ponto.inicioExpediente ? new Date(ponto.inicioExpediente).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
@@ -137,17 +215,33 @@ export class HorasColaboradorComponent implements OnInit {
             total: this.formatarHoras(ponto.horasTrabalhadas || '00:00:00'),
             horaDevida: this.formatarHoras(ponto.horasDevidas || '00:00:00'),
             horaExtra: this.formatarHoras(ponto.horasExtras || '00:00:00'),
-            fotoPerfil: 'https://via.placeholder.com/40x40',
-            fotoInicio: ponto.fotoInicioExpediente ? `${environment.mediaUrl}/${ponto.fotoInicioExpediente.split('/').pop()}` : null,
-            fotoFim: ponto.fotoFimExpediente ? `${environment.mediaUrl}/${ponto.fotoFimExpediente.split('/').pop()}` : null
+            fotoPerfil: `${mediaUrlFinal}default-avatar.png`,
+            fotoInicio: ponto.fotoInicioExpediente ? `${mediaUrlFinal}${ponto.fotoInicioExpediente.split('/').pop()}` : null,
+            fotoFim: ponto.fotoFimExpediente ? `${mediaUrlFinal}${ponto.fotoFimExpediente.split('/').pop()}` : null
           });
         }
       });
     });
   }
-  
-  
 
+  // Add an image error handler with /images
+  handleImageError(event: Event, fallbackPath: string): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      // Remove error listener to avoid loop
+      img.onerror = null;
+      // Ensure mediaUrl ends with a slash and includes /images
+      const mediaBase = environment.mediaUrl.startsWith('http') 
+        ? environment.mediaUrl 
+        : 'http://' + environment.mediaUrl;
+      const baseUrl = mediaBase.endsWith('/')
+        ? `${mediaBase}images/`
+        : `${mediaBase}/images/`;
+      img.src = `${baseUrl}${fallbackPath}`;
+      console.log('Imagem substituída por fallback:', `${baseUrl}${fallbackPath}`);
+    }
+  }
+  
   private calcularBancoDeHoras(): void {
     let totalHoras = 0;
 

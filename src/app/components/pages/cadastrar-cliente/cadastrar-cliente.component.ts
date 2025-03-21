@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgxMaskDirective } from 'ngx-mask';
+import { NgxMaskDirective, NgxMaskPipe } from 'ngx-mask';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { VibeService } from '../../../services/vibe.service';
 import { ClienteResponseDto } from '../../../models/vibe-service/clienteResponseDto';
@@ -23,6 +23,7 @@ interface ViaCepResponse {
     CommonModule,
     ReactiveFormsModule,
     NgxMaskDirective,
+    NgxMaskPipe,
     FormsModule
   ],
   templateUrl: './cadastrar-cliente.component.html',

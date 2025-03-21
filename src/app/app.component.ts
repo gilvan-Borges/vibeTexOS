@@ -8,7 +8,7 @@ import { NgxSpinnerModule } from 'ngx-spinner';
 @Component({
   selector: 'app-root',
   standalone: true, // Se estiver usando standalone components
-  imports: [RouterOutlet, NavbarComponent, CommonModule, NgxSpinnerModule],
+  imports: [RouterOutlet, NavbarComponent, CommonModule, NgxSpinnerModule,],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

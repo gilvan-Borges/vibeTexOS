@@ -218,6 +218,10 @@
                 <i class="fas fa-comment me-2"></i>
                 {{ os.observacoesReparo }}
               </p>
+              
+              <!-- Removendo o bloco de data/hora do card principal -->
+              <!-- As informações de tempo serão exibidas na tela de detalhes -->
+              
             </div>
 
             <!-- Rodapé do Card (Botão para Ver Detalhes) -->
@@ -312,6 +316,61 @@
     <!-- Mensagem quando não há ordens canceladas -->
     <div *ngIf="ordensFiltradas.length === 0" class="text-center no-data">
       <p>Nenhuma ordem de serviço cancelada encontrada.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Detalhes da Ordem -->
+<div class="modal fade show" tabindex="-1" [ngClass]="{'d-block': modalAberto}" 
+     [ngStyle]="{'background-color': modalAberto ? 'rgba(0,0,0,0.5)' : 'transparent'}" 
+     (click)="fecharModal()">
+  <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+    <div class="modal-content" *ngIf="ordemSelecionada">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Detalhes da O.S. {{ ordemSelecionada.numeroOrdemDeServico }}
+        </h5>
+        <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharModal()"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Informações do Cliente -->
+        <div class="form-section">
+          <div class="section-title">Informações do Cliente</div>
+          <p class="mb-2"><strong>Cliente:</strong> {{ ordemSelecionada.clienteData?.nomeCliente || ordemSelecionada.cliente }}</p>
+          <p class="mb-2"><strong>Endereço:</strong> {{ formatarEndereco(ordemSelecionada.clienteData?.endereco) || ordemSelecionada.endereco }}</p>
+        </div>
+        
+        <!-- Informações do Serviço -->
+        <div class="form-section">
+          <div class="section-title">Informações do Serviço</div>
+          <p class="mb-2"><strong>Tipo de Serviço:</strong> {{ ordemSelecionada.tipoServico }}</p>
+          <p class="mb-2" *ngIf="ordemSelecionada.observacoesReparo">
+            <strong>Observações:</strong> {{ ordemSelecionada.observacoesReparo }}
+          </p>
+        </div>
+        
+        <!-- Informações de Execução -->
+        <div class="form-section">
+          <div class="section-title">Informações de Execução</div>
+          <div class="data-hora-container">
+            <p class="mb-1">
+              <i class="fas fa-play-circle me-2 text-success"></i>
+              <strong>Início:</strong> {{ formatarDataHora(ordemSelecionada.execucoes && ordemSelecionada.execucoes.length > 0 ? ordemSelecionada.execucoes[0].dataEHoraInicioExecucao : null) }}
+            </p>
+            <p class="mb-1">
+              <i class="fas fa-check-circle me-2 text-success"></i>
+              <strong>Término:</strong> {{ formatarDataHora(ordemSelecionada.execucoes && ordemSelecionada.execucoes.length > 0 ? ordemSelecionada.execucoes[0].dataEHoraFimExecucao : null) }}
+            </p>
+            <p class="mb-1" *ngIf="ordemSelecionada.execucoes && ordemSelecionada.execucoes.length > 0 && ordemSelecionada.execucoes[0].duracao">
+              <i class="fas fa-clock me-2 text-success"></i>
+              <strong>Duração:</strong> {{ ordemSelecionada.execucoes[0].duracao }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharModal()">Fechar</button>
+      </div>
     </div>
   </div>
 </div>

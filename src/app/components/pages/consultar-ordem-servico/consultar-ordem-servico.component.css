@@ -1,79 +1,437 @@
-.container {
-  padding: 20px;
-}
-
-.filtro-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.acoes {
-  display: flex;
-  gap: 8px;
-}
-
-.table-responsive {
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-.table th {
-  background-color: #f8f9fa;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-table {
+/* Container Principal */
+.container-fluid {
   width: 100%;
+  padding: 0 15px;
+  margin: 0;
 }
 
-.mat-mdc-table {
-  background: white;
-  margin-top: 16px;
+/* Card */
+.card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 100%;
+  max-width: 100%;
 }
 
-.mat-mdc-row:hover {
-  background-color: #f5f5f5;
+/* Conteúdo */
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.rounded-circle {
-  object-fit: cover;
+.linha {
+  width: 90%;
+  height: 2px;
+  background-color: #333;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(89, 87, 87, 0.5);
+}
+
+/* Título e Subtítulo */
+.card-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.card-subtitle {
+  font-size: 1rem;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+/* Formulário */
+.card-body .form-control,
+.card-body .form-select {
+  border-radius: 8px;
   border: 1px solid #ddd;
+  padding: 10px;
+  font-size: 0.9rem;
+  width: 100%;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
-td {
+.form-control::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.fw-bold {
+  font-weight: 600;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #4e73df;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2);
+}
+
+/* Botão */
+.btn {
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  line-height: 1.5;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-success:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  border: none;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-custom {
+  width: auto;
+  min-width: 80px; /* Reduzido para corresponder ao design */
+}
+
+/* Tabela e Paginação */
+.table-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-bottom: 2px solid #e3e6f0;
+}
+
+.table-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 1rem;
+}
+
+.table {
+  width: 100% !important;
+  margin-bottom: 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  color: #495057;
+  font-weight: 600;
+  padding: 0.75rem;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.col-nome {
+  width: 20%;
+}
+
+.table tbody td {
+  padding: 0.75rem;
   vertical-align: middle;
+  border-bottom: 1px solid #dee2e6;
+  text-align: center;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
 }
 
 /* Estilo para a classe status */
 .status {
-  font-size: 0.9rem;
-  padding: 5px 10px !important;
+  font-size: 0.8rem;
+  padding: 4px 8px !important;
   border-radius: 20px;
   display: inline-block;
-  color: #fff; /* Texto branco para contraste */
+  color: #fff;
 }
 
 /* Classes de fundo para os status */
 .bg-green-soft {
-  background-color: #28a745 !important; /* Verde para "Concluído" */
+  background-color: #28a745 !important;
 }
 
 .bg-blue-soft {
-  background-color: #007bff !important; /* Azul para "Pendente" */
+  background-color: #007bff !important;
 }
 
 .bg-orange-soft {
-  background-color: #ff8c00 !important; /* Laranja para "Em Andamento" */
+  background-color: #ff8c00 !important;
 }
 
 .bg-red-soft {
-  background-color: #dc3545 !important; /* Vermelho para "Cancelado" */
+  background-color: #dc3545 !important;
 }
 
 .bg-brown-soft {
-  background-color: #8b4513 !important; /* Marrom para "Agendado" */
+  background-color: #8b4513 !important;
+}
+
+/* Paginação */
+.pagination {
+  margin-top: 1.5rem;
+}
+
+.page-item {
+  display: inline-block;
+  margin: 0 2px;
+}
+
+.page-link {
+  color: #4e73df;
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.page-item.active .page-link {
+  background-color: #4e73df;
+  border-color: #4e73df;
+  color: #fff;
+  font-weight: bold;
+}
+
+.page-link:hover {
+  background-color: #e9ecef;
+  color: #4e73df;
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #fff;
+  border-color: #ddd;
+  cursor: not-allowed;
+}
+
+/* Seletor de itens por página */
+.form-select-sm {
+  min-width: 60px; /* Reduzido para corresponder ao design */
+  height: 46px;
+  padding: 0.25rem 2rem 0.25rem 0.5rem; /* Ajustado para espaço do ícone */
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: 1px solid #e3e6f0;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="%23495057" class="bi bi-caret-down-fill" viewBox="0 0 16 16"%3E%3Cpath d="M7.247 11.14 2.451 5.658A.5.5 0 0 1 2.9 5h10.2a.5.5 0 0 1 .353.842L8.753 11.14a.5.5 0 0 1-.706 0z"/%3E%3C/svg%3E');
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 12px;
+  cursor: pointer;
+}
+
+.form-select-sm:focus {
+  outline: none;
+  border-color: #4e73df;
+  box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2);
+}
+
+.form-select-sm:hover {
+  border-color: #b3b3b3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Spinner de carregamento */
+.spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .card {
+    padding: 15px;
+    width: 100%;
+  }
+
+  .container-fluid {
+    margin-top: 80px;
+    padding: 0 5px !important;
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+  }
+
+  .card-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+
+  .btn {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+  }
+
+  .table-container {
+    padding: 0;
+  }
+
+  .table-header {
+    padding: 0.75rem;
+  }
+
+  .table-title {
+    font-size: 1.1rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .pagination .page-link {
+    width: 35px;
+    height: 35px;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .form-select-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 1.5rem 0.25rem 0.4rem;
+    min-width: 50px;
+    height: 30px;
+    background-size: 10px;
+    background-position: right 0.4rem center;
+  }
+
+  .btn-custom {
+    min-width: 60px;
+  }
+
+  /* Ajuste para "Itens por página" e botões */
+  .d-flex.align-items-end {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+@media (max-width: 600px) {
+  .container-fluid {
+      margin-top: 60px !important;
+  }
+
+}
+@media (max-width: 480px) {
+  .card-title {
+    font-size: 1.2rem;
+  }
+
+  .card-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .form-control,
+  .form-select {
+    padding: 6px;
+    font-size: 0.8rem;
+  }
+
+  .btn {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+  }
+
+  .table-title {
+    font-size: 1rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .pagination .page-link {
+    width: 30px;
+    height: 30px;
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+  }
+
+  .form-select-sm {
+    font-size: 0.7rem;
+    min-width: 40px;
+    height: 25px;
+    padding: 0.2rem 1rem 0.2rem 0.3rem;
+    background-size: 8px;
+    background-position: right 0.3rem center;
+  }
+
+  .btn-custom {
+    min-width: 50px;
+  }
 }

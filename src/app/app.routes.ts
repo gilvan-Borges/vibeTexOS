@@ -16,6 +16,10 @@ import { CadastrarClienteComponent } from './components/pages/cadastrar-cliente/
 import { DistribuicaoOrdemServicoComponent } from './components/pages/distribuicao-ordem-servico/distribuicao-ordem-servico.component';
 import { EmpresasComponent } from './components/pages/empresas/empresas.component';
 import { ConsultarOrdemServicoComponent } from './components/pages/consultar-ordem-servico/consultar-ordem-servico.component';
+import { InicioExpedienteComponent } from './components/pages/expediente/inicio-expediente/inicio-expediente.component';
+import { InicioPausaComponent } from './components/pages/expediente/inicio-pausa/inicio-pausa.component';
+import { FimPausaComponent } from './components/pages/expediente/fim-pausa/fim-pausa.component';
+import { FimExpedienteComponent } from './components/pages/expediente/fim-expediente/fim-expediente.component';
 
 export const routes: Routes = [
   {
@@ -57,6 +61,31 @@ export const routes: Routes = [
     path: 'pages/expediente/:usuarioId',
     component: ExpedienteComponent,
     canActivate: [AuthGuard]
+  },
+  // Novas rotas específicas para as ações de expediente
+  {
+    path: 'pages/expediente/inicio/:usuarioId',
+    component: InicioExpedienteComponent,
+    canActivate: [AuthGuard],
+    data: { acao: 'inicio' }
+  },
+  {
+    path: 'pages/expediente/inicio-pausa/:usuarioId',
+    component: InicioPausaComponent,
+    canActivate: [AuthGuard],
+    data: { acao: 'inicio-pausa' }
+  },
+  {
+    path: 'pages/expediente/fim-pausa/:usuarioId',
+    component: FimPausaComponent,
+    canActivate: [AuthGuard],
+    data: { acao: 'fim-pausa' }
+  },
+  {
+    path: 'pages/expediente/fim/:usuarioId',
+    component: FimExpedienteComponent,
+    canActivate: [AuthGuard],
+    data: { acao: 'fim' }
   },
   {
     path: 'pages/horas-trabalhadas',

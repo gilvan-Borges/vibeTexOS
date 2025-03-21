@@ -484,7 +484,17 @@
   border-left: 5px solid #d39e00;
   color: #343a40;
 }
+@media (max-width: 768px) {
+  .container {
+    margin-top: 90px;
+  }
+}
+@media (max-width: 600px) {
+  .container {
+      margin-top: 60px !important;
+  }
 
+}
 /* Adaptações para mobile */
 @media (max-width: 576px) {
   .notification-container {

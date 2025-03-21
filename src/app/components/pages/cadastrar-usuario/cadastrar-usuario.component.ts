@@ -7,7 +7,7 @@ import { environment } from "../../../../environments/environment.development";
 import { Observable } from "rxjs";
 import { VibeService } from "../../../services/vibe.service";
 
-// Add this interface at the top of your file, before the @Component decorator
+// Interface para a empresa
 interface Empresa {
   empresaId: string;
   nomeDaEmpresa: string;
@@ -156,27 +156,27 @@ export class CadastrarUsuarioComponent implements OnInit {
       this.isSuccess = false;
       return;
     }
-  
+
     if (!this.fotoUrl && this.formulario.get('role')?.value !== 'Roteirizador') {
       this.mensagem = 'Por favor, selecione uma foto de perfil.';
       this.isSuccess = false;
       return;
     }
-  
+
     console.log('📌 Tentando cadastrar usuário...');
-  
+
     const formData = new FormData();
-  
+
     // Log all form values for debugging
     console.log('Form values:', this.formulario.value);
-  
+
     const empresaValue = this.formulario.get('empresa')?.value as Empresa | null;
     if (!empresaValue) {
       this.mensagem = 'Por favor, selecione uma empresa.';
       this.isSuccess = false;
       return;
     }
-  
+
     // Processamento genérico para todos os campos (exceto senhaConfirmacao)
     Object.keys(this.formulario.controls).forEach((key) => {
       if (key === 'empresa') {
@@ -198,27 +198,27 @@ export class CadastrarUsuarioComponent implements OnInit {
         if (value) formData.append(key, value);
       }
     });
-  
+
     formData.append('IsOnline', 'false');
-  
+
     const extensao = this.fotoUrl?.name.split('.').pop()?.toLowerCase();
     if (this.fotoUrl && (!extensao || !['jpg', 'jpeg', 'png'].includes(extensao))) {
       this.mensagem = 'Erro: Arquivo inválido ou sem extensão.';
       this.isSuccess = false;
       return;
     }
-  
+
     const processarImagem = this.fotoUrl
       ? this.processarImagem(this.fotoUrl)
       : Promise.resolve({ blob: null, base64: null });
-  
+
     processarImagem.then(({ blob }) => {
       if (blob) {
         const nomeArquivo = `foto.${extensao}`;
         formData.append('FotoFile', blob, nomeArquivo);
         formData.append('FotoUrl', `/images/${nomeArquivo}`);
       }
-  
+
       // Verifica o valor de 'role' e ajusta o FormData para Roteirizador
       const role = this.formulario.get('role')?.value;
       if (role === 'Roteirizador') {
@@ -226,22 +226,22 @@ export class CadastrarUsuarioComponent implements OnInit {
         const nome = this.formulario.get('nome')?.value?.trim();
         const userName = this.formulario.get('userName')?.value?.trim();
         const senha = this.formulario.get('senha')?.value?.trim();
-      
+
         if (!nome || !userName || !senha) {
           this.mensagem = 'Nome, userName e senha são obrigatórios para Roteirizador.';
           this.isSuccess = false;
           return;
         }
-      
+
         // Enviar como JSON
         const data = {
           nome: nome,
           userName: userName,
           senha: senha
         };
-      
+
         console.log('Enviando para Roteirizador (JSON):', data);
-      
+
         // Chama o endpoint específico para Roteirizador com JSON
         this.vibeService.cadastrarRoteirizadorJson(data).subscribe({
           next: (response) => {
@@ -252,11 +252,13 @@ export class CadastrarUsuarioComponent implements OnInit {
             this.formulario.reset();
             this.fotoPreview = null;
             this.fotoUrl = null;
-            setTimeout(() => this.mensagem = '', 5000);
+            setTimeout(() => (this.mensagem = ''), 5000);
           },
           error: (err) => {
             console.error(`❌ Erro ao cadastrar ${role}:`, err);
-            this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
+            // Ajuste para capturar a mensagem de erro do backend
+            const errorMessage = err.error && typeof err.error === 'string' ? err.error : err.error?.message;
+            this.mensagem = `Erro ao cadastrar usuário: ${errorMessage}`;
             this.isSuccess = false;
           }
         });
@@ -272,17 +274,19 @@ export class CadastrarUsuarioComponent implements OnInit {
             this.formulario.reset();
             this.fotoPreview = null;
             this.fotoUrl = null;
-            setTimeout(() => this.mensagem = '', 5000);
+            setTimeout(() => (this.mensagem = ''), 5000);
           },
           error: (err) => {
             console.error(`❌ Erro ao cadastrar ${role}:`, err);
-            this.mensagem = `Erro ao cadastrar usuário: ${err.error?.message || 'Ocorreu um erro inesperado.'}`;
+            const errorMessage = err.error && typeof err.error === 'string' ? err.error : err.error?.message;
+            this.mensagem = `Erro ao cadastrar usuário: ${errorMessage}`;
             this.isSuccess = false;
           }
         });
       }
     });
   }
+
   getImageUrl(relativePath: string): string {
     return `${environment.controllApp}${relativePath}`;
   }

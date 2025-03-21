@@ -1,0 +1,41 @@
+.btn {
+  transition: all 0.3s ease;
+}
+
+
+
+.mensagem-contagem {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #0056b3;
+  display: block;
+  text-align: center;
+  padding: 10px;
+  border-radius: 5px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  border-color: #bee5eb;
+  margin: 15px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+/* Responsividade */
+@media (max-width: 768px) {
+    .container-fluid {
+      margin-top: 90px !important;
+  }
+}

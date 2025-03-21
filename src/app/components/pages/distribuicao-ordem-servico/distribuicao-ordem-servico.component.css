@@ -191,6 +191,7 @@
 @media (max-width: 768px) {
   .container {
     padding: 0 1rem;
+    margin-top: 60px !important;
   }
 
   .card-body {

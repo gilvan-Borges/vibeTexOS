@@ -1,67 +1,79 @@
 body, html {
   height: 100%;
   margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #1f2937; /* Cor escura moderna */
 }
 
 .container {
   height: 100vh;
+  position: relative;
 }
 
 .conteudo {
-  max-width: 800px;
+  max-width: 700px;
   width: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
   display: flex;
-  justify-content: space-between;
-  border-radius: 10px;
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  flex-direction: row;
 }
 
 .card {
   flex: 1;
-  padding: 10px;
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  padding: 15px;
 }
-.foto{
-  width: 425px !important;
-  height: 438px !important;
+
+.foto {
+  flex: 1;
+  overflow: hidden;
 }
+
 .foto img {
-  max-width: 600px !important;
-  width: 100% !important;
-  height: 100% !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/* Estilização do botão */
-button {
-  background-color: #007bff;
+.form-control {
+  background-color: rgba(255, 255, 255, 0.9);
   border: none;
-  color: white;
-  padding: 0.75rem;
-  font-size: 1rem;
-  border-radius: 5px;
-  cursor: pointer;
 }
 
-button:hover {
-  background-color: #0056b3;
+.form-control:focus {
+  box-shadow: none;
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.btn {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn:hover {
+  background-color: #2563eb;
 }
 
 .alert {
-  font-size: 0.9rem;
+  max-width: 700px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 @media (max-width: 768px) {
   .conteudo {
     flex-direction: column-reverse;
-    max-width: 100%;
-    
+    max-width: 90%;
   }
-  .foto  {
-    width:100% !important;
-    height: 300px !important;
+
+  .foto {
+    height: 200px;
+  }
+
+  .card-body {
+    padding: 1.5rem;
   }
 }

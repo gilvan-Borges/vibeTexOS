@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, OnInit, OnDestroy, Output, ElementRef, ViewChild } from '@angular/core';
+import { Component, EventEmitter, OnInit, OnDestroy, Output, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { RegistroExpedienteService } from '../../../services/registro-expediente.service';
@@ -27,6 +27,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   dropdownOpen: boolean = false;
   pausaAtiva: boolean = false;
   osEmAndamento: boolean = false;
+  expedienteIniciadoHoje: boolean = false; // Nova propriedade para controlar a exibição do link
   private expedienteSubscription: Subscription = new Subscription();
   private pausaSubscription: Subscription = new Subscription();
   private authSubscription: Subscription = new Subscription();
@@ -60,7 +61,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.userName = usuario.userName;
       this.role = usuario.role;
       this.usuarioId = usuario.usuarioId || '';
-  
+
+      // Salvar usuarioId no localStorage
+      if (this.usuarioId) {
+        localStorage.setItem('usuarioId', this.usuarioId);
+      }
+
+      // Verificar registros para controlar exibição dos links no sidebar
+      this.verificarRegistrosExpediente();
+
+      // Verificar se o expediente já foi iniciado hoje
+      this.verificarExpedienteIniciadoHoje();
+
       if (this.usuarioId) {
         console.log('Buscando dados da empresa para usuarioId:', this.usuarioId);
         if (usuario.empresa) {
@@ -195,19 +207,32 @@ export class NavbarComponent implements OnInit, OnDestroy {
     console.log('Usuário desconectado.');
   }
 
-  toggleDropdownOs(): void {
+  toggleDropdownOs(event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation(); // Stop event from bubbling up
+    }
+    
+    // Toggle current dropdown and close the other one
     this.isDropdownOsOpen = !this.isDropdownOsOpen;
-    if (this.isDropdownOpen) this.isDropdownOpen = false;
-    if (this.isClientDropdownOpen) this.isClientDropdownOpen = false;
+    if (this.isDropdownOsOpen) {
+      this.isDropdownOpen = false;
+    }
   }
 
   toggleDropdown(): void {
     this.dropdownOpen = !this.dropdownOpen;
   }
 
-  toggleDropdown1(): void {
+  toggleDropdown1(event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation(); // Stop event from bubbling up
+    }
+    
+    // Toggle current dropdown and close the other one
     this.isDropdownOpen = !this.isDropdownOpen;
-    if (this.isClientDropdownOpen) this.isClientDropdownOpen = false;
+    if (this.isDropdownOpen) {
+      this.isDropdownOsOpen = false;
+    }
   }
 
   toggleSidebar(): void {
@@ -282,6 +307,100 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.expedienteAtivo = !!pontoIdExpediente && !fimExpedienteTime;
   }
 
+  private verificarExpedienteIniciadoHoje(): void {
+    const dadosExpediente = localStorage.getItem('dadosExpediente');
+    if (dadosExpediente) {
+      const dados = JSON.parse(dadosExpediente);
+      let inicioExpediente = dados.timestamps?.inicio;
+
+      if (inicioExpediente) {
+        // Tentar transformar o valor em um formato ISO 8601 válido, se necessário
+        if (!isNaN(Date.parse(inicioExpediente))) {
+          inicioExpediente = new Date(inicioExpediente).toISOString();
+        } else if (/^\d{2}:\d{2}/.test(inicioExpediente)) {
+          // Se o valor for no formato "HH:mm", adicionar a data atual para torná-lo válido
+          const dataAtual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          inicioExpediente = `${dataAtual}T${inicioExpediente.replace(' hrs', '')}:00`;
+        } else {
+          console.warn('Formato de data/hora inválido:', inicioExpediente);
+          this.expedienteIniciadoHoje = false;
+          return;
+        }
+
+        try {
+          const dataAtual = new Date().toISOString().split('T')[0]; // Data atual no formato YYYY-MM-DD
+          const dataInicioExpediente = new Date(inicioExpediente).toISOString().split('T')[0];
+
+          this.expedienteIniciadoHoje = dataAtual === dataInicioExpediente;
+        } catch (error) {
+          console.error('Erro ao processar a data de início do expediente:', error);
+          this.expedienteIniciadoHoje = false;
+        }
+      } else {
+        console.warn('Data de início do expediente não encontrada:', inicioExpediente);
+        this.expedienteIniciadoHoje = false;
+      }
+    } else {
+      this.expedienteIniciadoHoje = false;
+    }
+  }
+
+  private verificarRegistrosExpediente(): void {
+    const dadosExpediente = localStorage.getItem('dadosExpediente');
+    if (dadosExpediente) {
+      try {
+        const dados = JSON.parse(dadosExpediente);
+        console.log('Dados de expediente encontrados:', dados);
+        
+        // Verificar se há registro de início de expediente hoje
+        const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        let inicioHoje = false;
+        
+        if (dados.timestamps?.inicio) {
+          // Tenta determinar a data de hoje de qualquer formato
+          try {
+            // Tenta converter diretamente
+            if (!isNaN(Date.parse(dados.timestamps.inicio))) {
+              const dataInicio = new Date(dados.timestamps.inicio).toISOString().split('T')[0];
+              inicioHoje = dataInicio === hoje;
+            } 
+            // Se tiver formato "HH:MM hrs", considera que é hoje
+            else if (dados.timestamps.inicio.includes(':')) {
+              inicioHoje = true;
+            }
+          } catch (e) {
+            console.warn('Erro ao verificar data de início:', e);
+            // Se houver erro, assume pelo menos que tem registro
+            inicioHoje = true;
+          }
+        }
+        
+        this.expedienteIniciadoHoje = inicioHoje;
+        
+        // Verificar se há pausa ativa (tem início mas não tem fim)
+        this.pausaAtiva = !!dados.timestamps?.['almoco-inicio'] && !dados.timestamps?.['almoco-fim'];
+        
+        // Verificar se expediente está ativo (tem pelo menos início)
+        this.expedienteAtivo = !!dados.timestamps?.inicio && !dados.timestamps?.fim;
+        
+        console.log('Estados atualizados:', {
+          expedienteIniciadoHoje: this.expedienteIniciadoHoje,
+          pausaAtiva: this.pausaAtiva,
+          expedienteAtivo: this.expedienteAtivo
+        });
+      } catch (e) {
+        console.error('Erro ao processar dados do expediente:', e);
+        this.expedienteIniciadoHoje = false;
+        this.pausaAtiva = false;
+        this.expedienteAtivo = false;
+      }
+    } else {
+      this.expedienteIniciadoHoje = false;
+      this.pausaAtiva = false;
+      this.expedienteAtivo = false;
+    }
+  }
+
   onMouseDown(event: MouseEvent): void {
     if (this.sidebarContent) {
       this.isDragging = true;
@@ -304,5 +423,26 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   onMouseLeave(): void {
     this.isDragging = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    // Get the clicked element
+    const clickedElement = event.target as HTMLElement;
+    
+    // Check if the click was inside a dropdown or its toggle button
+    const isDropdownToggle = clickedElement.closest('.nav-link.w-100') !== null;
+    const isInsideDropdown = clickedElement.closest('.dropdown-content') !== null;
+    
+    // Close the dropdowns if the click was outside
+    if (!isDropdownToggle && !isInsideDropdown) {
+      this.isDropdownOpen = false;
+      this.isDropdownOsOpen = false;
+    }
+  }
+
+  closeDropdowns(): void {
+    this.isDropdownOpen = false;
+    this.isDropdownOsOpen = false;
   }
 }

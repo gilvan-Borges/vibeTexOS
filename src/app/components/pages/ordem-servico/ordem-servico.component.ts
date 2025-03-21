@@ -49,6 +49,10 @@ export class OrdemServicoComponent implements OnInit {
   pausaAtiva: boolean = false;
   usuarioId: string | null = null;
   mostrarAndamento: boolean = false;
+  
+  // Adicionando propriedades para o modal
+  ordemSelecionada: OrdemServico | null = null;
+  modalAberto: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -63,7 +67,7 @@ export class OrdemServicoComponent implements OnInit {
       console.log('Pausa ativa atualizada:', this.pausaAtiva);
     });
   }
-
+  private reaberturaEmProgresso = false;
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       const urlSegments = this.route.snapshot.url.map(segment => segment.path);
@@ -96,7 +100,7 @@ export class OrdemServicoComponent implements OnInit {
       this.carregarOrdens();
     });
 
-    setInterval(() => {
+    setTimeout(() => {
       if (this.usuarioId) {
         console.log('Atualização automática de ordens para usuarioId:', this.usuarioId);
         this.carregarOrdens();
@@ -279,65 +283,50 @@ export class OrdemServicoComponent implements OnInit {
     });
   }
 
-reabrirOrdemServico(os: OrdemServico): void {
+  reabrirOrdemServico(os: OrdemServico): void {
     if (!os.ordemDeServicoId || !this.usuarioId || os.botaoDesativado) {
       console.error('ID da ordem de serviço ou usuário não encontrado, ou botão desativado');
       return;
     }
-
-    // Desabilitar o botão imediatamente para evitar cliques duplos
+  
+    // Desabilitar o botão imediatamente e verificar se já está em processamento
+    if (this.reaberturaEmProgresso) {
+      console.log('Reabertura já em progresso, ignorando clique adicional');
+      return;
+    }
+    this.reaberturaEmProgresso = true;
     os.botaoDesativado = true;
-    
-    // Salvar no localStorage para manter o botão desabilitado mesmo após recarga
+  
     const ordensReabertasStr = localStorage.getItem('ordensReabertas') || '[]';
     const ordensReabertas = JSON.parse(ordensReabertasStr);
     ordensReabertas.push(os.ordemDeServicoId);
     localStorage.setItem('ordensReabertas', JSON.stringify(ordensReabertas));
-
-    console.log('Estado inicial de osEmAndamento:', localStorage.getItem('osEmAndamento'));
-    console.log('Ordem adicionada às ordens reabertas:', os.ordemDeServicoId);
-
-    // Passo 1: Buscar todas as ordens de serviço do usuário
+  
     this.vibeService.buscarOrdemServicoUsuarioId(this.usuarioId).subscribe({
       next: (ordens: any[]) => {
-        // Passo 2: Filtrar a ordem específica pelo ordemDeServicoId
         const ordemEncontrada = ordens.find(
           (ordem) => ordem.ordemDeServicoId === os.ordemDeServicoId
         );
-
-        if (!ordemEncontrada) {
-          console.error('Ordem de serviço não encontrada para o ID:', os.ordemDeServicoId);
-          alert('Ordem de serviço não encontrada. Contate o suporte.');
-          return;
-        }
-
-        // Passo 3: Obter o execucaoServicoId da execução mais recente
-        let execucaoServicoId: string | undefined;
-        if (ordemEncontrada.execucoes && ordemEncontrada.execucoes.length > 0) {
-          execucaoServicoId = ordemEncontrada.execucoes[0].execucaoServicoId;
-        } else {
-          console.error('Nenhuma execução encontrada para a ordem:', os.ordemDeServicoId);
-          alert('Nenhuma execução associada à ordem. Contate o suporte.');
-          return;
-        }
-
+        // ... (restante do código)
+        const execucaoServicoId = ordemEncontrada?.execucoes && ordemEncontrada.execucoes.length > 0
+          ? ordemEncontrada.execucoes[0].execucaoServicoId
+          : null;
         if (!execucaoServicoId) {
-          console.error('execucaoServicoId não encontrado para a ordem:', os.ordemDeServicoId);
-          alert('Não foi possível encontrar a execução do serviço. Contate o suporte.');
+          console.error('ExecucaoServicoId não encontrado na ordem');
+          this.reaberturaEmProgresso = false;
           return;
         }
-
-        console.log('execucaoServicoId obtido do backend:', execucaoServicoId);
-        this.prosseguirComReabertura(execucaoServicoId, os, ordemEncontrada);
+        this.prosseguirComReabertura(execucaoServicoId, ordemEncontrada);
       },
       error: (error) => {
+        this.reaberturaEmProgresso = false;
         console.error('Erro ao buscar ordens de serviço:', error);
-        alert('Erro ao buscar as ordens de serviço no backend. Contate o suporte.');
       },
     });
   }
+  
 
-  private prosseguirComReabertura(execucaoServicoId: string, os: OrdemServico, ordemApi: any): void {
+  private prosseguirComReabertura(execucaoServicoId: string, ordem: any): void {
     // Passo 2: Obter as coordenadas atuais
     this.obterLocalizacaoAtual()
       .then((position: GeolocationPosition) => {
@@ -347,12 +336,21 @@ reabrirOrdemServico(os: OrdemServico): void {
 
         const latitude = position.coords.latitude.toFixed(6);
         const longitude = position.coords.longitude.toFixed(6);
-        // Passo 3: Criar o FormData com as coordenadas e outros dados necessários
+        
+        // Usar diretamente os IDs da ordem que foi buscada da API
         const formData = new FormData();
         formData.append('latitudeReinicioExecucao', latitude);
         formData.append('longitudeReinicioExecucao', longitude);
-        formData.append('ordemDeServicoId', os.ordemDeServicoId); // Adicionar ordemDeServicoId
-        formData.append('despachoId', ordemApi.despachoId || ''); // Adicionar despachoId (pode ser null)
+        formData.append('ordemDeServicoId', ordem.ordemDeServicoId);
+        formData.append('despachoId', ordem.despachoId || '');
+
+        console.log('Dados para reinício de execução:', {
+          latitudeReinicioExecucao: latitude,
+          longitudeReinicioExecucao: longitude,
+          ordemDeServicoId: ordem.ordemDeServicoId,
+          despachoId: ordem.despachoId || '',
+          numeroOrdemDeServico: ordem.numeroOrdemDeServico
+        });
 
         // Passo 4: Chamar o endpoint reiniciarExecucaoServico para criar uma nova execução
         this.vibeService
@@ -361,12 +359,9 @@ reabrirOrdemServico(os: OrdemServico): void {
             next: (response) => {
               console.log('Nova execução criada com sucesso:', response);
 
-              // Não atualizamos o status da ordem original para "Em Andamento"
-              // A nova execução será tratada como "Em Andamento" pela API
-
               // Atualizar o localStorage com a ordem em andamento
               localStorage.setItem('osEmAndamento', 'true');
-              localStorage.setItem('ordemServicoId', os.ordemDeServicoId);
+              localStorage.setItem('ordemServicoId', ordem.ordemDeServicoId);
 
               // Recarregar as ordens para refletir a nova execução
               this.carregarOrdens();
@@ -546,17 +541,19 @@ reabrirOrdemServico(os: OrdemServico): void {
 
   verDetalhesOrdem(ordem: OrdemServico): void {
     console.log('Visualizando detalhes da ordem:', ordem);
-
-    this.router.navigate(['/pages/ordem-servico-detalhes', this.usuarioId], {
-      queryParams: { codigo: ordem.ordemDeServicoId },
-    });
+    this.ordemSelecionada = ordem;
+    this.modalAberto = true;
+  }
+  
+  fecharModal(): void {
+    this.modalAberto = false;
+    this.ordemSelecionada = null;
   }
 
   verificarOrdemEmAndamento(): boolean {
     const emAndamento = localStorage.getItem('osEmAndamento') === 'true';
     // Também verifica se há ordens carregadas em andamento
     const temOrdensAndamento = this.ordensAndamento.length > 0;
-    console.log('Verificando se há ordem em andamento:', emAndamento || temOrdensAndamento);
     return emAndamento || temOrdensAndamento;
   }
 
@@ -633,7 +630,7 @@ reabrirOrdemServico(os: OrdemServico): void {
     });
   }
 
-  formatarDataHora(data: string | null): string {
+  formatarDataHora(data: string | null | undefined): string {
     if (!data) return 'Data/Hora não disponível';
     try {
       const date = new Date(data);

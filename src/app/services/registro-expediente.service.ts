@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ControllAppService } from './controllApp.service';
 import { RegistrarPontoService } from './registrar.ponto.service';
@@ -33,6 +33,9 @@ export class RegistroExpedienteService {
     disabled: [false, true, true, true]
   });
   estadoExpediente$ = this.estadoExpedienteSubject.asObservable();
+
+  private pausaLiberadaSubject = new Subject<void>();
+  public pausaLiberada$ = this.pausaLiberadaSubject.asObservable();
 
   private intervalId: any;
 
@@ -107,6 +110,16 @@ export class RegistroExpedienteService {
                 timestamps: { ...this.estadoExpedienteSubject.value.timestamps, inicio: data },
                 disabled: [true, false, true, true]
               });
+
+              // Atualizar localStorage com os dados retornados
+              const dadosExpediente = {
+                pontoIdExpediente: response.pontoId,
+                pontoIdPausa: null,
+                timestamps: { ...this.estadoExpedienteSubject.value.timestamps, inicio: data },
+                disabled: [true, false, true, true],
+                inicioPausaTime: null
+              };
+              this.servicoArmazenamento.salvarDadosExpediente(dadosExpediente);
             }
             this.router.navigate(['/pages/ordem-servico']);
             resolve();
@@ -132,14 +145,33 @@ export class RegistroExpedienteService {
         next: (response) => {
           if (response && response.pontoId) {
             this.servicoArmazenamento.salvarPontoId('pausa', response.pontoId);
-            localStorage.setItem('inicioPausaTime', new Date().toISOString());
+            
+            // Salvar inicioPausaTime em formato ISO para garantir compatibilidade
+            const dataISO = new Date(data).toISOString();
+            localStorage.setItem('inicioPausaTime', dataISO);
+            
             this.atualizarEstado({
               pausaAtiva: true,
               timestamps: { ...this.estadoExpedienteSubject.value.timestamps, 'almoco-inicio': data },
               disabled: [true, true, false, true]
             });
+
+            // Atualizar localStorage com os dados retornados
+            const dadosExpediente = {
+              pontoIdExpediente: this.servicoArmazenamento.obterPontoId('expediente') || null,
+              pontoIdPausa: response.pontoId,
+              timestamps: { ...this.estadoExpedienteSubject.value.timestamps, 'almoco-inicio': data },
+              disabled: [true, true, false, true],
+              inicioPausaTime: dataISO
+            };
+            this.servicoArmazenamento.salvarDadosExpediente(dadosExpediente);
+            
+            console.log('Início da pausa registrado com sucesso:', {
+              pontoId: response.pontoId,
+              inicioPausaTime: dataISO
+            });
           }
-          this.router.navigate(['/pages/expediente']);
+          this.router.navigate(['/pages/expediente', idUsuario]);
           resolve();
         },
         error: (err) => {
@@ -178,7 +210,8 @@ export class RegistroExpedienteService {
             timestamps: { ...this.estadoExpedienteSubject.value.timestamps, 'almoco-fim': data },
             disabled: [true, true, true, false]
           });
-          this.router.navigate(['/pages/ordem-servico']);
+          // Redirecionar incluindo o ID do usuário
+          this.router.navigate(['/pages/ordem-servico/pendentes', idUsuario]);
           resolve();
         },
         error: (err) => {
@@ -197,10 +230,17 @@ export class RegistroExpedienteService {
         return;
       }
 
+      if (!idUsuario) {
+        reject('ID do usuário não encontrado');
+        return;
+      }
+
       if (!webcamImage?.imageAsBase64) {
         reject('Por favor, capture uma foto primeiro');
         return;
       }
+
+      console.log(`Registrando fim de expediente - usuarioId: "${idUsuario}", pontoId: "${pontoIdExpediente}"`);
 
       const formData = new FormData();
       const fotoFormatada = this.servicoFoto.formatarFotoBase64(webcamImage.imageAsBase64);
@@ -232,6 +272,7 @@ export class RegistroExpedienteService {
           resolve();
         },
         error: (err) => {
+          console.error('Erro ao finalizar expediente:', err);
           reject(err.error?.message || 'Erro desconhecido');
         }
       });
@@ -239,49 +280,241 @@ export class RegistroExpedienteService {
   }
 
   iniciarVerificacaoTempoPausa(): void {
-    this.intervalId = setInterval(() => {
-      const inicioPausaTime = localStorage.getItem('inicioPausaTime');
-      if (inicioPausaTime) {
+    // Primeiro, tentar obter do localStorage diretamente
+    let inicioPausaTime = localStorage.getItem('inicioPausaTime');
+    
+    // Se não encontrar, verificar nos timestamps do expediente
+    if (!inicioPausaTime) {
+      console.log('inicioPausaTime não encontrado, verificando timestamps do expediente');
+      const dadosExpediente = localStorage.getItem('dadosExpediente');
+      if (dadosExpediente) {
+        try {
+          const dados = JSON.parse(dadosExpediente);
+          if (dados.timestamps && dados.timestamps['almoco-inicio']) {
+            inicioPausaTime = dados.timestamps['almoco-inicio'];
+            console.log('Usando almoco-inicio dos timestamps:', inicioPausaTime);
+            
+            // Atualiza o inicioPausaTime no localStorage para manter consistência
+            if (inicioPausaTime !== null) {
+              localStorage.setItem('inicioPausaTime', inicioPausaTime);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao processar dados do expediente:', error);
+        }
+      }
+    }
+    
+    if (!inicioPausaTime || isNaN(Date.parse(inicioPausaTime))) {
+      console.warn('Horário de início da pausa inválido ou não encontrado.');
+      return;
+    }
+
+    try {
+      // Tenta converter para timestamp válido
+      let inicioPausaTimestamp: number;
+      
+      // Se for um formato ISO válido, usa diretamente
+      if (!isNaN(Date.parse(inicioPausaTime))) {
+        inicioPausaTimestamp = new Date(inicioPausaTime).getTime();
+      } else if (typeof inicioPausaTime === 'string' && inicioPausaTime.includes(':')) {
+        // Se for no formato "HH:MM hrs", tenta converter
+        const [hours, minutes] = inicioPausaTime.replace(' hrs', '').split(':').map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          const hoje = new Date();
+          hoje.setHours(hours, minutes, 0, 0);
+          inicioPausaTimestamp = hoje.getTime();
+        } else {
+          throw new Error('Formato de hora inválido');
+        }
+      } else {
+        throw new Error('Formato de data não reconhecido');
+      }
+
+      // Inicia o intervalo para verificar o tempo restante
+      this.intervalId = setInterval(() => {
         const now = new Date().getTime();
-        const pauseStart = new Date(inicioPausaTime).getTime();
-        const diffHours = (now - pauseStart) / (1000 * 60 * 60);
-        
+        const diffHours = (now - inicioPausaTimestamp) / (1000 * 60 * 60);
+    
         if (diffHours < 1) {
           const minutosRestantes = Math.ceil((1 - diffHours) * 60);
           this.tempoRestantePausaSubject.next(minutosRestantes);
         } else {
           this.tempoRestantePausaSubject.next(0);
+          this.verificarTempoPausa();
+          clearInterval(this.intervalId); // Interrompe o intervalo após liberar o botão
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Erro ao processar horário da pausa:', error);
+    }
+  }
+
+  private verificarTempoPausa(): void {
+    // Primeiro, tentar obter do localStorage diretamente
+    let inicioPausaTime = localStorage.getItem('inicioPausaTime');
+    
+    // Se não encontrar, verificar nos timestamps do expediente
+    if (!inicioPausaTime) {
+      console.log('inicioPausaTime não encontrado, verificando timestamps do expediente');
+      const dadosExpediente = localStorage.getItem('dadosExpediente');;
+      if (dadosExpediente) {
+        try {
+          const dados = JSON.parse(dadosExpediente);
+          if (dados.timestamps && dados.timestamps['almoco-inicio']) {
+            inicioPausaTime = dados.timestamps['almoco-inicio'];
+            console.log('Usando almoco-inicio dos timestamps:', inicioPausaTime);
+            
+            // Atualiza o inicioPausaTime no localStorage para manter consistência
+            if (inicioPausaTime !== null) {
+              localStorage.setItem('inicioPausaTime', inicioPausaTime);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao processar dados do expediente:', error);
         }
       }
-    }, 1000);
+    }
+
+    if (!inicioPausaTime) {
+      console.warn('Horário de início da pausa não encontrado.');
+      return;
+    }
+
+    try {
+      let inicioPausaTimestamp: number;
+      
+      // Se for um formato ISO válido, usa diretamente
+      if (!isNaN(Date.parse(inicioPausaTime))) {
+        inicioPausaTimestamp = new Date(inicioPausaTime).getTime();
+      } else if (typeof inicioPausaTime === 'string' && inicioPausaTime.includes(':')) {
+        // Se for no formato "HH:MM hrs", tenta converter
+        const [hours, minutes] = inicioPausaTime.replace(' hrs', '').split(':').map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          const hoje = new Date();
+          hoje.setHours(hours, minutes, 0, 0);
+          inicioPausaTimestamp = hoje.getTime();
+        } else {
+          throw new Error('Formato de hora inválido');
+        }
+      } else {
+        throw new Error('Formato de data não reconhecido');
+      }
+      
+      const agora = new Date().getTime();
+      const tempoDecorrido = agora - inicioPausaTimestamp;
+      
+      const tempoMinimoPausa = 3600000; // 1 hora em milissegundos
+      if (tempoDecorrido >= tempoMinimoPausa) {
+        console.log('🔔 Botão de finalizar pausa liberado!');
+        this.pausaLiberadaSubject.next(); // Dispara o evento para liberar o botão
+        this.enviarNotificacao();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar tempo de pausa:', error);
+    }
+  }
+
+  private enviarNotificacao(): void {
+    // Verificar se o navegador suporta notificações
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        const notification = new Notification('Pausa Liberada', {
+          body: 'Você já pode finalizar sua pausa de almoço.',
+          icon: 'assets/img/logo.png'
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            const notification = new Notification('Pausa Liberada', {
+              body: 'Você já pode finalizar sua pausa de almoço.',
+              icon: 'assets/img/logo.png'
+            });
+          }
+        });
+      }
+    }
   }
 
   obterMensagemTempoPausa(): Observable<string> {
     return this.tempoRestantePausa$.pipe(
       map(minutos => {
-        if (minutos <= 0) return '';
-        
-        const horas = Math.floor(minutos / 60);
-        const minutosRestantes = minutos % 60;
-        
-        if (horas > 0) {
-          return `Faltam ${horas}h ${minutosRestantes}min para finalizar a pausa`;
+        if (minutos > 0) {
+          const horas = Math.floor(minutos / 60);
+          const minutosRestantes = minutos % 60;
+
+          if (horas > 0) {
+            return `Faltam ${horas}h ${minutosRestantes}min para voltar ao trabalho.`;
+          } else {
+            return `Faltam ${minutosRestantes} minutos para voltar ao trabalho.`;
+          }
         } else {
-          return `Faltam ${minutosRestantes}min para finalizar a pausa`;
+          return 'O botão de finalizar pausa será liberado em breve.';
         }
       })
     );
   }
 
   verificarPodeFinalizarPausa(): boolean {
-    const inicioPausaTime = localStorage.getItem('inicioPausaTime');
-    if (!inicioPausaTime) return false;
+    // Primeiro, tentar obter do localStorage diretamente
+    let inicioPausaTime = localStorage.getItem('inicioPausaTime');
+    
+    // Se não encontrar, verificar nos timestamps do expediente
+    if (!inicioPausaTime) {
+      console.log('inicioPausaTime não encontrado, verificando timestamps do expediente');
+      const dadosExpediente = localStorage.getItem('dadosExpediente');
+      if (dadosExpediente) {
+        try {
+          const dados = JSON.parse(dadosExpediente);
+          if (dados.timestamps && dados.timestamps['almoco-inicio']) {
+            inicioPausaTime = dados.timestamps['almoco-inicio'];
+            console.log('Usando almoco-inicio dos timestamps:', inicioPausaTime);
+            
+            // Atualiza o inicioPausaTime no localStorage para manter consistência
+            if (inicioPausaTime !== null) {
+              localStorage.setItem('inicioPausaTime', inicioPausaTime);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao processar dados do expediente:', error);
+        }
+      }
+    }
+    
+    if (!inicioPausaTime) {
+      console.log('Não foi encontrado um horário de início de pausa válido');
+      return false;
+    }
 
-    const now = new Date().getTime();
-    const pauseStart = new Date(inicioPausaTime).getTime();
-    const diffHours = (now - pauseStart) / (1000 * 60 * 60);
-
-    return diffHours >= 1;
+    try {
+      // Tenta converter para timestamp
+      let inicioPausaTimestamp: number;
+      
+      // Se for um formato ISO válido, usa diretamente
+      if (!isNaN(Date.parse(inicioPausaTime))) {
+        inicioPausaTimestamp = new Date(inicioPausaTime).getTime();
+      } else if (typeof inicioPausaTime === 'string' && inicioPausaTime.includes(':')) {
+        // Se for no formato "HH:MM hrs", tenta converter
+        const [hours, minutes] = inicioPausaTime.replace(' hrs', '').split(':').map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          const hoje = new Date();
+          hoje.setHours(hours, minutes, 0, 0);
+          inicioPausaTimestamp = hoje.getTime();
+        } else {
+          throw new Error('Formato de hora inválido');
+        }
+      } else {
+        throw new Error('Formato de data não reconhecido');
+      }
+      
+      const now = new Date().getTime();
+      const diffMs = now - inicioPausaTimestamp;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      return diffHours >= 1;
+    } catch (error) {
+      console.error('Erro ao verificar tempo de pausa:', error);
+      return false;
+    }
   }
 
   private limparDadosPausa(): void {
@@ -294,4 +527,4 @@ export class RegistroExpedienteService {
     }
     this.tempoRestantePausaSubject.next(0);
   }
-} 
+}

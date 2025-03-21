@@ -89,7 +89,7 @@ export class HistoricoTecnicoComponent implements OnInit, OnDestroy {
   private mapUserLocation: L.Map | null = null;
   private mapShiftLocation: L.Map | null = null;
   private usuarioId: string = '';
-  private readonly BASE_URL: string = 'http://localhost:5030';
+  private readonly BASE_URL: string = 'https://api.gilvandev.com';
 
   mostrarFormulario: boolean = false;
   formularioServico: FormGroup;

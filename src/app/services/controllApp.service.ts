@@ -8,11 +8,9 @@ import { environment } from "../../environments/environment.development";
 import { AutenticarResponseDto } from "../models/control-app/autenticar.response.dto";
 import { UsuarioResponseDto } from "../models/control-app/usuario.response.dto";
 import { RegistrarPontoInicioResponseDto } from "../models/control-app/registrar.ponto.inicio.response.dto";
-import { RegistrarPontoFimRequestDto } from "../models/control-app/registrar.ponto.fim.request";
 import { RegistrarPontoFimResponseDto } from "../models/control-app/registrar.ponto.fim.response.dto";
 import { RegistrarPausaInicioRequestDto } from "../models/control-app/registrar.pausa.inicio.request";
 import { RegistrarInicioPausaResponseDto } from "../models/control-app/registrar.pausa.inicio.response";
-import { RegistrarFimPausaResponseDto } from "../models/control-app/registrar.fim.pausa.response";
 import { RegistrarFimPausaRequestDto } from "../models/control-app/registrar.fim.pausa.request";
 
 @Injectable({
@@ -22,7 +20,7 @@ import { RegistrarFimPausaRequestDto } from "../models/control-app/registrar.fim
 export class ControllAppService {
 
   constructor(private httpClient: HttpClient) { }
-  private apiUrl = 'https://localhost:5141/api';
+  private apiUrl = environment.controllApp;
 
   // Fix the headers method return type
   private getHeaders(): HttpHeaders {
@@ -137,8 +135,24 @@ export class ControllAppService {
       'Authorization': `Bearer ${token}`
     };
     
+    // Ensure usuarioId is included and avoid double slashes in URL
+    if (!usuarioId) {
+      console.error('Erro: usuarioId é obrigatório para registrarFimExpediente');
+      return throwError(() => new Error('usuarioId é obrigatório'));
+    }
+    
+    // Construct URL properly to avoid double slashes
+    const baseUrl = environment.controllApp.endsWith('/') 
+      ? environment.controllApp.slice(0, -1) 
+      : environment.controllApp;
+    
+    const url = `${baseUrl}/ponto/${usuarioId}/registrarfimexpediente/${pontoId}`;
+    
+    console.log('URL final para finalizar expediente:', url);
+    console.log('Payload enviado:', formData);
+    
     return this.httpClient.post<RegistrarPontoFimResponseDto>(
-      `${environment.controllApp}/ponto/${usuarioId}/registrarfimexpediente/${pontoId}`,
+      url,
       formData,
       { headers }
     ).pipe(
@@ -156,22 +170,6 @@ export class ControllAppService {
       request,
       { headers: this.getHeaders() }
     );
-  }
-
-
-  registrarFimPausa(usuarioId: string, pontoId: string, request: RegistrarFimPausaRequestDto) {
-    const headers = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`  // Recupere o token do localStorage ou onde você salvou
-      }
-    };
-
-    const url = `https://localhost:5141/api/ponto/${usuarioId}/registrarfimpausa/${pontoId}`;
-    console.log('URL correta:', url);
-    console.log('Payload enviado:', request);
-
-    return this.httpClient.post(url, request, headers);
   }
 
   getHorasTrabalhadas(usuarioId: string): Observable<any[]> {
@@ -250,26 +248,15 @@ export class ControllAppService {
   }
 
   PontoGetByUsuarioId(usuarioId: string): Observable<any[]> {
-        // Ensure usuarioId is properly formatted and URL doesn't have double slashes
     const url = `${this.apiUrl}/ponto/${usuarioId}/pontos-combinados`.replace(/([^:]\/)\/+/g, "$1");
-    
     return this.httpClient.get<any[]>(url, { headers: this.getHeaders() }).pipe(
-      retry(2), // Retry failed requests up to 2 times
-      timeout(5000), // Set a 5-second timeout
+      retry(2),
+      timeout(5000),
       tap(response => {
-        const count = response?.length || 0;
-        console.log(`📌 Resposta da API pontos-combinados: ${count} registros encontrados`);
+        console.log(`📌 Resposta da API pontos-combinados: ${response.length} registros encontrados`);
       }),
       catchError(error => {
         console.error(`❌ Erro ao buscar pontos para usuário ${usuarioId}:`, error);
-        
-        if (error.status === 401) {
-          console.warn('🔑 Erro de autenticação ao buscar pontos. Token pode ter expirado.');
-          // Poderia disparar uma ação de renovação de token aqui
-        } else if (error.status === 400) {
-          console.warn('🚫 Requisição inválida. Verifique parâmetros e formato.');
-        }
-        
         return throwError(() => error);
       })
     );
@@ -324,5 +311,4 @@ export class ControllAppService {
       catchError(this.handleError)
     );
   }
-
 }

@@ -15,6 +15,9 @@
   color: #fff !important; /* Título em branco */
   font-weight: 600;
 }
+.card {
+  margin: 0!important;
+}
 
 .table thead th {
   font-weight: bold;
@@ -33,6 +36,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap; /* Permite quebra em telas pequenas */
 }
 
 .filter-select {
@@ -95,4 +99,106 @@
 .modal-footer button {
   width: 45%;
   font-weight: 500;
+}
+
+/* Estilos para botões de ação */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.btn-action {
+  flex: 1;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 70px;
+  padding: 0.375rem 0.5rem;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .filter-container {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .container-fluid{
+    margin-top: 80px;
+    padding: 5px!important;
+  }
+  
+  .filter-select, .filter-input {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: start;
+    gap: 10px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Para melhor rolagem em iOS */
+    scrollbar-width: thin; /* Para Firefox */
+    max-width: 100%;
+    white-space: nowrap; /* Evita quebra de linha em células */
+  }
+  
+  /* Estilizando a barra de rolagem para melhor visibilidade */
+  .table-responsive::-webkit-scrollbar {
+    height: 5px;
+  }
+  
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-width: 140px;
+  }
+  
+  .table thead th, .table tbody td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    min-width: 80px; /* Garante largura mínima para células */
+  }
+  
+  .modal-content {
+    margin: 10% auto;
+    width: 95%;
+  }
+  
+  /* Ajuste para colunas menos importantes em telas pequenas */
+  .mobile-hide {
+    display: none;
+  }
+
+  .btn-action {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.8rem;
+  }
+}
+@media (max-width: 600px) {
+  .container-fluid {
+      margin-top: 60px !important;
+  }
+
 }

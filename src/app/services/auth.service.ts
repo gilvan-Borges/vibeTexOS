@@ -11,7 +11,7 @@ import { CriarOrdemDeServicoResponseDto } from '../models/vibe-service/criarOrde
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:5030/api';
+  private readonly apiUrl = environment.vibeservice;
 
   private autenticadoSubject = new BehaviorSubject<boolean>(false);
   public autenticado$ = this.autenticadoSubject.asObservable();
@@ -114,21 +114,22 @@ export class AuthService {
     localStorage.setItem('usuario', JSON.stringify(usuarioData));
     console.log('Usuário salvo no localStorage:', usuarioData);
 
+    // Verificar O.S. em andamento na API após login
+    this.verificarOrdemEmAndamentoNaAPI(usuarioData.usuarioId);
+
     const role = usuarioData.usuario?.role?.toLowerCase();
     if (role === 'colaborador') {
-      this.router.navigate([`/pages/expediente/${usuarioData.usuarioId}`], { replaceUrl: true }).then(() => {
-        window.location.reload();
-      });
+      this.router.navigate([`/pages/horas-colaborador/${usuarioData.usuarioId}`], { replaceUrl: true });
     } else if (role === 'administrador' || role === 'roteirizador') {
-      this.router.navigate(['/pages/dashboard'], { replaceUrl: true }).then(() => {
-        window.location.reload();
-      });
+      this.router.navigate(['/pages/dashboard'], { replaceUrl: true });
     } else {
       console.log('Role não reconhecido. Ajuste a rota conforme necessário.');
     }
 
-    // Verificar O.S. em andamento na API após login
-    this.verificarOrdemEmAndamentoNaAPI(usuarioData.usuarioId);
+    // Recarrega a página após a navegação para qualquer tipo de usuário
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }
 
   public logout(): void {
