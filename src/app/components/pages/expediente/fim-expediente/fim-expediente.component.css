@@ -1,48 +1,72 @@
 .webcam-container {
-  display: block;
-  margin: 1rem auto;
-  overflow: hidden;
-  position: relative;
   width: 100%;
-  max-width: 320px; /* Reduzido de 350px */
-  height: 230px; /* Reduzido de 250px */
-  border-radius: 5px;
+  height: 280px; /* Altura fixa para manter a proporção boa */
+  background-color: #000; /* Fundo preto para bordas */
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn {
-  transition: all 0.3s ease;
-}
-
-/* Ajustes para o modal */
-.modal-dialog {
-  max-width: 400px; /* Reduzido de 500px (padrão bootstrap) */
-}
-
-.modal-body {
-  padding: 1rem; /* Reduzido de 2rem */
-}
-
-.modal-footer {
-  padding: 0.5rem 1rem; /* Reduzido */
-  justify-content: space-between; /* Melhor distribuição dos botões */
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-  .container-fluid {
-    margin-top: 90px !important;
+  ::ng-deep .webcam-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
   }
-  
-  .webcam-container {
-    max-width: 100%;
-    height: 200px; /* Ainda menor em telas pequenas */
+
+  .btn {
+    transition: all 0.3s ease;
+    height: 100px;
   }
-  
+  .fim{
+    margin: 0 auto;
+    margin-top: 70px;
+    max-width: 400px;
+  }
+
+  /* Ajustes para o modal */
   .modal-dialog {
-    margin: 0.5rem;
+    max-width: 400px;
+    /* Reduzido de 500px (padrão bootstrap) */
+    margin: 70px auto !important;
+    height: 450px !important;
   }
-  
+
+  .modal-content {
+    height: 450px !important;
+  }
+
   .modal-body {
-    padding: 0.75rem;
+    padding: 1rem;
+    /* Reduzido de 2rem */
   }
-}
+
+  .modal-footer {
+    padding: 0.5rem 1rem;
+    /* Reduzido */
+    justify-content: space-between;
+    /* Melhor distribuição dos botões */
+  }
+
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .container-fluid {
+      margin-top: 90px !important;
+    }
+
+    .webcam-container {
+      max-width: 100%;
+      height: 200px;
+      /* Ainda menor em telas pequenas */
+    }
+
+    .modal-dialog {
+      margin: 0.5rem;
+    }
+
+    .modal-body {
+      padding: 0.75rem;
+    }
+  }

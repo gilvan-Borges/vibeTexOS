@@ -81,11 +81,14 @@ export class CadastrarClienteComponent implements OnInit {
   }
 
   carregarClientes() {
-    this.vibeService.buscarClientes().subscribe({
+    this.vibeService.buscarClientes(this.currentPage, this.itemsPerPage).subscribe({
       next: (response) => {
-        this.clientes = response;
-        this.filteredClientes = [...this.clientes]; // Inicializa a lista filtrada com todos os clientes
-        this.totalItems = this.filteredClientes.length;
+        this.clientes = response.items || response; // Verifica se sua API retorna em `items` ou direto
+        this.filteredClientes = [...this.clientes];
+  
+        // Verifica se tem campo com total de registros
+        this.totalItems = response.totalItems || this.clientes.length;
+  
         this.updatePaginatedClientes();
       },
       error: (error) => {
@@ -94,6 +97,7 @@ export class CadastrarClienteComponent implements OnInit {
       }
     });
   }
+  
 
   buscarCep() {
     const cep = this.formulario.get('cep')?.value;

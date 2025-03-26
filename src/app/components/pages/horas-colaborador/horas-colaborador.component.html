@@ -5,18 +5,23 @@
     </div>
 
     <div class="filters">
-      <!-- Escolher Data Inicial e Data Final -->
+      
+      <div class="data d-flex gap-1 ">
       <label for="dataInicial">Data Inicial:</label>
       <input id="dataInicial" type="date" [(ngModel)]="dataInicial">
 
       <label for="dataFinal">Data Final:</label>
       <input id="dataFinal" type="date" [(ngModel)]="dataFinal">
+      </div>
 
-      <!-- Botão para filtrar pelo intervalo selecionado -->
-      <button (click)="filtrarPorPeriodo()">Filtrar</button>
+      <div class="filtro d-flex gap-2">
+        <!-- Botão para filtrar pelo intervalo selecionado -->
+        <button (click)="filtrarPorPeriodo()">Filtrar</button>
 
-      <!-- Botão para filtrar pelo mês atual -->
-      <button (click)="filtrarMesAtual()">Mês Atual</button><br>
+        <!-- Botão para filtrar pelo mês atual -->
+        <button (click)="filtrarMesAtual()">Mês Atual</button><br>
+      </div>
+
     </div>
 
     <!-- Mensagem de alerta -->
@@ -46,7 +51,9 @@
           <tbody>
             <tr *ngFor="let hora of horasFiltradas">
               <td>
-                <img [src]="hora.fotoPerfil" alt="Foto do Técnico" class="foto-perfil" style="width: 40px; height: 40px; border-radius: 50%;" (error)="handleImageError($event, 'default-avatar.png')">
+                <img [src]="hora.fotoPerfil" alt="Foto do Técnico" class="foto-perfil"
+                  style="width: 40px; height: 40px; border-radius: 50%;"
+                  (error)="handleImageError($event, 'default-avatar.png')">
               </td>
               <td>{{ hora.data }}</td>
               <td>{{ hora.inicio }}</td>
@@ -57,11 +64,15 @@
               <td [ngClass]="{ 'bg-red': hora.horaDevida > 0 }">{{ hora.horaDevida }}h</td>
               <td [ngClass]="{ 'bg-yellow': hora.horaExtra > 0 }">{{ hora.horaExtra }}h</td>
               <td>
-                <img *ngIf="hora.fotoInicio" [src]="hora.fotoInicio" alt="Foto Início" style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;" (click)="abrirImagem(hora.fotoInicio)" (error)="handleImageError($event, 'default-avatar.png')">
+                <img *ngIf="hora.fotoInicio" [src]="hora.fotoInicio" alt="Foto Início"
+                  style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;"
+                  (click)="abrirImagem(hora.fotoInicio)" (error)="handleImageError($event, 'default-avatar.png')">
                 <span *ngIf="!hora.fotoInicio">-</span>
               </td>
               <td>
-                <img *ngIf="hora.fotoFim" [src]="hora.fotoFim" alt="Foto Fim" style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;" (click)="abrirImagem(hora.fotoFim)" (error)="handleImageError($event, 'default-avatar.png')">
+                <img *ngIf="hora.fotoFim" [src]="hora.fotoFim" alt="Foto Fim"
+                  style="width: 40px; height: 40px; cursor: pointer; border-radius: 4px;"
+                  (click)="abrirImagem(hora.fotoFim)" (error)="handleImageError($event, 'default-avatar.png')">
                 <span *ngIf="!hora.fotoFim">-</span>
               </td>
             </tr>

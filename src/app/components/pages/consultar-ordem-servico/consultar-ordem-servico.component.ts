@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { VibeService } from '../../../services/vibe.service';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { Observable, forkJoin, of } from 'rxjs';
+import { environment } from '../../../../environments/environment.prod';
 
 // Interface para tipar os dados das ordens de serviço
 interface OrdemServico {
@@ -101,18 +102,79 @@ export class ConsultarOrdemServicoComponent implements OnInit {
     }).subscribe({
       next: ({ usuarios, ordens }) => {
         console.log('Dados dos usuários recebidos:', usuarios);
-        usuarios.forEach((usuario: any) => {
-          this.usuarios.set(usuario.usuarioId, {
-            usuarioId: usuario.usuarioId,
-            empresaId: usuario.empresaId,
-            nome: usuario.nome,
-            fotoUrl: usuario.fotoUrl
+        
+        // Verificar e processar os dados dos usuários em diferentes formatos
+        if (Array.isArray(usuarios)) {
+          // Processar como array
+          usuarios.forEach((usuario: any) => {
+            this.usuarios.set(usuario.usuarioId, {
+              usuarioId: usuario.usuarioId,
+              empresaId: usuario.empresaId,
+              nome: usuario.nome,
+              fotoUrl: usuario.fotoUrl
+            });
           });
-        });
+        } else if (usuarios && typeof usuarios === 'object') {
+          // Processar como objeto paginado ou único usuário
+          if (usuarios.items && Array.isArray(usuarios.items)) {
+            // Caso seja um objeto paginado com array de items
+            usuarios.items.forEach((usuario: any) => {
+              if (usuario && usuario.usuarioId) {
+                this.usuarios.set(usuario.usuarioId, {
+                  usuarioId: usuario.usuarioId,
+                  empresaId: usuario.empresaId,
+                  nome: usuario.nome,
+                  fotoUrl: usuario.fotoUrl
+                });
+              }
+            });
+          } else if (usuarios.usuarioId) {
+            // Caso seja um único usuário
+            this.usuarios.set(usuarios.usuarioId, {
+              usuarioId: usuarios.usuarioId,
+              empresaId: usuarios.empresaId,
+              nome: usuarios.nome,
+              fotoUrl: usuarios.fotoUrl
+            });
+          } else {
+            // Caso seja um objeto com múltiplos usuários
+            Object.values(usuarios).forEach((usuario: any) => {
+              if (usuario && usuario.usuarioId) {
+                this.usuarios.set(usuario.usuarioId, {
+                  usuarioId: usuario.usuarioId,
+                  empresaId: usuario.empresaId,
+                  nome: usuario.nome,
+                  fotoUrl: usuario.fotoUrl
+                });
+              }
+            });
+          }
+        } else {
+          console.error('Formato inesperado para dados de usuários:', usuarios);
+        }
 
         console.log('Dados das ordens recebidos:', ordens);
         console.dir(ordens);
-        this.ordensServico = ordens.map((os: OrdemServico) => {
+        
+        // Processar as ordens de serviço
+        let ordensArray: any[] = [];
+        
+        if (Array.isArray(ordens)) {
+          // Se ordens já for um array
+          ordensArray = ordens;
+        } else if (ordens && typeof ordens === 'object') {
+          // Se ordens for um objeto (possivelmente paginado)
+          if (ordens.items && Array.isArray(ordens.items)) {
+            // Caso seja um objeto paginado com array de items
+            ordensArray = ordens.items;
+          } else {
+            console.error('Formato inesperado para dados de ordens:', ordens);
+          }
+        } else {
+          console.error('Formato inesperado para dados de ordens:', ordens);
+        }
+        
+        this.ordensServico = ordensArray.map((os: OrdemServico) => {
           // Mapear dados da última execução, se disponível
           if (os.execucoes && os.execucoes.length > 0) {
             // Pegar a última execução do array (assumindo que elas estejam em ordem cronológica)
@@ -256,14 +318,18 @@ export class ConsultarOrdemServicoComponent implements OnInit {
   }
 
   getColaboradorFoto(colaborador?: string): string {
-    if (colaborador && this.usuarios.has(colaborador)) {
-      const usuario = this.usuarios.get(colaborador);
-      if (usuario?.fotoUrl) {
-        return usuario.fotoUrl;
-      }
+    if (!colaborador) return '';
+    const usuario = this.usuarios.get(colaborador);
+    if (!usuario?.fotoUrl) return '';
+  
+    // Se a URL não iniciar com "http://" ou "https://", adiciona "http://"
+    if (!/^https?:\/\//i.test(usuario.fotoUrl)) {
+      return `http://${usuario.fotoUrl}`;
     }
-    return '';
+  
+    return usuario.fotoUrl;
   }
+  
 
   getColaboradorNome(colaborador?: string): string {
     if (colaborador && this.usuarios.has(colaborador)) {

@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { Observable, throwError } from "rxjs";
-import { catchError, map, tap } from "rxjs/operators";
+import { Observable, throwError, of } from "rxjs";
+import { catchError, map, tap, switchMap } from "rxjs/operators";
 import { CriarOrdemDeServicoRequestDto } from "../models/vibe-service/criarOrdemDeServicoRequestDto";
 import { CriarOrdemDeServicoResponseDto } from "../models/vibe-service/criarOrdemDeServicoResponseDto";
 import { ExecucaoResponseDto } from "../models/vibe-service/execucao.response.Dto";
@@ -268,13 +268,20 @@ export class VibeService {
     }
 
 
-    buscarClientes(): Observable<any> {
+    buscarClientes(pageNumber: number = 1, pageSize: number = 5): Observable<any> {
+        const params = {
+          pageNumber: pageNumber.toString(),
+          pageSize: pageSize.toString()
+        };
+      
         return this.httpClient.get<any>(`${this.apiUrl}/usuario/clientes`, {
-            headers: this.getHeaders()
+          headers: this.getHeaders(),
+          params
         }).pipe(
-            catchError(this.handleError)
+          catchError(this.handleError)
         );
-    }
+      }
+      
 
 
     deletarCliente(clienteId: string): Observable<any> {
@@ -293,11 +300,27 @@ export class VibeService {
         );
     }
 
-    buscarUsuario(): Observable<any> {
-        return this.httpClient.get<any>(`${this.apiUrl}/usuario/public/tecnico`, {
+    buscarUsuario(pageNumber: number = 1, pageSize: number = 10): Observable<any> {
+        return this.httpClient.get<any>(`${this.apiUrl}/usuario/public/tecnico?pageNumber=${pageNumber}&pageSize=${pageSize}`, {
             headers: this.getHeaders()
         }).pipe(
             catchError(this.handleError)
+        );
+    }
+
+    enviarFormularioServico(ordemServicoId: string, formData: FormData): Observable<any> {
+        const token = localStorage.getItem('token');
+        const headers = new HttpHeaders({
+            'Authorization': `Bearer ${token}`
+        });
+        const url = `${this.apiUrl}/tarefa/ordem-servico/${ordemServicoId}/assinatura`;
+        console.log('Enviando formulário de serviço com token:', token ? 'Token presente' : 'Token ausente');
+        return this.httpClient.put<any>(url, formData, { headers }).pipe(
+            tap(response => console.log('Formulário enviado com sucesso:', response)),
+            catchError(error => {
+                console.error('Erro ao enviar formulário:', error);
+                return throwError(() => error);
+            })
         );
     }
 
@@ -306,26 +329,6 @@ export class VibeService {
             responseType: 'blob'
         }).pipe(
             catchError(this.handleError)
-        );
-    }
-
-    enviarFormularioServico(ordemServicoId: string, formData: FormData): Observable<any> {
-        const url = `${this.apiUrl}/tarefa/ordem-servico/${ordemServicoId}/assinatura`;
-        const token = localStorage.getItem('token');
-
-        // Usando new HttpHeaders sem Content-Type para FormData
-        const headers = new HttpHeaders({
-            'Authorization': `Bearer ${token}`
-        });
-
-        console.log('Enviando formulário de serviço com token:', token ? 'Token presente' : 'Token ausente');
-
-        return this.httpClient.put<any>(url, formData, { headers }).pipe(
-            tap(response => console.log('Formulário enviado com sucesso:', response)),
-            catchError(error => {
-                console.error('Erro ao enviar formulário:', error);
-                return throwError(() => error);
-            })
         );
     }
 }

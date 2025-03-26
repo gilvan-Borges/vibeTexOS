@@ -631,7 +631,42 @@
     pointer-events: auto;
     max-height: 300px;
     overflow: visible;
+    top: 142px !important;
     z-index: 10001; /* Make sure it's on top of everything */
+    animation: dropdownSlideDown 0.3s ease-out;
+  }
+
+  /* Animation for dropdown closing */
+  .nav-item.custom-dropdown .dropdown-content.closing {
+    animation: dropdownSlideUp 0.3s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes dropdownSlideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-30px);
+      top: 112px !important;
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      top: 142px !important;
+    }
+  }
+
+  @keyframes dropdownSlideUp {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+      top: 142px !important;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-30px);
+      top: 112px !important;
+      display: none;
+    }
   }
 
 }
@@ -677,9 +712,6 @@
     font-size: 0.65rem;
   }
 
-  .nav-item.custom-dropdown .dropdown-content {
-    top: 75px; /* Match sidebar height adjustment */
-  }
 }
 
 @media (max-width: 480px) {
@@ -719,10 +751,6 @@
   .company-name {
     font-size: 0.6rem;
   }
-
-  .nav-item.custom-dropdown .dropdown-content {
-    top: 7px; /* Match sidebar height adjustment */
-  }
 }
 
 @media (max-width: 366px) {
@@ -760,9 +788,5 @@
 
   .company-name {
     font-size: 0.6rem;
-  }
-
-  .nav-item.custom-dropdown .dropdown-content {
-    top: 65px; /* Match sidebar height adjustment */
   }
 }

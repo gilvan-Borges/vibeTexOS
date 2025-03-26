@@ -30,7 +30,12 @@
     <div class="efficiency-card">
       <h6>Eficiência Geral</h6>
       <div class="efficiency-content">
-        <div class="efficiency-percentage">
+        <div class="efficiency-percentage" 
+             [ngClass]="{
+               'efficiency-good': efficiencyGeneral > 50,
+               'efficiency-warning': efficiencyGeneral >= 40 && efficiencyGeneral <= 50,
+               'efficiency-danger': efficiencyGeneral < 40
+             }">
           <span class="efficiency-value">{{ efficiencyGeneral }}%</span>
         </div>
         <div class="efficiency-stats-list">
@@ -44,7 +49,7 @@
           </div>
           <div class="efficiency-stat-item">
             <i class="fas fa-clock efficiency-stat-icon text-warning"></i>
-            <span class="efficiency-stat-text">O.S. Não Atribuídas: {{ osNaoAtribuidas }}</span>
+            <span class="efficiency-stat-text">O.S. Pendentes: {{ osPendentes }}</span>
           </div>
         </div>
       </div>
@@ -64,14 +69,19 @@
       <i class="fas fa-check-circle icon"></i>
     </div>
     <div class="metric-card gradient-bg-warning">
-      <h6>O.S. Não Atribuídas</h6>
-      <h3>{{ osNaoAtribuidas }}</h3>
+      <h6>O.S. Pendentes</h6>
+      <h3>{{ osPendentes }}</h3>
       <i class="fas fa-clock icon"></i>
     </div>
     <div class="metric-card gradient-bg-danger">
       <h6>O.S. Não Realizadas</h6>
       <h3>{{ osNaoRealizadas }}</h3>
       <i class="fas fa-times-circle icon"></i>
+    </div>
+    <div class="metric-card gradient-bg-info">
+      <h6>O.S. Não Atribuídas</h6>
+      <h3>{{ osNaoAtribuidas }}</h3>
+      <i class="fas fa-user-slash icon"></i>
     </div>
   </div>
 
@@ -87,6 +97,16 @@
   <div class="table-container">
     <div class="table-header">
       <h5><i class="fas fa-chart-line me-2"></i> Desempenho Detalhado</h5>
+      
+      <!-- Opções de itens por página -->
+      <div class="pagination-controls">
+        <select class="form-select form-select-sm" [(ngModel)]="itensPorPagina" (change)="mudarItensPorPagina(itensPorPagina)">
+          <option [value]="5">5 por página</option>
+          <option [value]="10">10 por página</option>
+          <option [value]="20">20 por página</option>
+          <option [value]="50">50 por página</option>
+        </select>
+      </div>
     </div>
     
     <!-- Mobile Cards View (visible on mobile only) -->
@@ -218,5 +238,27 @@
         </tr>
       </tbody>
     </table>
+    
+    <!-- Controles de Paginação -->
+    <div class="pagination-wrapper" *ngIf="totalPaginas > 1">
+      <nav>
+        <ul class="pagination pagination-sm">
+          <li class="page-item" [class.disabled]="paginaAtual === 1">
+            <a class="page-link" (click)="mudarPagina(paginaAtual - 1)">Anterior</a>
+          </li>
+          
+          <ng-container *ngFor="let pagina of [].constructor(totalPaginas); let i = index">
+            <li class="page-item" [class.active]="paginaAtual === i + 1">
+              <a class="page-link" (click)="mudarPagina(i + 1)">{{ i + 1 }}</a>
+            </li>
+          </ng-container>
+          
+          <li class="page-item" [class.disabled]="paginaAtual === totalPaginas">
+            <a class="page-link" (click)="mudarPagina(paginaAtual + 1)">Próxima</a>
+          </li>
+        </ul>
+      </nav>
+      <span class="pagination-info">Mostrando {{ (paginaAtual - 1) * itensPorPagina + 1 }} a {{ Math.min(paginaAtual * itensPorPagina, totalItems) }} de {{ totalItems }} colaboradores</span>
+    </div>
   </div>
 </div>

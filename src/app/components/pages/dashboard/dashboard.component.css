@@ -141,6 +141,52 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
+/* Estilos para diferentes níveis de eficiência */
+.efficiency-good {
+  background: #e6ffe6; /* Fundo verde claro */
+  border: 3px solid #22c55e; /* Borda verde */
+  transition: all 0.3s ease;
+}
+
+.efficiency-warning {
+  background: white;
+  border: 3px solid #f97316; /* Borda laranja */
+  animation: blink-orange 1.5s infinite;
+}
+
+.efficiency-danger {
+  background: white;
+  border: 3px solid #ef4444; /* Borda vermelha */
+  animation: blink-red 1.5s infinite;
+}
+
+/* Animações para piscar */
+@keyframes blink-red {
+  0%, 100% {
+    border-color: #ef4444;
+    background-color: #ffecec;
+    box-shadow: 0 0 8px #ef4444;
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.5);
+    background-color: white;
+    box-shadow: none;
+  }
+}
+
+@keyframes blink-orange {
+  0%, 100% {
+    border-color: #f97316;
+    background-color: #fff5eb;
+    box-shadow: 0 0 8px #f97316;
+  }
+  50% {
+    border-color: rgba(249, 115, 22, 0.5);
+    background-color: white;
+    box-shadow: none;
+  }
+}
+
 .efficiency-value {
   font-size: 1rem;
   font-weight: 700;
@@ -183,10 +229,10 @@ body {
 
 .metric-card {
   position: relative;
-  padding: 0.8rem;
+  padding: 0.7rem;
   border-radius: 10px;
   overflow: hidden;
-  min-height: 90px;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -286,15 +332,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.table-header h5 {
-  color: #1a1a1a;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin: 0;
-  padding-left: 0.5rem;
-  border-left: 3px solid #3b82f6;
+  justify-content: space-between;
 }
 
 /* 🔹 Cards de Colaboradores (Mobile) */
@@ -491,6 +529,29 @@ body {
     width: 100%; /* Itens ocupam largura completa para melhor visibilidade */
     justify-content: flex-start;
   }
+  
+  /* Ajuste para os cards na versão mobile */
+  .metrics-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .metric-card {
+    padding: 0.6rem;
+    min-height: 70px;
+  }
+  
+  .metric-card h6 {
+    font-size: 0.65rem;
+  }
+  
+  .metric-card h3 {
+    font-size: 1.3rem;
+  }
+  
+  .metric-card .icon {
+    font-size: 1.5rem;
+  }
 }
 @media (max-width: 600px) {
   .container-fluid {
@@ -521,8 +582,8 @@ body {
   }
   
   .metrics-container {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.8rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.6rem;
   }
   
   #map {
@@ -587,7 +648,55 @@ body {
   }
 
   .metrics-container {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.8rem;
   }
+  
+  .metric-card {
+    padding: 0.8rem;
+    min-height: 90px;
+  }
+  
+  .metric-card h6 {
+    font-size: 0.7rem;
+  }
+  
+  .metric-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Estilos para Paginação */
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pagination {
+  margin-bottom: 0;
+}
+
+.pagination .page-link {
+  cursor: pointer;
+  color: #3b82f6;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.pagination-controls {
+  margin-left: auto;
+  min-width: 120px;
 }

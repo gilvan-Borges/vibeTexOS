@@ -103,7 +103,10 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
       this.isLoading = true;
       this.vibeService.buscarClientes().subscribe({
         next: (response) => {
-          this.clientes = response.map((cliente: any) => ({
+          // Extrair array de clientes da resposta, que pode ser paginada
+          const clientesData = this.extrairArrayDeDados(response);
+          
+          this.clientes = clientesData.map((cliente: any) => ({
             id: cliente.clienteId,
             nome: cliente.nomeCliente,
             endereco: `${cliente.endereco.logradouro}, ${cliente.endereco.bairro}, ${cliente.endereco.localidade}`,
@@ -150,9 +153,22 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     try {
       this.isLoading = true;
       this.vibeService.buscarOrdemServico().subscribe({
-        next: (response: any[]) => {
-          // Filtra somente as ordens ativas
-          const ordensAtivas = response;
+        next: (response) => {
+          console.log('Resposta da API para ordens:', response);
+          
+          // Extrai o array de ordens da resposta paginada
+          const ordensAtivas = this.extrairArrayDeDados(response);
+          
+          if (!Array.isArray(ordensAtivas)) {
+            console.error('Erro: ordensAtivas não é um array:', ordensAtivas);
+            this.ordensServico = [];
+            this.ordensDoDia = [];
+            this.ordensAgendadas = [];
+            this.isLoading = false;
+            return;
+          }
+          
+          console.log('Ordens extraídas:', ordensAtivas);
 
           // Mapeia para o seu formato interno
           this.ordensServico = ordensAtivas.map(ordem => {
@@ -238,6 +254,24 @@ export class DistribuicaoOrdemServicoComponent implements OnInit {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  // Adicione esta função para extrair arrays de objetos paginados
+  private extrairArrayDeDados(response: any): any[] {
+    if (!response) return [];
+    
+    // Se já for um array
+    if (Array.isArray(response)) {
+      return response;
+    }
+    
+    // Se for um objeto com propriedade 'items' (formato paginado)
+    if (response && typeof response === 'object' && response.items && Array.isArray(response.items)) {
+      return response.items;
+    }
+    
+    console.warn('Formato de resposta inesperado:', response);
+    return [];
   }
 
   onSubmit() {

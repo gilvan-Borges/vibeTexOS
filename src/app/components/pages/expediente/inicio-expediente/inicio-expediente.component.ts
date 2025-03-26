@@ -118,8 +118,9 @@ export class InicioExpedienteComponent {
           this.fecharModal();
 
           // Redirecionar para a página de ordens pendentes e forçar atualização da página
-          const url = `/pages/ordem-servico/pendentes/${usuarioId}`;
+          const url = `/pages/ordem-servico/pendentes/${usuarioId}`;  
           window.location.href = url; // Usar window.location.href para forçar uma atualização completa
+          window.location.reload();
         }).catch(error => {
           this.spinner.hide();
           console.error('Erro ao registrar início do expediente:', error);

@@ -1,8 +1,13 @@
-<div class="container-fluid">
+<div class="container-fluid fim">
     <button class="btn btn-danger btn-lg btn-block w-100" [disabled]="disabled" (click)="abrirModal()">
         Finalizar Expediente
     </button>
-      
+    
+    <!-- Message when expediente is already ended -->
+    <div *ngIf="expedienteEncerrado" class="alert alert-info mt-2 p-2 small">
+        {{ mensagemEncerramento }}
+    </div>
+    
     <!-- Modal da Câmera (versão compacta) -->
     <div class="modal fade" tabindex="-1" [ngClass]="{'show d-block': modalVisible}" *ngIf="modalVisible">
       <div class="modal-dialog modal-dialog-centered">

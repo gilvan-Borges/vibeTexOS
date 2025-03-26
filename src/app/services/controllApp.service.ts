@@ -251,7 +251,6 @@ export class ControllAppService {
     const url = `${this.apiUrl}/ponto/${usuarioId}/pontos-combinados`.replace(/([^:]\/)\/+/g, "$1");
     return this.httpClient.get<any[]>(url, { headers: this.getHeaders() }).pipe(
       retry(2),
-      timeout(5000),
       tap(response => {
         console.log(`📌 Resposta da API pontos-combinados: ${response.length} registros encontrados`);
       }),

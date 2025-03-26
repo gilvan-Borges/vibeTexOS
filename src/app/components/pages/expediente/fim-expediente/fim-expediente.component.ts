@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,16 +17,27 @@ import { ServicoFoto } from '../../../../services/foto.service';
   templateUrl: './fim-expediente.component.html',
   styleUrls: ['./fim-expediente.component.css']
 })
-export class FimExpedienteComponent {
+export class FimExpedienteComponent implements OnInit {
   @Input() idUsuario: string = '';
-  @Input() disabled: boolean = false;
+  @Input() set disabled(value: boolean) {
+    this._externalDisabled = value;
+    this.updateButtonState();
+  }
+  get disabled(): boolean {
+    return this._buttonDisabled;
+  }
   @Output() registroRealizado = new EventEmitter<void>();
+  
+  private _externalDisabled: boolean = false;
+  private _buttonDisabled: boolean = false;
   
   modalVisible = false;
   webcamImage: WebcamImage | null = null;
   observacoes: string = '';
   errors: WebcamInitError[] = [];
   trigger: Subject<void> = new Subject<void>();
+  expedienteEncerrado: boolean = false;
+  mensagemEncerramento: string = 'Você já finalizou seu expediente hoje. Novo expediente poderá ser iniciado amanhã.';
 
   constructor(
     private router: Router,
@@ -36,6 +47,33 @@ export class FimExpedienteComponent {
     private servicoFoto: ServicoFoto,
     private spinner: NgxSpinnerService
   ) {}
+
+  ngOnInit(): void {
+    this.verificarExpedienteEncerrado();
+  }
+
+  private updateButtonState(): void {
+    this._buttonDisabled = this._externalDisabled || this.expedienteEncerrado;
+  }
+
+  verificarExpedienteEncerrado(): void {
+    const fimExpedienteHoje = localStorage.getItem('fimExpedienteData');
+    if (fimExpedienteHoje) {
+      // Check if the stored date is today
+      const dataArmazenada = new Date(fimExpedienteHoje);
+      const hoje = new Date();
+      
+      if (dataArmazenada.getDate() === hoje.getDate() && 
+          dataArmazenada.getMonth() === hoje.getMonth() && 
+          dataArmazenada.getFullYear() === hoje.getFullYear()) {
+        this.expedienteEncerrado = true;
+        this.updateButtonState();
+      } else {
+        // If the stored date is not today, remove it from localStorage
+        localStorage.removeItem('fimExpedienteData');
+      }
+    }
+  }
 
   abrirModal(): void {
     this.modalVisible = true;
@@ -117,6 +155,11 @@ export class FimExpedienteComponent {
           this.webcamImage,
           this.observacoes
         ).then(() => {
+          // Save the current date to localStorage
+          localStorage.setItem('fimExpedienteData', new Date().toISOString());
+          this.expedienteEncerrado = true;
+          this.updateButtonState();
+          
           this.spinner.hide();
           this.registroRealizado.emit();
           this.fecharModal();
@@ -127,6 +170,7 @@ export class FimExpedienteComponent {
           // Redirecionar para a página de ordens realizadas e forçar atualização da página
           const url = `/pages/ordem-servico/realizadas/${this.idUsuario}`;
           window.location.href = url; // Usar window.location.href para forçar uma atualização completa
+          window.location.reload();
         }).catch(error => {
           this.spinner.hide();
           console.error('Erro ao finalizar expediente:', error);

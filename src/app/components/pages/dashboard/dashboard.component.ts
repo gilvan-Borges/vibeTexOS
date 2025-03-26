@@ -21,6 +21,7 @@ export interface OrdemServico {
   numeroOrdemDeServico: string;
   dataHoraCadastro: string;
   atribuida: boolean;
+  duracao?: string; // Campo para a duração da ordem de serviço
 }
 
 export interface DesempenhoColaborador {
@@ -91,11 +92,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   periodoSelecionado: string = 'hoje';
   dataInicial: string = '';
   dataFinal: string = '';
-
+  Math = Math;
   totalOS: number = 0;
   osRealizadas: number = 0;
   osNaoAtribuidas: number = 0;
   osNaoRealizadas: number = 0;
+  osPendentes: number = 0; // Nova propriedade para O.S. Pendentes
   efficiencyGeneral: number = 0;
   colaboradoresDesempenho: DesempenhoColaborador[] = [];
   colaboradores: Colaborador[] = [];
@@ -104,6 +106,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   get colaboradoresOnline(): DesempenhoColaborador[] {
     return this.colaboradoresDesempenho.filter(c => c.isOnline === true);
   }
+
+  // Adicionar variáveis de paginação
+  paginaAtual: number = 1;
+  itensPorPagina: number = 10;
+  totalItems: number = 0;
+  totalPaginas: number = 0;
 
   constructor(
     private ngZone: NgZone,
@@ -157,20 +165,33 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private carregarColaboradoresOnlineNoMapa(): void {
     console.log('📍 Iniciando carregamento de colaboradores no mapa...');
 
-    this.vibeService.buscarUsuario().pipe(
+    this.vibeService.buscarUsuario(this.paginaAtual, this.itensPorPagina).pipe(
       catchError(error => {
         console.error('❌ Erro ao carregar colaboradores para o mapa:', error);
-        // Retorna um array vazio em caso de erro para não quebrar o fluxo
-        return of([]);
+        return of({ items: [], totalItems: 0, totalPages: 0 });
       })
     ).subscribe({
-      next: (response: any[]) => {
-        if (!response || response.length === 0) {
-          console.warn('⚠️ Nenhum colaborador encontrado ou resposta vazia');
+      next: (response: any) => {
+        if (!response) {
+          console.warn('⚠️ Resposta vazia da API');
+          return;
+        }
+        
+        // Extrair metadados de paginação
+        if (response.totalItems !== undefined) {
+          this.totalItems = response.totalItems;
+          this.totalPaginas = response.totalPages || Math.ceil(this.totalItems / this.itensPorPagina);
+        }
+        
+        // Extrair os itens
+        const colaboradoresData = response.items || response;
+        
+        if (!colaboradoresData || colaboradoresData.length === 0) {
+          console.warn('⚠️ Nenhum colaborador encontrado');
           return;
         }
 
-        const colaboradores = response.map(colab => ({
+        const colaboradores = colaboradoresData.map((colab: any) => ({
           usuarioId: colab.usuarioId,
           nome: colab.nome || 'Sem Nome',
           empresa: colab.nomeDaEmpresa || colab.empresa || 'N/A',
@@ -183,7 +204,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           isOnline: colab.isOnline === true
         } as Colaborador));
 
-        const colaboradoresOnline = colaboradores.filter(u =>
+        const colaboradoresOnline = colaboradores.filter((u: Colaborador) =>
           u.latitudeAtual && u.longitudeAtual && u.isOnline === true
         );
 
@@ -277,8 +298,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private carregarMetricasPorPeriodo() {
     console.log('🔄 Iniciando carregamento de métricas por período...');
 
-    this.vibeService.buscarOrdemServico().subscribe({
-      next: (ordens: OrdemServico[]) => {
+    this.vibeService.buscarOrdemServico().pipe(
+      catchError(error => {
+        console.error('❌ Erro ao carregar ordens:', error);
+        return of({ items: [] });
+      })
+    ).subscribe({
+      next: (response: any) => {
+        // Extrair o array de ordens da resposta, que pode vir em diferentes formatos
+        const ordens = this.extrairArrayDeOrdens(response);
+        
         if (!ordens || ordens.length === 0) {
           this.resetarMetricas();
           return;
@@ -291,6 +320,24 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // Função auxiliar para extrair o array de ordens da resposta da API
+  private extrairArrayDeOrdens(response: any): OrdemServico[] {
+    if (!response) return [];
+    
+    // Se já for um array
+    if (Array.isArray(response)) {
+      return response;
+    }
+    
+    // Se for um objeto com propriedade 'items' (formato paginado)
+    if (response && typeof response === 'object' && response.items && Array.isArray(response.items)) {
+      return response.items;
+    }
+    
+    console.warn('Formato de resposta inesperado para ordens de serviço:', response);
+    return [];
+  }
+
   private carregarColaboradoresAtivos() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -298,7 +345,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     console.log('👥 Iniciando carregamento de colaboradores ativos...');
 
     // Adiciona tratamento de erros na busca de usuários
-    this.vibeService.buscarUsuario().pipe(
+    this.vibeService.buscarUsuario(this.paginaAtual, this.itensPorPagina).pipe(
       catchError(error => {
         console.error('❌ Erro ao buscar usuários:', error);
         // Em caso de erro, tenta obter dados do localStorage como fallback
@@ -314,7 +361,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         return of([]); // Retorna array vazio como último recurso
       })
     ).subscribe({
-      next: (colaboradores: any[]) => {
+      next: (response: any) => {
+        // Atualizar informações de paginação
+        if (response.totalItems !== undefined) {
+          this.totalItems = response.totalItems;
+          this.totalPaginas = response.totalPages || Math.ceil(this.totalItems / this.itensPorPagina);
+        }
+        
+        // Extrair os itens
+        const colaboradores = response.items || response;
+        
         if (!colaboradores || colaboradores.length === 0) {
           console.warn('⚠️ Nenhum colaborador encontrado ou resposta vazia');
           this.colaboradoresDesempenho = [];
@@ -333,8 +389,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
         // Formata os dados dos colaboradores
         this.colaboradores = colaboradores
-          .filter(colab => colab.role === 'Colaborador')
-          .map(colab => {
+          .filter((colab: any) => colab.role === 'Colaborador')
+          .map((colab: any) => {
             // Process the photo URL properly
             let photoUrl = '/assets/default-profile.png';
             if (colab.fotoUrl) {
@@ -368,10 +424,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.vibeService.buscarOrdemServico().pipe(
           catchError(err => {
             console.error('❌ Erro ao buscar ordens de serviço:', err);
-            return of([]);
+            return of({ items: [] });
           })
         ).subscribe({
-          next: (ordens: OrdemServico[]) => {
+          next: (response: any) => {
+            const ordens = this.extrairArrayDeOrdens(response);
+            
             const ordensHoje = ordens.filter(ordem => {
               try {
                 const dataOrdem = new Date(ordem.dataHoraCadastro);
@@ -591,39 +649,38 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.osRealizadas = 0;
     this.osNaoAtribuidas = 0;
     this.osNaoRealizadas = 0;
+    this.osPendentes = 0; // Resetar a nova propriedade
     this.efficiencyGeneral = 0;
   }
 
   private atualizarMetricasGerais(ordens: OrdemServico[]) {
     this.totalOS = ordens.length;
-
-    // O.S. Realizadas
-    this.osRealizadas = ordens.filter(o => {
-      const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return ['concluído'].includes(status);
+  
+    // Normaliza e filtra
+    const statusNormalizado = (status: string) => status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  
+    this.osRealizadas = ordens.filter(o => statusNormalizado(o.statusOrdem) === 'concluido').length;
+  
+    this.osNaoRealizadas = ordens.filter(o => ['cancelado', 'cancelada'].includes(statusNormalizado(o.statusOrdem))).length;
+  
+    // Ordens não atribuídas (que não têm colaborador associado)
+    this.osNaoAtribuidas = ordens.filter(o => o.atribuida = false).length;
+    
+    // Ordens pendentes (que não estão concluídas ou canceladas)
+    this.osPendentes = ordens.filter(o => {
+      const status = statusNormalizado(o.statusOrdem);
+      return status !== 'concluido' && !['cancelado', 'cancelada'].includes(status);
     }).length;
-
-    // O.S. Não Realizadas (Canceladas)
-    this.osNaoRealizadas = ordens.filter(o => {
-      const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return ['cancelado', 'cancelada'].includes(status);
-    }).length;
-
-    // O.S. Não Atribuídas: somente ordens que não foram atribuídas E ainda estão pendentes (não realizadas/finalizadas ou canceladas)
-    this.osNaoAtribuidas = ordens.filter(o => {
-      const status = o.statusOrdem?.toLowerCase().trim() || '';
-      return !o.atribuida && !(['concluído', 'cancelado', 'cancelada'].includes(status));
-    }).length;
-
-    // Eficiência Geral
+  
     this.efficiencyGeneral = this.totalOS > 0 ?
       Math.round((this.osRealizadas / this.totalOS) * 100) : 0;
-
+  
     console.log('📊 Métricas atualizadas:', {
       total: this.totalOS,
       naoAtribuidas: this.osNaoAtribuidas,
       realizadas: this.osRealizadas,
       naoRealizadas: this.osNaoRealizadas,
+      pendentes: this.osPendentes,
       eficiencia: this.efficiencyGeneral
     });
   }
@@ -703,19 +760,33 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private calcularTempoMedio(ordens: OrdemServico[]): string {
-    if (!ordens.length) return '0h 0m';
+    if (!ordens.length) return '00:00:00';
 
-    const tempoTotalMs = ordens.reduce((acc, ordem) => {
-      const inicio = new Date(ordem.dataHoraCadastro).getTime();
-      const fim = ordem.statusOrdem?.toLowerCase() === 'concluído' ? new Date().getTime() : inicio;
-      return acc + (fim - inicio);
+    // Filtra apenas ordens com duracao definida
+    const ordensComDuracao = ordens.filter(o => !!o.duracao);
+    if (ordensComDuracao.length === 0) return '00:00:00';
+
+    // Calcula o tempo total em milissegundos
+    const tempoTotalMs = ordensComDuracao.reduce((acc, ordem) => {
+      // Converte a string de duração para milissegundos
+      // Formato esperado: "00:00:50.8416611" (hh:mm:ss.fffffff)
+      const duracao = ordem.duracao || "00:00:00";
+      const [hours, minutes, seconds] = duracao.split(':');
+      // Tratando o caso de segundos com frações
+      const secondsValue = parseFloat(seconds);
+      const duracaoMs = (parseInt(hours) * 3600 + parseInt(minutes) * 60 + secondsValue) * 1000;
+      return acc + duracaoMs;
     }, 0);
 
-    const tempoMedioMs = tempoTotalMs / ordens.length;
-    const horas = Math.floor(tempoMedioMs / (1000 * 60 * 60));
-    const minutos = Math.floor((tempoMedioMs % (1000 * 60 * 60)) / (1000 * 60));
+    // Calcula a média
+    const tempoMedioMs = tempoTotalMs / ordensComDuracao.length;
+    
+    // Formata o resultado no padrão 00:00:00
+    const horas = Math.floor(tempoMedioMs / (1000 * 60 * 60)).toString().padStart(2, '0');
+    const minutos = Math.floor((tempoMedioMs % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+    const segundos = Math.floor((tempoMedioMs % (1000 * 60)) / 1000).toString().padStart(2, '0');
 
-    return `${horas}h ${minutos}m`;
+    return `${horas}:${minutos}:${segundos}`;
   }
 
   private filtrarOrdensPorPeriodo(ordens: OrdemServico[]): OrdemServico[] {
@@ -776,5 +847,19 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   getProgressWidth(jornada: string): number {
     return Math.min(this.parseJornada(jornada), 100);
+  }
+
+  // Métodos para controle de paginação
+  mudarPagina(novaPagina: number): void {
+    if (novaPagina > 0 && novaPagina <= this.totalPaginas && novaPagina !== this.paginaAtual) {
+      this.paginaAtual = novaPagina;
+      this.carregarDados();
+    }
+  }
+  
+  mudarItensPorPagina(novoValor: number): void {
+    this.itensPorPagina = novoValor;
+    this.paginaAtual = 1; // Resetar para a primeira página
+    this.carregarDados();
   }
 }

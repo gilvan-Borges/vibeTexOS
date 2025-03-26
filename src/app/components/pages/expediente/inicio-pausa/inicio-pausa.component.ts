@@ -105,6 +105,7 @@ export class InicioPausaComponent {
           // Redirecionar para a página de expediente com ID do usuário e forçar atualização da página
           const url = `/pages/expediente/fim-pausa/${usuarioId}`;
           window.location.href = url; // Usar window.location.href para forçar uma atualização completa
+          window.location.reload();
         },
         error: (err) => {
           this.spinner.hide();

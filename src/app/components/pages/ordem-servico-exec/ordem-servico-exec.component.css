@@ -478,7 +478,12 @@
   background-color: #17a2b8;
   border-left: 5px solid #138496;
 }
-
+.modal-content {
+  max-height: 70vh !important;  /* limitar altura do conteúdo total */
+  overflow: hidden;  /* evita overflow do conteúdo */
+  display: flex;
+  flex-direction: column;
+}
 .notification-warning {
   background-color: #ffc107;
   border-left: 5px solid #d39e00;

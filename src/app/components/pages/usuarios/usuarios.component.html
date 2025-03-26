@@ -11,20 +11,49 @@
         </select>
         <input type="text" [(ngModel)]="searchTerm" (input)="applyFilter()" class="form-control filter-input"
           placeholder="Pesquisar..." />
+        <button class="btn btn-outline-secondary" (click)="resetFilters()" title="Limpar filtros">
+          <i class="fa fa-refresh"></i>
+        </button>
       </div>
     </div>
     <div class="card-body">
-      <div class="table-responsive">
+      <!-- Spinner de carregamento -->
+      <div *ngIf="isLoading" class="text-center p-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+        <p class="mt-2">Carregando colaboradores...</p>
+      </div>
+      
+      <!-- Mensagem quando não há resultados -->
+      <div *ngIf="!isLoading && filteredColaboradores.length === 0" class="alert alert-info text-center">
+        Nenhum colaborador encontrado com os filtros aplicados.
+      </div>
+      
+      <!-- Tabela de colaboradores -->
+      <div *ngIf="!isLoading && filteredColaboradores.length > 0" class="table-responsive">
         <table class="table table-hover">
           <thead class="bg-light">
             <tr>
               <th>Foto</th>
-              <th>Nome</th>
-              <th>Email</th>
-              <th>CPF</th>
-              <th>Matrícula</th>
-              <th>Empresa</th>
-              <th>Jornada</th>
+              <th (click)="sortTable('nome')" class="sortable">
+                Nome <i [class]="getSortIconClass('nome')"></i>
+              </th>
+              <th (click)="sortTable('email')" class="sortable">
+                Email <i [class]="getSortIconClass('email')"></i>
+              </th>
+              <th (click)="sortTable('cpf')" class="sortable">
+                CPF <i [class]="getSortIconClass('cpf')"></i>
+              </th>
+              <th (click)="sortTable('matricula')" class="sortable">
+                Matrícula <i [class]="getSortIconClass('matricula')"></i>
+              </th>
+              <th (click)="sortTable('empresaNome')" class="sortable">
+                Empresa <i [class]="getSortIconClass('empresaNome')"></i>
+              </th>
+              <th (click)="sortTable('jornada')" class="sortable">
+                Jornada <i [class]="getSortIconClass('jornada')"></i>
+              </th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -59,6 +88,47 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- Adicionar controles de paginação -->
+      <div *ngIf="!isLoading && filteredColaboradores.length > 0" class="d-flex justify-content-between align-items-center mt-3">
+        <div class="pagination-info">
+          Mostrando {{ paginaAtual * itensPorPagina - itensPorPagina + 1 }} 
+          a {{ Math.min(paginaAtual * itensPorPagina, totalColaboradores) }} 
+          de {{ totalColaboradores }} colaboradores
+        </div>
+        
+        <div class="d-flex align-items-center">
+          <select class="form-select form-select-sm me-3" [(ngModel)]="itensPorPagina" (change)="mudarItensPorPagina()">
+            <option [value]="5">5 por página</option>
+            <option [value]="10">10 por página</option>
+            <option [value]="20">20 por página</option>
+            <option [value]="50">50 por página</option>
+          </select>
+          
+          <nav aria-label="Navegação de páginas">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="paginaAtual === 1">
+                <a class="page-link" (click)="mudarPagina(paginaAtual - 1)" aria-label="Anterior">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              
+              <ng-container *ngFor="let pagina of paginasVisiveis()">
+                <li class="page-item" [class.active]="pagina === paginaAtual">
+                  <a class="page-link" (click)="mudarPagina(pagina)">{{ pagina }}</a>
+                </li>
+              </ng-container>
+              
+              <li class="page-item" [class.disabled]="paginaAtual === totalPaginas">
+                <a class="page-link" (click)="mudarPagina(paginaAtual + 1)" aria-label="Próximo">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      
     </div>
   </div>
 

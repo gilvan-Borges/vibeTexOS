@@ -123,8 +123,7 @@ export class AutenticarComponent {
     this.controllAppService.atualizarStatusUsuario(usuario.usuarioId, true).subscribe({
       next: () => {
         console.log('Status atualizado com sucesso.');
-        this.authService.verificarEstadoExpedienteEOS(usuario.usuarioId).subscribe();
-      },
+              },
       error: (err) => console.error('Erro ao atualizar status:', err)
     });
   }

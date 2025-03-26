@@ -148,6 +148,7 @@ export class FimPausaComponent implements OnInit, OnDestroy {
         // Redirecionamento para a página de ordens pendentes e forçar atualização da página
         const url = `/pages/ordem-servico/pendentes/${this.idUsuario}`;
         window.location.href = url; // Usar window.location.href para forçar uma atualização completa
+        window.location.reload();
       },
       error: (err) => {
         this.spinner.hide();

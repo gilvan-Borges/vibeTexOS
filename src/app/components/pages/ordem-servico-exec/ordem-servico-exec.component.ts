@@ -660,9 +660,19 @@ export class OrdemServicoExecComponent implements OnInit {
 
       localStorage.setItem('execucaoServico', JSON.stringify(execucaoResponse));
       localStorage.setItem('osIniciada', 'true');
-      const fotoInicioStored = this.webcamImage?.imageAsDataUrl || '';
-      localStorage.setItem('osFotoInicio', fotoInicioStored);
-      console.log('Foto de início armazenada (base64 para exibição local):', fotoInicioStored);
+      
+      // MELHORADO: Garantir que a foto de início seja armazenada corretamente
+      // Armazenar a foto bruta do webcam para uso local
+      if (this.webcamImage?.imageAsDataUrl) {
+        const fotoInicioStored = this.webcamImage.imageAsDataUrl;
+        localStorage.setItem('osFotoInicio', fotoInicioStored);
+        console.log('Foto de início armazenada em localStorage:', fotoInicioStored.substring(0, 30) + '...');
+      } else {
+        // Tenta usar o fotoBase64 como fallback
+        const dataUrl = `data:image/jpeg;base64,${fotoBase64}`;
+        localStorage.setItem('osFotoInicio', dataUrl);
+        console.log('Foto de início armazenada com fallback:', dataUrl.substring(0, 30) + '...');
+      }
 
       this.disabled = [true, false, false];
       this.fecharModal();
@@ -768,22 +778,58 @@ export class OrdemServicoExecComponent implements OnInit {
         }
       }
 
-      const execucaoData = localStorage.getItem('execucaoServico');
+      // MELHORADO: Verificar e registrar diretamente as fotos armazenadas
+      const fotoInicioStored = localStorage.getItem('osFotoInicio');
+      const fotoFimStored = localStorage.getItem('osFotoFim');
+      
+      console.log('Verificando fontes de fotos:', {
+        'localStorage.osFotoInicio': fotoInicioStored ? `${fotoInicioStored.substring(0, 30)}...` : 'não encontrado',
+        'localStorage.osFotoFim': fotoFimStored ? `${fotoFimStored.substring(0, 30)}...` : 'não encontrado',
+        'dadosAutomaticos.fotoInicio': dadosAutomaticos.fotoInicio ? `${dadosAutomaticos.fotoInicio.substring(0, 30)}...` : 'não encontrado',
+        'dadosAutomaticos.fotoFim': dadosAutomaticos.fotoFim ? `${dadosAutomaticos.fotoFim.substring(0, 30)}...` : 'não encontrado',
+        'formularioSalvo.fotoInicio': dadosSalvos?.fotoInicio ? `${dadosSalvos.fotoInicio.substring(0, 30)}...` : 'não encontrado',
+        'formularioSalvo.fotoFim': dadosSalvos?.fotoFim ? `${dadosSalvos.fotoFim.substring(0, 30)}...` : 'não encontrado'
+      });
+      
+      // Buscar dados da execução para tentar obter fotos do servidor, se necessário
       let fotoInicioUrl: string = '';
       let fotoFimUrl: string = '';
-
+      
+      const execucaoData = localStorage.getItem('execucaoServico');
       if (execucaoData) {
-        const execucao = JSON.parse(execucaoData) as ExecucaoDto;
-        if ('fotoInicioServico' in execucao && typeof execucao.fotoInicioServico === 'string' && execucao.fotoInicioServico) {
-          fotoInicioUrl = this.construirUrlImagem(execucao.fotoInicioServico);
-        }
-        if ('fotoFimServico' in execucao && typeof execucao.fotoFimServico === 'string' && execucao.fotoFimServico) {
-          fotoFimUrl = this.construirUrlImagem(execucao.fotoFimServico);
+        try {
+          const execucao = JSON.parse(execucaoData) as ExecucaoDto;
+          console.log('Dados da execução para fotos:', {
+            fotoInicioServico: 'fotoInicioServico' in execucao ? (execucao.fotoInicioServico ? 'presente' : 'ausente') : 'propriedade inexistente',
+            fotoFimServico: 'fotoFimServico' in execucao ? (execucao.fotoFimServico ? 'presente' : 'ausente') : 'propriedade inexistente'
+          });
+          
+          if ('fotoInicioServico' in execucao && execucao.fotoInicioServico) {
+            fotoInicioUrl = this.construirUrlImagem(execucao.fotoInicioServico);
+            console.log('URL da foto de início construída:', fotoInicioUrl);
+          }
+          
+          if ('fotoFimServico' in execucao && execucao.fotoFimServico) {
+            fotoFimUrl = this.construirUrlImagem(execucao.fotoFimServico);
+            console.log('URL da foto de fim construída:', fotoFimUrl);
+          }
+        } catch (e) {
+          console.error('Erro ao processar dados da execução para fotos:', e);
         }
       }
-
-      const fotoInicioStored = localStorage.getItem('osFotoInicio') || dadosAutomaticos.fotoInicio || '';
-      const fotoFimStored = localStorage.getItem('osFotoFim') || dadosAutomaticos.fotoFim || '';
+      
+      // MELHORADO: Priorizar fotos na seguinte ordem:
+      // 1. Formulário salvo anteriormente
+      // 2. Foto capturada e salva localmente
+      // 3. Foto obtida da API
+      // 4. Foto dos dados automáticos
+      const fotoInicio = dadosSalvos?.fotoInicio || fotoInicioStored || fotoInicioUrl || dadosAutomaticos.fotoInicio || '';
+      const fotoFim = dadosSalvos?.fotoFim || fotoFimStored || fotoFimUrl || dadosAutomaticos.fotoFim || '';
+      
+      console.log('Fotos selecionadas para o formulário:', {
+        fotoInicio: fotoInicio ? `${fotoInicio.substring(0, 30)}...` : 'não disponível',
+        fotoFim: fotoFim ? `${fotoFim.substring(0, 30)}...` : 'não disponível'
+      });
 
       this.formularioServico.patchValue({
         codigoOS: dadosSalvos?.codigoOS || dadosAutomaticos.codigoOS || '',
@@ -799,8 +845,8 @@ export class OrdemServicoExecComponent implements OnInit {
         bairro: dadosSalvos?.bairro || dadosAutomaticos.bairro || '',
         cidade: dadosSalvos?.cidade || dadosAutomaticos.cidade || '',
         estado: dadosSalvos?.estado || dadosAutomaticos.estado || '',
-        fotoInicio: dadosSalvos?.fotoInicio || fotoInicioUrl || fotoInicioStored,
-        fotoFim: dadosSalvos?.fotoFim || fotoFimUrl || fotoFimStored,
+        fotoInicio: fotoInicio,
+        fotoFim: fotoFim,
         observacoes: dadosSalvos?.observacoes || '',
       });
 
@@ -1024,10 +1070,16 @@ export class OrdemServicoExecComponent implements OnInit {
     if (!caminho) {
       return '';
     }
+    
+    // Se já for um base64 ou URL completa, retorne diretamente
     if (caminho.startsWith('data:image/') || caminho.startsWith('http')) {
       return caminho;
     }
-    return `${this.BASE_URL}${caminho}`;
+    
+    // Construir URL com o servidor
+    const serverUrl = `${this.BASE_URL}${caminho}`;
+    console.log('URL de imagem construída:', serverUrl);
+    return serverUrl;
   }
 
   private atualizarStatusOrdem(status: string): void {

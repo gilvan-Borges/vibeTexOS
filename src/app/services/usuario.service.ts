@@ -104,16 +104,26 @@ export class UsuarioService {
     }
 
     carregarTodosColaboradores(): Observable<any[]> {
-        return this.httpClient.get<any[]>(`${environment.vibeservice}/usuario/public/tecnico`).pipe(
-            map(response => {
-                if (!Array.isArray(response)) {
-                    console.warn('Resposta da API não é um array:', response);
+        return this.httpClient.get<any>(`${environment.vibeservice}/usuario/public/tecnico`).pipe(
+            map((response: any) => {
+                console.log('Resposta bruta da API:', response);
+                
+                // Verifica se a resposta é um objeto paginado
+                let colaboradoresData: any[] = [];
+                if (response && typeof response === 'object' && response.items && Array.isArray(response.items)) {
+                    // Formato paginado
+                    colaboradoresData = response.items;
+                } else if (Array.isArray(response)) {
+                    // Já é um array
+                    colaboradoresData = response;
+                } else {
+                    console.warn('Formato inesperado de resposta:', response);
                     return [];
                 }
 
-                return response
-                    .filter(usuario => usuario.role?.toLowerCase() === 'colaborador')
-                    .map(usuario => {
+                return colaboradoresData
+                    .filter((usuario: any) => usuario.role?.toLowerCase() === 'colaborador')
+                    .map((usuario: any) => {
                         let fotoUrl = 'https://via.placeholder.com/40x40';
                         
                         if (usuario.fotoUrl) {
@@ -141,9 +151,9 @@ export class UsuarioService {
                         };
                     });
             }),
-            switchMap(colaboradores => {
+            switchMap((colaboradores: any[]) => {
                 // Criar um array de observables para buscar o nome da empresa para cada colaborador
-                const empresaRequests = colaboradores.map(colaborador => 
+                const empresaRequests = colaboradores.map((colaborador: any) => 
                     this.buscarNomeEmpresa(colaborador.empresaId).pipe(
                         map(empresa => ({
                             ...colaborador,

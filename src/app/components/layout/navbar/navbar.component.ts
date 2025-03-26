@@ -308,42 +308,31 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private verificarExpedienteIniciadoHoje(): void {
-    const dadosExpediente = localStorage.getItem('dadosExpediente');
-    if (dadosExpediente) {
-      const dados = JSON.parse(dadosExpediente);
-      let inicioExpediente = dados.timestamps?.inicio;
+  this.expedienteIniciadoHoje = false; // valor padrão
+  const registroExpedienteStr = localStorage.getItem('registroExpediente');
+  if (!registroExpedienteStr) return;
 
-      if (inicioExpediente) {
-        // Tentar transformar o valor em um formato ISO 8601 válido, se necessário
-        if (!isNaN(Date.parse(inicioExpediente))) {
-          inicioExpediente = new Date(inicioExpediente).toISOString();
-        } else if (/^\d{2}:\d{2}/.test(inicioExpediente)) {
-          // Se o valor for no formato "HH:mm", adicionar a data atual para torná-lo válido
-          const dataAtual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-          inicioExpediente = `${dataAtual}T${inicioExpediente.replace(' hrs', '')}:00`;
-        } else {
-          console.warn('Formato de data/hora inválido:', inicioExpediente);
-          this.expedienteIniciadoHoje = false;
-          return;
-        }
+  try {
+    const registro = JSON.parse(registroExpedienteStr);
 
-        try {
-          const dataAtual = new Date().toISOString().split('T')[0]; // Data atual no formato YYYY-MM-DD
-          const dataInicioExpediente = new Date(inicioExpediente).toISOString().split('T')[0];
-
-          this.expedienteIniciadoHoje = dataAtual === dataInicioExpediente;
-        } catch (error) {
-          console.error('Erro ao processar a data de início do expediente:', error);
-          this.expedienteIniciadoHoje = false;
-        }
-      } else {
-        console.warn('Data de início do expediente não encontrada:', inicioExpediente);
-        this.expedienteIniciadoHoje = false;
+    // Se existir dataRegistro, comparar apenas a data (YYYY-MM-DD) com hoje
+    if (registro.dataRegistro) {
+      const dataRegistro = new Date(registro.dataRegistro);
+      const hoje = new Date();
+      if (
+        dataRegistro.getFullYear() === hoje.getFullYear() &&
+        dataRegistro.getMonth() === hoje.getMonth() &&
+        dataRegistro.getDate() === hoje.getDate()
+      ) {
+        this.expedienteIniciadoHoje = true;
       }
-    } else {
-      this.expedienteIniciadoHoje = false;
     }
+  } catch (e) {
+    console.error('Erro ao processar registroExpediente:', e);
+    this.expedienteIniciadoHoje = false;
   }
+}
+
 
   private verificarRegistrosExpediente(): void {
     const dadosExpediente = localStorage.getItem('dadosExpediente');

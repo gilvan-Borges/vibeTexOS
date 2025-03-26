@@ -1,7 +1,12 @@
 .btn {
   transition: all 0.3s ease;
+  height: 100px;
 }
-
+.inicio{
+  margin: 0 auto;
+  margin-top: 70px;
+  max-width: 400px;
+}
 
 
 .mensagem-contagem {

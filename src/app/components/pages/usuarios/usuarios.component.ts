@@ -19,6 +19,16 @@ export class UsuariosComponent implements OnInit {
   colaboradorSelecionado: any = null;
   filterType: string = 'nome'; // Default filter type
   searchTerm: string = ''; // Search term for filtering
+  isLoading: boolean = false; // Loading indicator
+  sortColumn: string = ''; // Current sort column
+  sortDirection: string = 'asc'; // Current sort direction
+
+  // Adicionar variáveis de paginação
+  paginaAtual: number = 1;
+  itensPorPagina: number = 10;
+  totalColaboradores: number = 0;
+  totalPaginas: number = 0;
+  Math = Math; // Para usar Math.min no template
 
   constructor(
     private controllAppService: ControllAppService,
@@ -30,6 +40,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   carregarTodosColaboradores(): void {
+    this.isLoading = true;
     this.usuarioService.carregarTodosColaboradores().subscribe({
       next: (colaboradores) => {
         this.colaboradores = colaboradores.map(colaborador => {
@@ -54,13 +65,21 @@ export class UsuariosComponent implements OnInit {
             jornada: this.formatJornada(colaborador.jornada)
           };
         });
-        this.filteredColaboradores = [...this.colaboradores]; // Initialize filtered list
+        
+        // Atualizar contagem total e calcular páginas
+        this.totalColaboradores = this.colaboradores.length;
+        this.totalPaginas = Math.ceil(this.totalColaboradores / this.itensPorPagina);
+        
+        // Aplicar filtros iniciais (que também aplicará a paginação)
+        this.applyFilter();
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Erro ao carregar colaboradores:', err);
+        this.isLoading = false;
       }
     });
-}
+  }
 
   // Método para formatar a jornada no formato HH:MM - HH:MM
   formatJornada(jornada: string): string {
@@ -87,10 +106,41 @@ export class UsuariosComponent implements OnInit {
   }
 
   applyFilter(): void {
-    this.filteredColaboradores = this.colaboradores.filter(colaborador => {
+    // Aplicar filtros
+    const filtered = this.colaboradores.filter(colaborador => {
       const value = colaborador[this.filterType]?.toString().toLowerCase() || '';
       return value.includes(this.searchTerm.toLowerCase());
     });
+    
+    // Manter a ordenação se anteriormente aplicada
+    if (this.sortColumn) {
+      filtered.sort((a, b) => {
+        const valueA = a[this.sortColumn] !== undefined && a[this.sortColumn] !== null ? a[this.sortColumn].toString().toLowerCase() : '';
+        const valueB = b[this.sortColumn] !== undefined && b[this.sortColumn] !== null ? b[this.sortColumn].toString().toLowerCase() : '';
+        
+        if (valueA < valueB) {
+          return this.sortDirection === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return this.sortDirection === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    // Atualizar total de colaboradores filtrados e páginas
+    this.totalColaboradores = filtered.length;
+    this.totalPaginas = Math.ceil(this.totalColaboradores / this.itensPorPagina);
+    
+    // Ajustar página atual se necessário
+    if (this.paginaAtual > this.totalPaginas && this.totalPaginas > 0) {
+      this.paginaAtual = this.totalPaginas;
+    }
+    
+    // Aplicar paginação
+    const inicio = (this.paginaAtual - 1) * this.itensPorPagina;
+    const fim = inicio + this.itensPorPagina;
+    this.filteredColaboradores = filtered.slice(inicio, fim);
   }
 
   abrirModalExclusao(colaborador: any): void {
@@ -127,5 +177,76 @@ export class UsuariosComponent implements OnInit {
         alert(errorMessage);
       }
     });
+  }
+
+  // Método para ordenar a tabela
+  sortTable(column: string): void {
+    // If clicking the same column, toggle direction
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+
+    this.filteredColaboradores.sort((a, b) => {
+      const valueA = a[column] !== undefined && a[column] !== null ? a[column].toString().toLowerCase() : '';
+      const valueB = b[column] !== undefined && b[column] !== null ? b[column].toString().toLowerCase() : '';
+      
+      if (valueA < valueB) {
+        return this.sortDirection === 'asc' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return this.sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+  
+  // Método para obter a classe de ícone de ordenação
+  getSortIconClass(column: string): string {
+    if (this.sortColumn !== column) {
+      return 'fa fa-sort text-muted';
+    }
+    return this.sortDirection === 'asc' ? 'fa fa-sort-up' : 'fa fa-sort-down';
+  }
+  
+  // Reset all filters and sorting
+  resetFilters(): void {
+    this.filterType = 'nome';
+    this.searchTerm = '';
+    this.sortColumn = '';
+    this.sortDirection = 'asc';
+    this.filteredColaboradores = [...this.colaboradores];
+  }
+
+  // Métodos de paginação
+  mudarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas) {
+      this.paginaAtual = pagina;
+      this.applyFilter();
+    }
+  }
+  
+  mudarItensPorPagina(): void {
+    this.paginaAtual = 1; // Voltar para a primeira página
+    this.applyFilter();
+  }
+  
+  paginasVisiveis(): number[] {
+    const paginasArray: number[] = [];
+    let inicio = Math.max(1, this.paginaAtual - 2);
+    let fim = Math.min(this.totalPaginas, inicio + 4);
+    
+    // Ajustar início se necessário
+    if (fim - inicio < 4) {
+      inicio = Math.max(1, fim - 4);
+    }
+    
+    for (let i = inicio; i <= fim; i++) {
+      paginasArray.push(i);
+    }
+    
+    return paginasArray;
   }
 }

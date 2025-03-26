@@ -183,37 +183,66 @@ export class ExpedienteComponent implements OnInit, OnDestroy {
 
   private async verificarRegistroDoDia(): Promise<void> {
     try {
-      // Chamar a API para verificar os registros do dia
-      const dados = await this.usuarioService.verificarRegistroDoDia(this.idUsuario);
-      if (!dados) {
-        console.log('Nenhum registro encontrado para o dia atual.');
-        return;
+      // Primeiro, verifica se já existe no localStorage
+      const registrosDoDia = localStorage.getItem('registrosDoDia');
+      if (registrosDoDia) {
+        const dados = JSON.parse(registrosDoDia);
+        this.pontoId = dados.pontoIdExpediente || '';
+        this.pausaId = dados.pontoIdPausa || '';
+        this.timestamps = {
+          inicio: dados.inicioExpediente || '',
+          'almoco-inicio': dados.inicioPausa || '',
+          'almoco-fim': dados.fimPausa || '',
+          fim: dados.fimExpediente || '',
+        };
+  
+        // Atualiza o estado dos botões de observação
+        this.obsDesabilitada = {
+          inicio: !!this.timestamps['inicio'],
+          'almoco-inicio': !!this.timestamps['almoco-inicio'],
+          'almoco-fim': !!this.timestamps['almoco-fim'],
+          fim: !!this.timestamps['fim'],
+        };
+  
+        console.log('✅ Dados do expediente carregados do localStorage:', dados);
       }
   
-      // Atualizar o estado do componente com os dados retornados
-      this.pontoId = dados.pontoId;
-      this.pausaId = dados.pausaId;
-      this.timestamps = dados.timestamps;
+      // Busca na API para garantir que os dados estão atualizados
+      const response = await this.usuarioService.verificarRegistroDoDia(this.idUsuario);
+      if (response) {
+        this.pontoId = response.pontoId || '';
+        this.pausaId = response.pausaId || '';
+        this.timestamps = response.timestamps || {
+          inicio: '',
+          'almoco-inicio': '',
+          'almoco-fim': '',
+          fim: '',
+        };
   
-      // Atualizar o localStorage com os dados retornados
-      const dadosExpediente = {
-        pontoIdExpediente: dados.pontoId || null,
-        pontoIdPausa: dados.pausaId || null,
-        timestamps: dados.timestamps || {},
-        disabled: dados.disabled || [false, true, true, true],
-        inicioPausaTime: localStorage.getItem('inicioPausaTime') || null
-      };
-      this.servicoArmazenamento.salvarDadosExpediente(dadosExpediente);
+        // Atualiza o localStorage com os dados mais recentes
+        const dadosExpediente = {
+          pontoIdExpediente: this.pontoId,
+          pontoIdPausa: this.pausaId,
+          inicioExpediente: this.timestamps['inicio'],
+          inicioPausa: this.timestamps['almoco-inicio'],
+          fimPausa: this.timestamps['almoco-fim'],
+          fimExpediente: this.timestamps['fim'],
+        };
+        localStorage.setItem('registrosDoDia', JSON.stringify(dadosExpediente));
   
-      // Atualizar também o estado dos botões de observação
-      this.obsDesabilitada = {
-        inicio: !!this.timestamps['inicio'],
-        'almoco-inicio': !!this.timestamps['almoco-inicio'],
-        'almoco-fim': !!this.timestamps['almoco-fim'],
-        fim: !!this.timestamps['fim']
-      };
+        // Atualiza o estado dos botões de observação
+        this.obsDesabilitada = {
+          inicio: !!this.timestamps['inicio'],
+          'almoco-inicio': !!this.timestamps['almoco-inicio'],
+          'almoco-fim': !!this.timestamps['almoco-fim'],
+          fim: !!this.timestamps['fim'],
+        };
   
-      console.log('✅ Dados do expediente carregados com sucesso:', dadosExpediente);
+        console.log('✅ Dados do expediente atualizados com sucesso:', dadosExpediente);
+      } else {
+        console.log('Nenhum registro encontrado para o dia atual.');
+        localStorage.removeItem('registrosDoDia');
+      }
     } catch (error) {
       console.error('Erro ao verificar registro do dia:', error);
     }

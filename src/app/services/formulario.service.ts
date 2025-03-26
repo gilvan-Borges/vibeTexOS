@@ -63,70 +63,67 @@ export class FormularioService {
 
   async preencherDadosAutomaticos(): Promise<any> {
     try {
+      // Obter dados do usuário
       const usuarioData = localStorage.getItem('usuario');
-      let usuarioId: string | null = null;
-      if (usuarioData) {
-        const parsedUsuario = JSON.parse(usuarioData);
-        usuarioId = parsedUsuario?.usuarioId || null;
+      const dadosUsuario = usuarioData ? JSON.parse(usuarioData) : null;
+      
+      // Extrair nome do colaborador da estrutura correta do usuário
+      let nomeColaborador = '';
+      if (dadosUsuario?.usuario?.nome) {
+        nomeColaborador = dadosUsuario.usuario.nome;
+      } else if (dadosUsuario?.nome) {
+        nomeColaborador = dadosUsuario.nome;
       }
 
-      const ordemServicoId = localStorage.getItem('ordemServicoId') || '';
+      console.log('Estrutura do usuário:', dadosUsuario);
+      console.log('Nome do colaborador extraído:', nomeColaborador);
+
+      const usuarioId = dadosUsuario?.usuario?.usuarioId || dadosUsuario?.usuarioId;
+      const ordemServicoId = localStorage.getItem('ordemServicoId');
 
       if (!usuarioId || !ordemServicoId) {
-        throw new Error('usuarioId ou ordemServicoId não encontrados no localStorage');
+        throw new Error('Dados necessários não encontrados no localStorage');
       }
 
-      const ordensServico = await lastValueFrom(this.vibeService.buscarOrdemServico());
-      console.log('Ordens de serviço retornadas:', ordensServico);
-
-      const ordemServico = ordensServico.find((os: any) => 
-        os.usuarioId === usuarioId && os.ordemDeServicoId === ordemServicoId
-      );
-
-      if (!ordemServico) {
-        console.error('Ordem de serviço não encontrada para:', { usuarioId, ordemServicoId });
-        throw new Error('Ordem de serviço não encontrada para o usuarioId e ordemServicoId fornecidos');
-      }
-
+      // Buscar dados da ordem de serviço
+      const ordensResponse = await lastValueFrom(this.vibeService.buscarOrdemServico());
+      const ordensServico = Array.isArray(ordensResponse) ? ordensResponse : [ordensResponse];
+      
+      const ordemServico = ordensServico.find(os => os.ordemDeServicoId === ordemServicoId);
       console.log('Ordem de serviço encontrada:', ordemServico);
 
-      let nomeColaborador = '';
-      try {
-        const usuario = await lastValueFrom(this.vibeService.buscarUsuarioPorId(usuarioId));
-        console.log('Dados do usuário (colaborador):', usuario);
-        nomeColaborador = usuario?.nome || '';
-      } catch (error) {
-        console.error('Erro ao buscar dados do colaborador:', error);
-        nomeColaborador = '';
+      if (!ordemServico) {
+        throw new Error('Ordem de serviço não encontrada');
       }
 
-      const dadosCliente = ordemServico.cliente || {};
+      const cliente = ordemServico.cliente || {};
+      const endereco = cliente.endereco || {};
 
-      console.log('Dados do colaborador:', {
-        nomeColaborador: nomeColaborador,
-        empresaColaborador: 'VIBETEX'
-      });
-      console.log('Dados do cliente:', dadosCliente);
-
-      return {
-        codigoOS: ordemServico.numeroOrdemDeServico || '',
-        nomeColaborador: nomeColaborador,
+      // Montar objeto com todos os dados
+      const dadosFormulario = {
+        codigoOS: ordemServico.numeroOrdemDeServico || '001',
+        nomeColaborador: nomeColaborador || 'VIBETEX',
         empresaColaborador: 'VIBETEX',
-        nomeCliente: dadosCliente.nomeCliente || '',
-        cpf: dadosCliente.cpfCliente || '',
-        telefone: dadosCliente.telefoneCliente || '',
-        cep: dadosCliente.endereco?.cep || '',
-        logradouro: dadosCliente.endereco?.logradouro || '',
-        numero: dadosCliente.endereco?.numero || '',
-        complemento: dadosCliente.endereco?.complemento || '',
-        bairro: dadosCliente.endereco?.bairro || '',
-        cidade: dadosCliente.endereco?.localidade || '',
-        estado: dadosCliente.endereco?.uf || '',
+        nomeCliente: cliente.nomeCliente || '',
+        cpf: cliente.cpfCliente || '',
+        telefone: cliente.telefoneCliente || '',
+        cep: endereco.cep?.replace('-', '') || '',
+        logradouro: endereco.logradouro || '',
+        numero: endereco.numero || '',
+        complemento: endereco.complemento || '',
+        bairro: endereco.bairro || '',
+        cidade: endereco.localidade || '',
+        estado: endereco.uf || '',
+        observacoes: ordemServico.observacoesReparo || '',
         fotoInicio: localStorage.getItem('osFotoInicio') || '',
         fotoFim: localStorage.getItem('osFotoFim') || ''
       };
+
+      console.log('Dados formatados para o formulário:', dadosFormulario);
+      return dadosFormulario;
+
     } catch (error) {
-      console.error('Erro ao buscar dados automáticos via API:', error);
+      console.error('Erro ao preencher dados automáticos:', error);
       return {
         codigoOS: '',
         nomeColaborador: '',
@@ -141,8 +138,8 @@ export class FormularioService {
         bairro: '',
         cidade: '',
         estado: '',
-        fotoInicio: localStorage.getItem('osFotoInicio') || '',
-        fotoFim: localStorage.getItem('osFotoFim') || ''
+        fotoInicio: '',
+        fotoFim: ''
       };
     }
   }

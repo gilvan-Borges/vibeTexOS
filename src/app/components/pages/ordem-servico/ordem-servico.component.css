@@ -124,12 +124,25 @@
 h1 {
   color: #343a40;
 }
-
 /* Ajustes na mensagem de pausa */
 .pausa-msg {
   font-size: 0.8rem;
   opacity: 0.8;
 }
+.modal{
+  overflow-y: auto;
+  max-height: 100vh;
+  padding: 20px;
+
+  /* Esconde a barra de rolagem */
+  scrollbar-width: none;            /* Firefox */
+  -ms-overflow-style: none;         /* IE 10+ */
+}
+
+.modal-body::-webkit-scrollbar {
+  display: none;                    /* Chrome, Edge, Safari */
+}
+
 
 /* Ajustes responsivos personalizados */
 @media (max-width: 768px) {
@@ -138,7 +151,6 @@ h1 {
     font-size: 16px;
     padding: 10px 20px;
   }
-
   .card-header {
     padding: 12px;
   }
@@ -380,6 +392,37 @@ h1 {
   align-items: center;
   justify-content: center;
 }
+.modal-dialog {
+  max-width: 600px;
+  width: 90%;
+  margin: 0 auto;
+  max-height: 50vh !important; /* limite de altura total do modal */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-content {
+  max-height: 70vh !important;  /* limitar altura do conteúdo total */
+  overflow: hidden;  /* evita overflow do conteúdo */
+  display: flex;
+  flex-direction: column;
+  margin-top: 105px;
+}
+
+.modal-body {
+  overflow-y: auto;  /* scroll interno se necessário */
+  max-height: 70vh !important;  /* define altura para conteúdo rolável */
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 0 0 10px 10px;
+}
+
+
 
 .foto-container img, .assinatura-container img {
   max-height: 200px;
@@ -389,6 +432,36 @@ h1 {
 @media (max-width: 768px) {
   .container-fluid {
     margin-top: 90px !important;
+  }
+  .modal-dialog {
+    max-width: 600px;
+    width: 90%;
+    margin: 0 auto;
+    max-height: 100px !important;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    margin-top: 50px !important;
+    /* Esconde a barra de rolagem no Chrome, Edge e Safari */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+  
+  .modal-dialog::-webkit-scrollbar {
+    display: none; /* Chrome, Safari e Edge */
+  }
+  
+  .modal-content {
+    max-height: 70vh !important;  /* limitar altura do conteúdo total */
+    overflow: hidden;  /* evita overflow do conteúdo */
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal-body {
+    overflow-y: auto;  /* scroll interno se necessário */
+    max-height: 70vh !important;  /* define altura para conteúdo rolável */
+    padding: 20px;
   }
 }
 
@@ -401,13 +474,22 @@ h1 {
 /* Responsividade para o modal */
 @media (max-width: 576px) {
   .modal-dialog {
-    margin: 0.5rem;
+    max-width: 95%;
+    margin: 1rem auto;
   }
-  
+
+  .modal-body {
+    padding: 1rem;
+  }
+
   .section-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
-  
+
+  .form-section {
+    padding: 10px;
+  }
+
   .form-value {
     font-size: 0.9rem;
   }
