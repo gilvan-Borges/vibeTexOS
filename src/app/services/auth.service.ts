@@ -100,6 +100,55 @@ export class AuthService {
       }
     );
   }
+  private atualizarLocalizacao(usuarioId: string): void {
+    console.log('[DEBUG] Disparando captura de localização');
+  
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude.toFixed(7);
+        const longitude = position.coords.longitude.toFixed(7);
+  
+        console.log('[DEBUG] Localização capturada com sucesso:', { latitude, longitude });
+  
+        this.controllAppService.atualizarCoordenadasUsuario(usuarioId, latitude, longitude).subscribe({
+          next: () => {
+            console.log('[DEBUG] Localização atualizada na API com sucesso');
+  
+            // Atualizar no localStorage
+            const usuarioStorage = localStorage.getItem('usuario');
+            if (usuarioStorage) {
+              const usuarioData = JSON.parse(usuarioStorage);
+              usuarioData.latitudeAtual = latitude;
+              usuarioData.longitudeAtual = longitude;
+              localStorage.setItem('usuario', JSON.stringify(usuarioData));
+              console.log('[DEBUG] LocalStorage atualizado com nova localização:', {
+                latitudeAtual: usuarioData.latitudeAtual,
+                longitudeAtual: usuarioData.longitudeAtual,
+              });
+            }
+          },
+          error: (err) => {
+            console.error('[DEBUG] Erro ao atualizar localização na API:', err);
+          }
+        });
+      },
+      (error) => {
+        console.error('[DEBUG] Erro ao capturar localização do navegador:', error);
+      }
+    );
+  }
+  
+
+  private iniciarAtualizacaoPeriodicaLocalizacao(usuarioId: string): void {
+    console.log('[DEBUG] 🕒 iniciando atualização periódica para:', usuarioId);
+  
+    this.atualizarLocalizacao(usuarioId);
+  
+    setInterval(() => {
+      this.atualizarLocalizacao(usuarioId);
+    }, 60000);
+  }
+
 
   public logout(): void {
     const usuario = this.getUsuario();
@@ -217,6 +266,8 @@ export class AuthService {
     this.router.navigate([rotaDestino], { replaceUrl: true }).then(() => {
       window.location.reload();
     });
+    this.iniciarAtualizacaoPeriodicaLocalizacao(usuarioData.usuarioId);
+
   }
 
   private montarUsuarioData(response: any, latitude: string, longitude: string): any {
@@ -320,7 +371,7 @@ export class AuthService {
 
   private verificarDataDeHoje(dataString: string | null): boolean {
     if (!dataString) return false;
-  
+
     // Extrai a parte da data do registro
     const dataRegistro = new Date(dataString);
     // Cria uma string "YYYY-MM-DD" usando o horário local do registro
@@ -328,23 +379,23 @@ export class AuthService {
     const mesRegistro = String(dataRegistro.getMonth() + 1).padStart(2, '0');
     const diaRegistro = String(dataRegistro.getDate()).padStart(2, '0');
     const dataRegistroStr = `${anoRegistro}-${mesRegistro}-${diaRegistro}`;
-  
+
     // Pega a data local do usuário
     const hoje = new Date();
     const anoHoje = hoje.getFullYear();
     const mesHoje = String(hoje.getMonth() + 1).padStart(2, '0');
     const diaHoje = String(hoje.getDate()).padStart(2, '0');
     const dataHojeStr = `${anoHoje}-${mesHoje}-${diaHoje}`;
-  
+
     console.log('Data do registro:', dataRegistroStr);
     console.log('Data local de hoje:', dataHojeStr);
-  
+
     return dataRegistroStr === dataHojeStr;
   }
-  
-  
-  
-  
+
+
+
+
 
   private determinarEstadoBotoes(registro: RegistroPonto): boolean[] {
     // Padrão: [Início, Iniciar Pausa, Finalizar Pausa, Finalizar Expediente]

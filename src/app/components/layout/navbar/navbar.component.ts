@@ -74,24 +74,24 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.verificarExpedienteIniciadoHoje();
 
       if (this.usuarioId) {
-        console.log('Buscando dados da empresa para usuarioId:', this.usuarioId);
+      
         if (usuario.empresa) {
           this.nomeDaEmpresa = usuario.empresa;
-          console.log('Nome da empresa obtido do usuário:', this.nomeDaEmpresa);
+
         }
         this.vibeService.buscarUsuarioPorId(this.usuarioId).subscribe({
           next: (data) => {
-            console.log('Resposta completa da API (estrutura):', Object.keys(data || {}));
+           
             let nomeDaEmpresa = null;
             if (data && data.nomeDaEmpresa && typeof data.nomeDaEmpresa === 'string') {
               nomeDaEmpresa = data.nomeDaEmpresa;
             }
             if (nomeDaEmpresa) {
               this.nomeDaEmpresa = nomeDaEmpresa;
-              console.log('Nome da empresa encontrado na API:', this.nomeDaEmpresa);
+            
             } else if (!this.nomeDaEmpresa) {
               this.nomeDaEmpresa = (data && data.departamento) || '';
-              console.log('Nome da empresa não encontrado. Usando alternativa:', this.nomeDaEmpresa);
+             
             }
           },
           error: (err) => console.error('Erro ao buscar dados da empresa:', err)
@@ -108,13 +108,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
         }
       );
       this.authSubscription = this.authService.expedienteAtivo$.subscribe(expedienteAtivo => {
-        console.log('Estado do expediente atualizado no Navbar:', expedienteAtivo);
+       
         this.expedienteAtivo = expedienteAtivo;
         this.verificarEstadoPausa();
         this.verificarOsEmAndamento();
       });
       this.osSubscription = this.authService.osEmAndamento$.subscribe(osEmAndamento => {
-        console.log('Estado da O.S. atualizado no Navbar:', osEmAndamento);
+       
         this.osEmAndamento = osEmAndamento;
       });
   
@@ -182,7 +182,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
         const execucao = JSON.parse(execucaoServicoData);
         if (execucao && execucao.statusExecucao === 'EmAndamento') {
           this.osEmAndamento = true;
-          console.log('Definido osEmAndamento como true devido a execução em andamento');
+          
         }
       } catch (e) {
         console.error('Erro ao analisar execucaoServico:', e);

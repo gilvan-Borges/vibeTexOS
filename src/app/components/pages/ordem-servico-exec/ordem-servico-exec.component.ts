@@ -1,9 +1,9 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { WebcamImage, WebcamInitError, WebcamModule } from 'ngx-webcam';
 import { Subject, throwError, Subscription } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ServicoFoto } from '../../../services/foto.service';
 import { ServicoLocalizacao } from '../../../services/localizacao.service';
 import { ExecucaoResponseDto } from '../../../models/vibe-service/execucao.response.Dto';
@@ -79,8 +79,9 @@ type ExecucaoDtoExtended = (ExecucaoResponseDto | ExecucaoFimResponseDto) & {
   providers: [provideNgxMask()],
   templateUrl: './ordem-servico-exec.component.html',
   styleUrls: ['./ordem-servico-exec.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class OrdemServicoExecComponent implements OnInit {
+export class OrdemServicoExecComponent implements OnInit, OnDestroy {
   codigoOS: string = 'O.S. número 001';
   private codigoOSId: string = '';
   disabled: [boolean, boolean, boolean] = [false, true, true];
@@ -113,13 +114,23 @@ export class OrdemServicoExecComponent implements OnInit {
   notificationType: 'success' | 'error' | 'info' | 'warning' = 'info';
   private autoSaveSubscription: Subscription | null = null;
 
+  // Cache para dados frequentemente acessados
+  private dadosCache = {
+    ordemServico: null as any,
+    execucao: null as any
+  };
+
+  // Usar Subject para otimizar as inscrições
+  private destroy$ = new Subject<void>();
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private servicoFoto: ServicoFoto,
     private servicoLocalizacao: ServicoLocalizacao,
     private vibeService: VibeService,
-    formularioService: FormularioService
+    formularioService: FormularioService,
+    private cdr: ChangeDetectorRef
   ) {
     this.formularioServico = formularioService.criarFormulario();
     this.formularioService = formularioService;
@@ -127,13 +138,22 @@ export class OrdemServicoExecComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Iniciando componente de execução de ordem de serviço');
-    
+
     // Verificar imediatamente se existe um formulário para restaurar
     this.verificarFormularioSalvo();
-    
+
     // Continuar com inicialização padrão
-    localStorage.removeItem('execucaoServico');
     this.carregarOrdemServico();
+
+    // Usar takeUntil para gerenciar unsubscribe automaticamente
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => {
+        // ...existing code...
+      });
+
+    // Verificar formulário salvo uma única vez
+    this.verificarFormularioSalvo();
   }
 
   // Método para verificar se existe um formulário salvo
@@ -141,50 +161,68 @@ export class OrdemServicoExecComponent implements OnInit {
     const formularioAberto = localStorage.getItem('formularioAberto');
     const execucaoConcluida = localStorage.getItem('execucaoConcluida');
     const formularioData = localStorage.getItem('formularioData');
-    
+
     console.log('Verificando formulário salvo:', {
       formularioAberto,
       execucaoConcluida,
       temDadosFormulario: !!formularioData
     });
-    
+
     if (formularioAberto === 'true' && execucaoConcluida === 'true' && formularioData) {
       console.log('Restaurando formulário salvo');
-      
+
       this.mostrarFormulario = true;
       this.disabled = [true, true, true]; // Desabilita todos os botões quando mostra o formulário
-      
+
       // Aguardar um momento para garantir que os componentes do angular foram inicializados
       setTimeout(() => {
         this.restaurarFormulario();
       }, 500);
     }
   }
-  
   private restaurarFormulario(): void {
+    console.log('[DEBUG] Iniciando método restaurarFormulario()');
+
     try {
       const formularioData = localStorage.getItem('formularioData');
-      if (!formularioData) return;
-      
-      const dados = JSON.parse(formularioData);
-      console.log('Dados do formulário restaurados:', dados);
-      
-      // Preencher o formulário com os dados salvos
+
+      if (!formularioData) {
+        console.warn('[WARN] Nenhum dado de formulário encontrado no localStorage.');
+        return;
+      }
+
+      // debugger; // Descomente essa linha para pausar aqui no dev tools
+
+      let dados: any;
+      try {
+        dados = JSON.parse(formularioData);
+      } catch (parseError) {
+        console.error('[ERROR] Erro ao fazer JSON.parse() do formulário:', parseError);
+        return;
+      }
+
+      console.log('[DEBUG] Dados do formulário restaurados com sucesso:', dados);
+
       this.formularioServico.patchValue(dados);
-      
-      // Registrar-se para alterações no formulário para salvar automaticamente
+      console.log('[DEBUG] patchValue aplicado ao formulário.');
+
       this.configurarAutoSave();
-      
-      // Se tiver canvas de assinatura disponível, inicializá-lo
+      console.log('[DEBUG] AutoSave configurado.');
+
       setTimeout(() => {
         if (this.signaturePadCanvas && this.signaturePadCanvas.nativeElement) {
           this.signaturePad = new SignaturePad(this.signaturePadCanvas.nativeElement);
+          console.log('[DEBUG] SignaturePad inicializado com sucesso.');
+        } else {
+          console.warn('[WARN] signaturePadCanvas não está disponível no momento.');
         }
       }, 200);
+
     } catch (error) {
-      console.error('Erro ao restaurar formulário:', error);
+      console.error('[ERROR] Erro inesperado no método restaurarFormulario():', error);
     }
   }
+
 
   private carregarOrdemServico(): void {
     this.route.queryParams.subscribe(params => {
@@ -195,19 +233,19 @@ export class OrdemServicoExecComponent implements OnInit {
       if (codigo) {
         localStorage.setItem('ordemServicoId', codigo);
       }
-  
+
       const usuarioData = localStorage.getItem('usuario');
       const usuarioId = usuarioData ? (JSON.parse(usuarioData) as Usuario).usuarioId : null;
-  
+
       if (!usuarioId) {
         console.error('ID do usuário não encontrado no localStorage');
         this.salvarOrdemServicoPadrao();
         return;
       }
-  
+
       console.log('Carregando O.S. com codigoOSId:', this.codigoOSId);
       console.log('Dados atuais do localStorage (execucaoServico):', localStorage.getItem('execucaoServico'));
-  
+
       this.vibeService.buscarOrdemServicoUsuarioId(usuarioId).pipe(
         tap((response: OrdemServico[]) => {
           console.log('Resposta completa da API (buscarOrdemServicoUsuarioId):', response);
@@ -221,7 +259,7 @@ export class OrdemServicoExecComponent implements OnInit {
               this.codigoOS = `O.S. número ${ordemServico.numeroOrdemDeServico}`;
               localStorage.setItem('ordemServico', JSON.stringify(ordemServico));
               console.log('Ordem de serviço encontrada:', ordemServico);
-  
+
               if (ordemServico.execucoes && ordemServico.execucoes.length > 0) {
                 const execucaoAtiva = ordemServico.execucoes
                   .filter(exec => exec.statusExecucao === 'EmAndamento' || exec.statusExecucao === 'Iniciada')
@@ -230,7 +268,7 @@ export class OrdemServicoExecComponent implements OnInit {
                     const dateB = (b as ExecucaoDtoExtended).dataEHoraInicioExecucao || '1970-01-01T00:00:00';
                     return new Date(dateB).getTime() - new Date(dateA).getTime();
                   })[0];
-  
+
                 if (execucaoAtiva) {
                   this.execucao = execucaoAtiva;
                   localStorage.setItem('execucaoServico', JSON.stringify(this.execucao));
@@ -251,7 +289,7 @@ export class OrdemServicoExecComponent implements OnInit {
                     this.disabled = [true, true, true];
                   }
                 }
-  
+
                 if (ordemServico.trajetos && ordemServico.trajetos.length > 0) {
                   const ultimoTrajeto = ordemServico.trajetos.sort(
                     (a, b) => new Date(b.dataEHoraIncioTrajeto).getTime() - new Date(a.dataEHoraIncioTrajeto).getTime()
@@ -410,7 +448,7 @@ export class OrdemServicoExecComponent implements OnInit {
       if (!this.execucao || !this.execucao.execucaoServicoId) {
         throw new Error('Nenhuma execução de serviço iniciada. Por favor, inicie a O.S. antes de cancelar.');
       }
-  
+
       const usuarioId = this.obterUsuarioId();
       const response = await this.vibeService.buscarOrdemServicoUsuarioId(usuarioId)
         .pipe(
@@ -423,15 +461,15 @@ export class OrdemServicoExecComponent implements OnInit {
           })
         )
         .toPromise();
-  
+
       const ordemServico = response?.find(os =>
         os.ordemDeServicoId === this.codigoOSId || os.despachoid === this.codigoOSId
       );
-  
+
       if (!ordemServico) {
         throw new Error('Ordem de serviço não encontrada no backend. Por favor, recarregue a página.');
       }
-  
+
       if (ordemServico.execucoes && ordemServico.execucoes.length > 0) {
         const execucaoAtiva = ordemServico.execucoes
           .filter(exec => exec.statusExecucao === 'EmAndamento' || exec.statusExecucao === 'Iniciada')
@@ -440,7 +478,7 @@ export class OrdemServicoExecComponent implements OnInit {
             const dateB = (b as ExecucaoDtoExtended).dataEHoraInicioExecucao || '1970-01-01T00:00:00';
             return new Date(dateB).getTime() - new Date(dateA).getTime();
           })[0];
-  
+
         if (execucaoAtiva) {
           this.execucao = execucaoAtiva;
           localStorage.setItem('execucaoServico', JSON.stringify(this.execucao));
@@ -466,25 +504,25 @@ export class OrdemServicoExecComponent implements OnInit {
         this.disabled = [false, true, true];
         throw new Error('Nenhuma execução de serviço encontrada para esta ordem de serviço.');
       }
-  
+
       if (this.execucao.statusExecucao !== 'EmAndamento' && this.execucao.statusExecucao !== 'Iniciada') {
         throw new Error(
           'A execução de serviço não está em andamento e não pode ser cancelada. Estado atual: ' +
-            (this.execucao.statusExecucao || 'desconhecido')
+          (this.execucao.statusExecucao || 'desconhecido')
         );
       }
-  
+
       console.log('Tentando cancelar execução:', {
         execucaoServicoId: this.execucao.execucaoServicoId,
         statusExecucao: this.execucao.statusExecucao,
         execucaoCompleta: this.execucao,
       });
-  
+
       const coordenadas = await this.obterCoordenadas();
       const fotoProcessada = await this.validarEFotoProcessada();
       const motivoFinal = this.validarMotivoCancelamento();
       const ordemDeServicoId = ordemServico.ordemDeServicoId;
-  
+
       // 1. Cancelar a execução
       const formDataExecucao = new FormData();
       const blob = this.convertBase64ToBlob(fotoProcessada.fotoFormatada);
@@ -492,14 +530,14 @@ export class OrdemServicoExecComponent implements OnInit {
       formDataExecucao.append('LatitudeCancelaExecucao', coordenadas.latitude.toString());
       formDataExecucao.append('LongitudeCancelaExecucao', coordenadas.longitude.toString());
       formDataExecucao.append('ObservacaoCancelamento', motivoFinal);
-  
+
       console.log('Dados enviados para cancelamento da execução:', {
         FotoCancelamento: 'Arquivo (Blob)',
         LatitudeCancelaExecucao: coordenadas.latitude.toString(),
         LongitudeCancelaExecucao: coordenadas.longitude.toString(),
         ObservacaoCancelamento: motivoFinal,
       });
-  
+
       const execucaoResponse = await this.vibeService.cancelarExecucaoServico(
         this.execucao.execucaoServicoId,
         usuarioId,
@@ -514,7 +552,7 @@ export class OrdemServicoExecComponent implements OnInit {
           catchError((error: HttpErrorResponse) => this.handleHttpError(error, 'cancelar execução'))
         )
         .toPromise();
-  
+
       console.log('Execução cancelada com sucesso:', execucaoResponse);
       this.execucao = execucaoResponse || null;
       if (this.execucao) {
@@ -522,7 +560,7 @@ export class OrdemServicoExecComponent implements OnInit {
         localStorage.setItem('execucaoServico', JSON.stringify(this.execucao));
       }
       localStorage.setItem('osFotoCancelamento', this.webcamImage?.imageAsDataUrl || '');
-  
+
       // 2. Atualizar o status da ordem de serviço para "Cancelado" no backend
       const updateData = {
         numeroOrdemDeServico: ordemServico.numeroOrdemDeServico || '',
@@ -533,7 +571,7 @@ export class OrdemServicoExecComponent implements OnInit {
         dataEHoraInicioServico: ordemServico.dataEHoraInicioServico || '',
         dataEHoraFimServico: ordemServico.dataEHoraFimServico || new Date().toISOString(),
       };
-  
+
       const ordemResponse = await this.vibeService.atualizarOrdemServico(ordemDeServicoId, updateData)
         .pipe(
           tap((response) => {
@@ -545,18 +583,18 @@ export class OrdemServicoExecComponent implements OnInit {
           })
         )
         .toPromise();
-  
+
       // 3. Atualizar localmente
       this.atualizarStatusOrdem('Cancelado');
       this.limparLocalStorageAposCancelamento();
       this.disabled = [false, true, true];
-  
+
       alert('Ordem de serviço cancelada com sucesso.');
       this.fecharModal();
-      
+
       // Substituir o redirecionamento para a página de ordens pendentes
       this.router.navigate([`/pages/ordem-servico/pendentes/${usuarioId}`]);
-      
+
     } catch (error: any) {
       console.error('Erro ao enviar cancelamento:', error);
       alert(error.message || 'Não foi possível processar o cancelamento.');
@@ -629,7 +667,7 @@ export class OrdemServicoExecComponent implements OnInit {
       console.log('Dados enviados para iniciar execução:', {
         FotoInicioServico: 'Arquivo (Blob)',
         LatitudeInicioExecucaoServico: latitudeNum.toFixed(6),
-        LongitudeInicioExecucaoServico: longitudeNum.toFixed(6),
+        LongitudeExecucaoServico: longitudeNum.toFixed(6),
         FotoInicio: '',
       });
 
@@ -660,7 +698,7 @@ export class OrdemServicoExecComponent implements OnInit {
 
       localStorage.setItem('execucaoServico', JSON.stringify(execucaoResponse));
       localStorage.setItem('osIniciada', 'true');
-      
+
       // MELHORADO: Garantir que a foto de início seja armazenada corretamente
       // Armazenar a foto bruta do webcam para uso local
       if (this.webcamImage?.imageAsDataUrl) {
@@ -740,16 +778,16 @@ export class OrdemServicoExecComponent implements OnInit {
 
       this.disabled = [false, true, true];
       this.mostrarFormulario = true;
-      
+
       // Marcar que a execução foi concluída e o formulário está aberto
       localStorage.setItem('formularioAberto', 'true');
       localStorage.setItem('execucaoConcluida', 'true');
-      
+
       this.fecharModal();
-      
+
       // Inicializar formulário e configurar auto-save
       await this.inicializarFormulario();
-      
+
       // Salvar dados iniciais do formulário imediatamente
       const valoresFormulario = this.formularioServico.value;
       localStorage.setItem('formularioData', JSON.stringify(valoresFormulario));
@@ -763,140 +801,73 @@ export class OrdemServicoExecComponent implements OnInit {
   private async inicializarFormulario(): Promise<void> {
     try {
       const dadosAutomaticos = await this.formularioService.preencherDadosAutomaticos();
-      console.log('Dados automáticos recuperados:', dadosAutomaticos);
-
-      // Tentar restaurar dados do formulário do localStorage
-      const formularioData = localStorage.getItem('formularioData');
-      let dadosSalvos = null;
       
-      if (formularioData) {
-        try {
-          dadosSalvos = JSON.parse(formularioData);
-          console.log('Dados do formulário restaurados do localStorage:', dadosSalvos);
-        } catch (e) {
-          console.error('Erro ao parsear dados do formulário:', e);
-        }
-      }
-
-      // MELHORADO: Verificar e registrar diretamente as fotos armazenadas
-      const fotoInicioStored = localStorage.getItem('osFotoInicio');
-      const fotoFimStored = localStorage.getItem('osFotoFim');
+      console.log('Dados automáticos obtidos:', dadosAutomaticos);
       
-      console.log('Verificando fontes de fotos:', {
-        'localStorage.osFotoInicio': fotoInicioStored ? `${fotoInicioStored.substring(0, 30)}...` : 'não encontrado',
-        'localStorage.osFotoFim': fotoFimStored ? `${fotoFimStored.substring(0, 30)}...` : 'não encontrado',
-        'dadosAutomaticos.fotoInicio': dadosAutomaticos.fotoInicio ? `${dadosAutomaticos.fotoInicio.substring(0, 30)}...` : 'não encontrado',
-        'dadosAutomaticos.fotoFim': dadosAutomaticos.fotoFim ? `${dadosAutomaticos.fotoFim.substring(0, 30)}...` : 'não encontrado',
-        'formularioSalvo.fotoInicio': dadosSalvos?.fotoInicio ? `${dadosSalvos.fotoInicio.substring(0, 30)}...` : 'não encontrado',
-        'formularioSalvo.fotoFim': dadosSalvos?.fotoFim ? `${dadosSalvos.fotoFim.substring(0, 30)}...` : 'não encontrado'
-      });
-      
-      // Buscar dados da execução para tentar obter fotos do servidor, se necessário
-      let fotoInicioUrl: string = '';
-      let fotoFimUrl: string = '';
-      
-      const execucaoData = localStorage.getItem('execucaoServico');
-      if (execucaoData) {
-        try {
-          const execucao = JSON.parse(execucaoData) as ExecucaoDto;
-          console.log('Dados da execução para fotos:', {
-            fotoInicioServico: 'fotoInicioServico' in execucao ? (execucao.fotoInicioServico ? 'presente' : 'ausente') : 'propriedade inexistente',
-            fotoFimServico: 'fotoFimServico' in execucao ? (execucao.fotoFimServico ? 'presente' : 'ausente') : 'propriedade inexistente'
-          });
-          
-          if ('fotoInicioServico' in execucao && execucao.fotoInicioServico) {
-            fotoInicioUrl = this.construirUrlImagem(execucao.fotoInicioServico);
-            console.log('URL da foto de início construída:', fotoInicioUrl);
-          }
-          
-          if ('fotoFimServico' in execucao && execucao.fotoFimServico) {
-            fotoFimUrl = this.construirUrlImagem(execucao.fotoFimServico);
-            console.log('URL da foto de fim construída:', fotoFimUrl);
-          }
-        } catch (e) {
-          console.error('Erro ao processar dados da execução para fotos:', e);
-        }
-      }
-      
-      // MELHORADO: Priorizar fotos na seguinte ordem:
-      // 1. Formulário salvo anteriormente
-      // 2. Foto capturada e salva localmente
-      // 3. Foto obtida da API
-      // 4. Foto dos dados automáticos
-      const fotoInicio = dadosSalvos?.fotoInicio || fotoInicioStored || fotoInicioUrl || dadosAutomaticos.fotoInicio || '';
-      const fotoFim = dadosSalvos?.fotoFim || fotoFimStored || fotoFimUrl || dadosAutomaticos.fotoFim || '';
-      
-      console.log('Fotos selecionadas para o formulário:', {
-        fotoInicio: fotoInicio ? `${fotoInicio.substring(0, 30)}...` : 'não disponível',
-        fotoFim: fotoFim ? `${fotoFim.substring(0, 30)}...` : 'não disponível'
-      });
-
       this.formularioServico.patchValue({
-        codigoOS: dadosSalvos?.codigoOS || dadosAutomaticos.codigoOS || '',
-        nomeColaborador: dadosSalvos?.nomeColaborador || dadosAutomaticos.nomeColaborador || '',
-        empresaColaborador: dadosSalvos?.empresaColaborador || dadosAutomaticos.empresaColaborador || 'VIBETEX',
-        nomeCliente: dadosSalvos?.nomeCliente || dadosAutomaticos.nomeCliente || '',
-        cpf: dadosSalvos?.cpf || dadosAutomaticos.cpf || '',
-        telefone: dadosSalvos?.telefone || this.formularioService.formatarTelefone(dadosAutomaticos.telefone || ''),
-        cep: dadosSalvos?.cep || dadosAutomaticos.cep || '',
-        logradouro: dadosSalvos?.logradouro || dadosAutomaticos.logradouro || '',
-        numero: dadosSalvos?.numero || dadosAutomaticos.numero || '',
-        complemento: dadosSalvos?.complemento || dadosAutomaticos.complemento || '',
-        bairro: dadosSalvos?.bairro || dadosAutomaticos.bairro || '',
-        cidade: dadosSalvos?.cidade || dadosAutomaticos.cidade || '',
-        estado: dadosSalvos?.estado || dadosAutomaticos.estado || '',
-        fotoInicio: fotoInicio,
-        fotoFim: fotoFim,
-        observacoes: dadosSalvos?.observacoes || '',
+        codigoOS: dadosAutomaticos.codigoOS || '',
+        nomeColaborador: dadosAutomaticos.nomeColaborador || '',
+        empresaColaborador: dadosAutomaticos.empresaColaborador || '',
+        nomeCliente: dadosAutomaticos.nomeCliente || '',
+        cpf: dadosAutomaticos.cpf || '',
+        telefone: dadosAutomaticos.telefone || '',
+        cep: dadosAutomaticos.cep || '',
+        logradouro: dadosAutomaticos.logradouro || '',
+        numero: dadosAutomaticos.numero || '',
+        complemento: dadosAutomaticos.complemento || '',
+        bairro: dadosAutomaticos.bairro || '',
+        cidade: dadosAutomaticos.cidade || '',
+        estado: dadosAutomaticos.estado || '',
+        fotoInicio: dadosAutomaticos.fotoInicio || '',
+        fotoFim: dadosAutomaticos.fotoFim || '',
+        observacoes: dadosAutomaticos.observacoes || '',
       });
-
-      const cep = this.formularioServico.get('cep')?.value;
-      if (cep && cep.length === 8) {
-        try {
-          const dadosCep = await this.formularioService.buscarCep(cep);
-          if (dadosCep && !dadosCep.erro) {
-            this.formularioServico.patchValue({
-              logradouro: dadosCep.logradouro || this.formularioServico.get('logradouro')?.value,
-              bairro: dadosCep.bairro || this.formularioServico.get('bairro')?.value,
-              cidade: dadosCep.localidade || this.formularioServico.get('cidade')?.value,
-              estado: dadosCep.uf || this.formularioServico.get('estado')?.value,
-            });
-          } else {
-            console.warn('CEP não encontrado:', cep);
-          }
-        } catch (error) {
-          console.error('Erro ao buscar CEP:', error);
-        }
-      }
-
+      
+      console.log('Valores aplicados ao formulário:', this.formularioServico.value);
+  
       setTimeout(() => {
         if (this.signaturePadCanvas) {
           this.signaturePad = new SignaturePad(this.signaturePadCanvas.nativeElement);
-        } else {
-          console.error('Canvas para assinatura não encontrado');
         }
       }, 0);
-
-      // Configurar o listener para salvar alterações no formulário
+  
       this.configurarAutoSave();
-
     } catch (error) {
       console.error('Erro ao preencher dados automáticos:', error);
       alert('Erro ao carregar dados do formulário.');
     }
   }
 
-  // Método para configurar o auto-save do formulário
   private configurarAutoSave(): void {
-    // Desinscrever de assinaturas anteriores, se houver
+    // Unsubscribe previous subscription if one exists
     if (this.autoSaveSubscription) {
       this.autoSaveSubscription.unsubscribe();
     }
-    
-    // Registrar para mudanças no formulário
-    this.autoSaveSubscription = this.formularioServico.valueChanges.subscribe(valores => {
+
+    // Força o salvamento inicial (independente de mudanças)
+    const valoresIniciais = this.formularioServico.value;
+    console.log('Salvando dados iniciais do formulário:', valoresIniciais);
+    localStorage.setItem('formularioData', JSON.stringify(valoresIniciais));
+
+    // Subscribe to changes in the form and log them for debugging
+    this.autoSaveSubscription = this.formularioServico.valueChanges.pipe(
+      debounceTime(500), // Aguardar 500ms entre mudanças
+      distinctUntilChanged(), // Só processa se houver mudança real
+      takeUntil(this.destroy$)
+    ).subscribe(valores => {
+      console.log('AutoSave - form value changes detectado:', valores);
+
+      // Verifica se há algum valor nulo e substitui por string vazia
+      Object.keys(valores).forEach(key => {
+        if (valores[key] === null) valores[key] = '';
+      });
+
       localStorage.setItem('formularioData', JSON.stringify(valores));
-      console.log('AutoSave: Dados do formulário atualizados');
+      console.log('Dados salvos no localStorage com sucesso');
+
+      // Verificação de confirmação - lê o valor salvo para confirmar
+      const savedData = localStorage.getItem('formularioData');
+      console.log('Confirmação - lido do localStorage:', savedData ? JSON.parse(savedData) : 'Nada salvo');
     });
   }
 
@@ -941,15 +912,15 @@ export class OrdemServicoExecComponent implements OnInit {
       await this.atualizarStatusOrdemConcluida(formData.observacoes);
 
       this.showNotification('Formulário enviado com sucesso! Obrigado por utilizar nosso sistema.', 'success');
-      
+
       // Limpar todos os dados do formulário
       this.limparTodosDadosFormulario();
       this.limparLocalStorageAposConclusao();
-      
+
       this.formularioServico.reset();
       this.limparAssinatura();
       this.mostrarFormulario = false;
-      
+
       // Redirecionar para a página de ordens pendentes após o envio bem-sucedido
       this.router.navigate([`/pages/ordem-servico/pendentes/${usuarioId}`]);
     } catch (error) {
@@ -963,7 +934,7 @@ export class OrdemServicoExecComponent implements OnInit {
     localStorage.removeItem('formularioAberto');
     localStorage.removeItem('execucaoConcluida');
     localStorage.removeItem('formularioData');
-    
+
     // Cancelar a assinatura do autoSave
     if (this.autoSaveSubscription) {
       this.autoSaveSubscription.unsubscribe();
@@ -1066,22 +1037,6 @@ export class OrdemServicoExecComponent implements OnInit {
     return new Blob([byteArray], { type: 'image/jpeg' });
   }
 
-  private construirUrlImagem(caminho: string): string {
-    if (!caminho) {
-      return '';
-    }
-    
-    // Se já for um base64 ou URL completa, retorne diretamente
-    if (caminho.startsWith('data:image/') || caminho.startsWith('http')) {
-      return caminho;
-    }
-    
-    // Construir URL com o servidor
-    const serverUrl = `${this.BASE_URL}${caminho}`;
-    console.log('URL de imagem construída:', serverUrl);
-    return serverUrl;
-  }
-
   private atualizarStatusOrdem(status: string): void {
     const ordemData = localStorage.getItem('ordemServico');
     if (ordemData) {
@@ -1102,29 +1057,29 @@ export class OrdemServicoExecComponent implements OnInit {
     }
 
     const ordem: OrdemServico = JSON.parse(ordemData);
-    
+
     // Obter os dados de início da execução
     let dataInicio = ordem.dataEHoraInicioServico;
     let dataFim = new Date().toISOString();
-    
+
     if (execucaoData) {
       const execucao = JSON.parse(execucaoData) as ExecucaoDto;
-      
+
       // Verificar se temos datas disponíveis na execução
       if ('dataEHoraInicioExecucao' in execucao && execucao.dataEHoraInicioExecucao) {
         dataInicio = execucao.dataEHoraInicioExecucao;
       }
-      
+
       if ('dataEHoraFimExecucao' in execucao && execucao.dataEHoraFimExecucao) {
-        dataFim = execucao.dataEHoraFimExecucao instanceof Date 
-          ? execucao.dataEHoraFimExecucao.toISOString() 
+        dataFim = execucao.dataEHoraFimExecucao instanceof Date
+          ? execucao.dataEHoraFimExecucao.toISOString()
           : execucao.dataEHoraFimExecucao;
       } else if ('dataHoraFim' in execucao && execucao.dataHoraFim) {
-    
+
         dataFim = typeof execucao.dataHoraFim === 'string' ? execucao.dataHoraFim : new Date().toISOString();
       }
     }
-    
+
     // Se ainda não tivermos data de início, use a atual
     if (!dataInicio) {
       dataInicio = ordem.dataEHoraInicioServico || dataFim;
@@ -1210,13 +1165,13 @@ export class OrdemServicoExecComponent implements OnInit {
     this.notificationMessage = message;
     this.notificationType = type;
     this.notificationVisible = true;
-    
+
     // Auto-esconder após 5 segundos
     setTimeout(() => {
       this.hideNotification();
     }, 5000);
   }
-  
+
   hideNotification(): void {
     this.notificationVisible = false;
   }
@@ -1227,5 +1182,24 @@ export class OrdemServicoExecComponent implements OnInit {
     if (this.autoSaveSubscription) {
       this.autoSaveSubscription.unsubscribe();
     }
+
+    // Limpar todas as inscrições
+    this.destroy$.next();
+    this.destroy$.complete();
+    
+    if (this.autoSaveSubscription) {
+      this.autoSaveSubscription.unsubscribe();
+    }
+
+    // Limpar cache
+    this.dadosCache = {
+      ordemServico: null,
+      execucao: null
+    };
+  }
+
+  // Add this method to handle trackBy for ngFor
+  trackByFn(index: number, item: WebcamInitError): number | string {
+    return item.message || index;
   }
 }

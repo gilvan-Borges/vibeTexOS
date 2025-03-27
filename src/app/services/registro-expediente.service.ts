@@ -121,7 +121,7 @@ export class RegistroExpedienteService {
               };
               this.servicoArmazenamento.salvarDadosExpediente(dadosExpediente);
             }
-            this.router.navigate(['/pages/ordem-servico']);
+            this.router.navigate([`/pages/ordem-servico/pendentes`, idUsuario]);
             resolve();
           },
           error: (err) => {

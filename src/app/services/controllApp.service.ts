@@ -214,11 +214,25 @@ export class ControllAppService {
   }
 
   atualizarCoordenadasUsuario(usuarioId: string, latitude: string, longitude: string): Observable<any> {
-    console.log('Enviando coordenadas via query string:', { latitude, longitude });
+    const token = localStorage.getItem('token');
+  
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token || ''}`
+    });
+  
+    const url = `${this.apiUrl}/usuario/update-location/${usuarioId}?latitude=${latitude}&longitude=${longitude}`;
+    console.log('[DEBUG] Enviando coordenadas para API:', {
+      url,
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
+  
     return this.httpClient.put(
-      `${this.apiUrl}/usuario/update-location/${usuarioId}?latitude=${latitude}&longitude=${longitude}`,
+      url,
       {},
-      { responseType: 'text' }  // Aqui informamos que a resposta esperada é texto simples
+      {
+        headers,
+        responseType: 'text' as const
+      }
     );
   }
 

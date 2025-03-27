@@ -5,7 +5,6 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { VibeService } from '../../../services/vibe.service';
 import { ControllAppService } from '../../../services/controllApp.service';
 import { Observable, forkJoin, of } from 'rxjs';
-import { environment } from '../../../../environments/environment.prod';
 
 // Interface para tipar os dados das ordens de serviço
 interface OrdemServico {
